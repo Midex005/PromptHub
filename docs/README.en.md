@@ -5,7 +5,7 @@
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square" alt="GitHub Stars"/></a>
     <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
     <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"/>
-    <img src="https://img.shields.io/badge/Electron-28-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron"/>
+    <img src="https://img.shields.io/badge/Electron-33-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron"/>
     <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React"/>
     <img src="https://img.shields.io/github/license/legeling/PromptHub?style=flat-square" alt="License"/>
   </p>
@@ -47,7 +47,6 @@ Download the installer for your platform from [Releases](https://github.com/lege
 |----------|----------|
 | macOS | `PromptHub-x.x.x.dmg` |
 | Windows | `PromptHub-x.x.x-setup.exe` |
-| Linux | `PromptHub-x.x.x.AppImage` |
 
 ### Build from Source
 
@@ -99,7 +98,7 @@ Edit history is automatically saved. Click "History" to view and restore previou
 
 | Category | Technology |
 |----------|------------|
-| Framework | Electron 28 |
+| Framework | Electron 33 |
 | Frontend | React 18 + TypeScript 5 |
 | Styling | TailwindCSS |
 | State Management | Zustand |
@@ -123,9 +122,19 @@ PromptHub/
 └── package.json
 ```
 
+## 📈 Star History
+
+<a href="https://star-history.com/#legeling/PromptHub&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
+  </picture>
+</a>
+
 ## 🗺️ Roadmap
 
-### v0.1.0 (Current)
+### v0.1.3 (Current)
 - [x] Prompt CRUD management
 - [x] Folder and tag system
 - [x] Favorites feature
@@ -133,13 +142,47 @@ PromptHub/
 - [x] Data import/export
 - [x] Theme customization (Dark/Light/System)
 - [x] Multi-language support (Chinese/English)
+- [x] WebDAV sync
+- [x] Windows frameless window
+- [x] Folder drag & drop sorting
+- [x] AI model configuration (18+ providers)
+- [x] AI connection test & model comparison
 
 ### Future Plans
 - [ ] Variable fill-in interface
 - [ ] Prompt template marketplace
-- [ ] Cloud sync
 - [ ] Browser extension
-- [ ] AI testing feature
+- [ ] Auto update
+
+## 📝 Changelog
+
+### v0.1.3 (2025-11-29)
+**New Features**
+- ✨ AI model configuration (18+ domestic and international providers)
+- ✨ AI connection test (async test with response time)
+- ✨ AI model comparison (parallel test two models)
+- ✨ Complete i18n support (Settings page fully internationalized)
+
+**Improvements**
+- 🎨 Optimized settings page UI
+- 🔧 Removed prompt card drag (fixed click issues)
+
+### v0.1.2 (2025-11-29)
+**New Features**
+- ✨ WebDAV sync (upload/download data to remote server)
+- ✨ Folder drag & drop sorting
+- ✨ Drag prompts to folders
+- ✨ Select folder when creating new prompt
+
+### v0.1.1 (2025-11-29)
+**New Features**
+- ✨ Folder create/edit/delete
+- ✨ Tag filtering
+- ✨ Check for updates
+- ✨ Windows custom title bar
+
+### v0.1.0 (2025-11-29)
+- 🎉 Initial release
 
 ## 🤝 Contributing
 

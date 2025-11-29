@@ -18,10 +18,14 @@ import {
   RefreshCwIcon,
   BrainIcon,
   KeyIcon,
+  PlayIcon,
+  Loader2Icon,
+  ZapIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { downloadBackup, restoreFromFile, clearDatabase } from '../../services/database';
 import { testConnection, uploadToWebDAV, downloadFromWebDAV } from '../../services/webdav';
+import { testAIConnection, AITestResult } from '../../services/ai';
 import { useSettingsStore, MORANDI_THEMES, FONT_SIZES, ThemeMode } from '../../stores/settings.store';
 import { useToast } from '../ui/Toast';
 
@@ -72,6 +76,75 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   
   // 使用 settings store
   const settings = useSettingsStore();
+  
+  // AI 测试状态
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<AITestResult | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareConfig, setCompareConfig] = useState({ provider: '', apiKey: '', apiUrl: '', model: '' });
+  const [compareTesting, setCompareTesting] = useState(false);
+  const [compareResult, setCompareResult] = useState<AITestResult | null>(null);
+
+  // AI 测试函数
+  const handleTestAI = async () => {
+    if (!settings.aiApiKey || !settings.aiApiUrl || !settings.aiModel) {
+      showToast(t('toast.configApiKey'), 'error');
+      return;
+    }
+    
+    setAiTesting(true);
+    setAiTestResult(null);
+    
+    const result = await testAIConnection({
+      provider: settings.aiProvider,
+      apiKey: settings.aiApiKey,
+      apiUrl: settings.aiApiUrl,
+      model: settings.aiModel,
+    });
+    
+    setAiTestResult(result);
+    setAiTesting(false);
+    
+    if (result.success) {
+      showToast(`${t('toast.connectionSuccess')} (${result.latency}ms)`, 'success');
+    } else {
+      showToast(result.error || t('toast.connectionFailed'), 'error');
+    }
+  };
+
+  // 对比测试函数
+  const handleCompareTest = async () => {
+    if (!settings.aiApiKey || !compareConfig.apiKey) {
+      showToast(t('toast.configApiKey'), 'error');
+      return;
+    }
+    
+    setAiTesting(true);
+    setCompareTesting(true);
+    setAiTestResult(null);
+    setCompareResult(null);
+    
+    // 并行测试两个模型
+    const [result1, result2] = await Promise.all([
+      testAIConnection({
+        provider: settings.aiProvider,
+        apiKey: settings.aiApiKey,
+        apiUrl: settings.aiApiUrl,
+        model: settings.aiModel,
+      }),
+      testAIConnection({
+        provider: compareConfig.provider || 'custom',
+        apiKey: compareConfig.apiKey,
+        apiUrl: compareConfig.apiUrl,
+        model: compareConfig.model,
+      }),
+    ]);
+    
+    setAiTestResult(result1);
+    setCompareResult(result2);
+    setAiTesting(false);
+    setCompareTesting(false);
+  };
 
   const handleExportData = async () => {
     try {
@@ -536,19 +609,136 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   </div>
                 </div>
 
-                {/* 保存按钮 */}
-                <button
-                  onClick={() => {
-                    if (!settings.aiApiKey) {
-                      showToast(t('toast.configApiKey'), 'error');
-                      return;
-                    }
-                    showToast(t('settings.aiConfigSaved'), 'success');
-                  }}
-                  className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  {t('settings.saveConfig')}
-                </button>
+                {/* 操作按钮 */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleTestAI}
+                    disabled={aiTesting}
+                    className="flex-1 h-10 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {aiTesting ? (
+                      <Loader2Icon className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PlayIcon className="w-4 h-4" />
+                    )}
+                    {t('settings.testConnection')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!settings.aiApiKey) {
+                        showToast(t('toast.configApiKey'), 'error');
+                        return;
+                      }
+                      showToast(t('settings.aiConfigSaved'), 'success');
+                    }}
+                    className="flex-1 h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    {t('settings.saveConfig')}
+                  </button>
+                </div>
+
+                {/* 测试结果 */}
+                {aiTestResult && (
+                  <div className={`p-3 rounded-lg text-sm ${aiTestResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium">{aiTestResult.model}</span>
+                      <span className="text-xs opacity-70">({aiTestResult.latency}ms)</span>
+                    </div>
+                    {aiTestResult.success ? (
+                      <p className="text-xs opacity-80 line-clamp-3">{aiTestResult.response}</p>
+                    ) : (
+                      <p className="text-xs">{aiTestResult.error}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </SettingSection>
+
+            {/* 模型对比测试 */}
+            <SettingSection title={t('settings.compareModels')}>
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">{t('settings.enableCompare')}</span>
+                  <ToggleSwitch checked={compareMode} onChange={setCompareMode} />
+                </div>
+                
+                {compareMode && (
+                  <>
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiKey')} 2</label>
+                        <input
+                          type="password"
+                          placeholder={t('settings.apiKey')}
+                          value={compareConfig.apiKey}
+                          onChange={(e) => setCompareConfig({ ...compareConfig, apiKey: e.target.value })}
+                          className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiUrl')} 2</label>
+                        <input
+                          type="text"
+                          placeholder="https://api.example.com/v1"
+                          value={compareConfig.apiUrl}
+                          onChange={(e) => setCompareConfig({ ...compareConfig, apiUrl: e.target.value })}
+                          className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">{t('settings.model')} 2</label>
+                        <input
+                          type="text"
+                          placeholder={t('settings.model')}
+                          value={compareConfig.model}
+                          onChange={(e) => setCompareConfig({ ...compareConfig, model: e.target.value })}
+                          className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={handleCompareTest}
+                      disabled={aiTesting || compareTesting}
+                      className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {(aiTesting || compareTesting) ? (
+                        <Loader2Icon className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ZapIcon className="w-4 h-4" />
+                      )}
+                      {t('settings.runCompare')}
+                    </button>
+
+                    {/* 对比结果 */}
+                    {(aiTestResult || compareResult) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {aiTestResult && (
+                          <div className={`p-3 rounded-lg text-sm ${aiTestResult.success ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                            <div className="font-medium text-xs mb-1">{aiTestResult.model}</div>
+                            <div className="text-xs opacity-70 mb-1">{aiTestResult.latency}ms</div>
+                            {aiTestResult.success ? (
+                              <p className="text-xs line-clamp-4">{aiTestResult.response}</p>
+                            ) : (
+                              <p className="text-xs text-red-600">{aiTestResult.error}</p>
+                            )}
+                          </div>
+                        )}
+                        {compareResult && (
+                          <div className={`p-3 rounded-lg text-sm ${compareResult.success ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                            <div className="font-medium text-xs mb-1">{compareResult.model}</div>
+                            <div className="text-xs opacity-70 mb-1">{compareResult.latency}ms</div>
+                            {compareResult.success ? (
+                              <p className="text-xs line-clamp-4">{compareResult.response}</p>
+                            ) : (
+                              <p className="text-xs text-red-600">{compareResult.error}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </SettingSection>
 
@@ -639,7 +829,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 <span className="text-white text-xl font-bold">P</span>
               </div>
               <h2 className="text-lg font-semibold">PromptHub</h2>
-              <p className="text-sm text-muted-foreground mt-1">{t('settings.version')} 0.1.2</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('settings.version')} 0.1.3</p>
             </div>
 
             <SettingSection title={t('settings.projectInfo')}>
@@ -657,7 +847,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   onChange={settings.setAutoCheckUpdate}
                 />
               </SettingItem>
-              <SettingItem label={t('settings.checkUpdate')} description={`${t('settings.version')}: 0.1.2`}>
+              <SettingItem label={t('settings.checkUpdate')} description={`${t('settings.version')}: 0.1.3`}>
                 <button
                   onClick={() => {
                     window.open('https://github.com/legeling/PromptHub/releases', '_blank');

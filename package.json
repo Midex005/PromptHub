@@ -1,6 +1,6 @@
 {
   "name": "prompthub",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "本地版的 Prompt 管理器，带版本控制",
   "main": "out/main/index.js",
   "author": "PromptHub Team",

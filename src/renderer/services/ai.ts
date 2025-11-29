@@ -127,18 +127,57 @@ export async function chatCompletion(
   }
 }
 
+export interface AITestResult {
+  success: boolean;
+  response?: string;
+  error?: string;
+  latency?: number; // 响应时间 (ms)
+  model: string;
+  provider: string;
+}
+
 /**
- * 测试 AI 配置是否可用
+ * 测试 AI 配置是否可用（带详细结果）
  */
-export async function testAIConnection(config: AIConfig): Promise<boolean> {
+export async function testAIConnection(
+  config: AIConfig,
+  testPrompt?: string
+): Promise<AITestResult> {
+  const startTime = Date.now();
+  const prompt = testPrompt || 'Hello! Please respond with a brief greeting.';
+  
   try {
     const result = await chatCompletion(config, [
-      { role: 'user', content: 'Hello, please respond with "OK" only.' }
-    ], { maxTokens: 10 });
-    return result.length > 0;
-  } catch {
-    return false;
+      { role: 'user', content: prompt }
+    ], { maxTokens: 100 });
+    
+    return {
+      success: true,
+      response: result,
+      latency: Date.now() - startTime,
+      model: config.model,
+      provider: config.provider,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误',
+      latency: Date.now() - startTime,
+      model: config.model,
+      provider: config.provider,
+    };
   }
+}
+
+/**
+ * 并行测试多个 AI 配置（用于对比）
+ */
+export async function compareAIModels(
+  configs: AIConfig[],
+  testPrompt: string
+): Promise<AITestResult[]> {
+  const promises = configs.map(config => testAIConnection(config, testPrompt));
+  return Promise.all(promises);
 }
 
 /**

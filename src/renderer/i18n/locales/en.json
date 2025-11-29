@@ -132,7 +132,10 @@
     "overseas": "Overseas",
     "domestic": "Domestic",
     "other": "Other",
-    "description": "Description"
+    "description": "Description",
+    "compareModels": "Model Comparison",
+    "enableCompare": "Enable Compare Mode",
+    "runCompare": "Run Comparison"
   },
   "resources": {
     "title": "Recommended Resources",

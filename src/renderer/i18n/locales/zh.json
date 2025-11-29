@@ -132,7 +132,10 @@
     "overseas": "海外服务",
     "domestic": "国内服务",
     "other": "其他",
-    "description": "说明"
+    "description": "说明",
+    "compareModels": "模型对比测试",
+    "enableCompare": "启用对比模式",
+    "runCompare": "开始对比测试"
   },
   "resources": {
     "title": "推荐资源",
