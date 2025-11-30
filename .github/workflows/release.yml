@@ -55,13 +55,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Remove universal exe (keep only arch-specific)
+        if: matrix.platform == 'win'
+        shell: bash
+        run: |
+          # 删除通用 exe，只保留带架构标识的
+          find dist -name "*.exe" ! -name "*-x64.exe" ! -name "*-arm64.exe" -delete || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: |
             dist/*.dmg
-            dist/*.exe
+            dist/*-x64.exe
+            dist/*-arm64.exe
           if-no-files-found: ignore
 
   release:
@@ -85,24 +93,24 @@ jobs:
           prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
           generate_release_notes: true
           body: |
-            ## 📦 安装说明
+            ## 📦 下载安装
             
-            ### macOS
-            - **Intel 芯片**: 下载 `PromptHub-x.x.x.dmg`
-            - **Apple Silicon (M1/M2/M3)**: 下载 `PromptHub-x.x.x-arm64.dmg`
+            | 平台 | 芯片 | 下载 |
+            |------|------|------|
+            | macOS | Intel 芯片 | `PromptHub-${{ github.ref_name }}-x64.dmg` |
+            | macOS | M 系列芯片 | `PromptHub-${{ github.ref_name }}-arm64.dmg` |
+            | Windows | x64 | `PromptHub-Setup-${{ github.ref_name }}-x64.exe` |
             
-            > ⚠️ **首次启动提示**: 如果提示"无法打开"，请在终端执行：
-            > ```bash
-            > sudo xattr -rd com.apple.quarantine /Applications/PromptHub.app
-            > ```
-            
-            ### Windows
-            - 下载 `PromptHub-x.x.x-setup.exe` 并运行安装
+            ### ⚠️ macOS 首次启动
+            如果提示"无法打开"或"已损坏"，请在终端执行：
+            ```bash
+            sudo xattr -rd com.apple.quarantine /Applications/PromptHub.app
+            ```
             
             ---
             
-            ## 🔄 更新内容
+            ## 🔄 本次更新
             
-            详细更新日志请查看 [CHANGELOG](https://github.com/legeling/PromptHub#-更新日志)
+            详细更新日志请查看 [更新日志](https://github.com/legeling/PromptHub#-更新日志)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

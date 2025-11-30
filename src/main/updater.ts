@@ -1,9 +1,8 @@
-// @ts-ignore - electron-updater types will be available after pnpm install
-import { autoUpdater } from 'electron-updater';
+import { autoUpdater, UpdateInfo as ElectronUpdateInfo } from 'electron-updater';
 import { BrowserWindow, ipcMain, app } from 'electron';
 
-// 类型定义
-interface UpdateInfo {
+// 简化的更新信息类型（用于 IPC 传输）
+interface SimpleUpdateInfo {
   version: string;
   releaseNotes?: string;
   releaseDate?: string;
@@ -16,6 +15,21 @@ interface ProgressInfo {
   transferred: number;
 }
 
+// 从 electron-updater 的 UpdateInfo 转换为简化格式
+function toSimpleInfo(info: ElectronUpdateInfo): SimpleUpdateInfo {
+  let releaseNotes = '';
+  if (typeof info.releaseNotes === 'string') {
+    releaseNotes = info.releaseNotes;
+  } else if (Array.isArray(info.releaseNotes)) {
+    releaseNotes = info.releaseNotes.map(n => n.note || '').join('\n');
+  }
+  return {
+    version: info.version,
+    releaseNotes,
+    releaseDate: info.releaseDate,
+  };
+}
+
 // 禁用自动下载，让用户选择
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
@@ -24,7 +38,7 @@ let mainWindow: BrowserWindow | null = null;
 
 export interface UpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
-  info?: UpdateInfo;
+  info?: SimpleUpdateInfo;
   progress?: ProgressInfo;
   error?: string;
 }
@@ -48,20 +62,20 @@ export function initUpdater(win: BrowserWindow) {
   });
 
   // 有可用更新
-  autoUpdater.on('update-available', (info: UpdateInfo) => {
+  autoUpdater.on('update-available', (info) => {
     console.info('Update available:', info.version);
     sendStatusToWindow({
       status: 'available',
-      info,
+      info: toSimpleInfo(info),
     });
   });
 
   // 没有可用更新
-  autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+  autoUpdater.on('update-not-available', (info) => {
     console.info('Update not available, current version is latest');
     sendStatusToWindow({
       status: 'not-available',
-      info,
+      info: toSimpleInfo(info),
     });
   });
 
@@ -75,11 +89,11 @@ export function initUpdater(win: BrowserWindow) {
   });
 
   // 下载完成
-  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+  autoUpdater.on('update-downloaded', (info) => {
     console.info('Update downloaded:', info.version);
     sendStatusToWindow({
       status: 'downloaded',
-      info,
+      info: toSimpleInfo(info),
     });
   });
 }
