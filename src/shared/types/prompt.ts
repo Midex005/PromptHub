@@ -13,6 +13,7 @@ export interface Prompt {
   folderId?: string;
   isFavorite: boolean;
   version: number;
+  currentVersion: number;
   usageCount: number;
   createdAt: string;  // ISO 8601 格式
   updatedAt: string;  // ISO 8601 格式

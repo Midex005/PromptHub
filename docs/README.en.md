@@ -76,6 +76,7 @@ Download the installer for your platform from [Releases](https://github.com/lege
 | macOS (Intel) | `PromptHub-x.x.x-x64.dmg` |
 | macOS (Apple Silicon) | `PromptHub-x.x.x-arm64.dmg` |
 | Windows | `PromptHub-x.x.x-Setup-x64.exe` |
+| Linux | `PromptHub-x.x.x.AppImage` / `.deb` |
 
 ### macOS First Launch
 
@@ -181,7 +182,7 @@ PromptHub/
 
 ## 🗺️ Roadmap
 
-### v0.1.7 (Current)
+### v0.1.8 (Current)
 - [x] Prompt CRUD management
 - [x] Folder and tag system
 - [x] Favorites feature
@@ -198,6 +199,9 @@ PromptHub/
 - [x] Full i18n support (homepage, editor, modals)
 - [x] In-app auto update
 - [x] Variable fill-in interface (copy & AI test)
+- [x] Minimize to system tray
+- [x] Linux platform support
+- [x] Editor line numbers
 
 ### Future Plans
 - [ ] Web version (Docker/Cloudflare deployment)
@@ -207,6 +211,18 @@ PromptHub/
 - [ ] Browser extension
 
 ## 📝 Changelog
+
+### v0.1.8 (2025-12-01)
+**New Features**
+- ✨ Minimize to system tray (Windows/macOS)
+- ✨ Clickable data directory path
+- ✨ Editor line numbers display
+- ✨ Linux platform support (AppImage/deb)
+
+**Improvements**
+- 🎨 Variable input auto-expands for multi-line text
+- 🎨 Optimized macOS tray icon
+- 🔧 Update check can be clicked multiple times
 
 ### v0.1.7 (2025-11-30)
 **New Features**
@@ -294,7 +310,7 @@ Contributions are welcome! Please follow these steps:
 
 ## 📄 License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the [AGPL-3.0 License](./LICENSE).
 
 ## 💬 Support
 

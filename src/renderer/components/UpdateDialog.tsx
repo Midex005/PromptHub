@@ -49,6 +49,16 @@ export function UpdateDialog({ isOpen, onClose }: UpdateDialogProps) {
     };
   }, []);
 
+  // 当对话框打开时，重置状态以允许重新检查
+  useEffect(() => {
+    if (isOpen) {
+      // 只有在非下载中状态时才重置
+      if (updateStatus?.status !== 'downloading' && updateStatus?.status !== 'downloaded') {
+        setUpdateStatus(null);
+      }
+    }
+  }, [isOpen]);
+
   const handleCheckUpdate = async () => {
     setUpdateStatus({ status: 'checking' });
     const result = await window.electron?.updater?.check();

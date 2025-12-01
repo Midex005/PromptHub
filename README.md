@@ -1,8 +1,8 @@
 <div align="center">
   <img src="./docs/imgs/icon.png" alt="PromptHub Logo" width="120" height="120" />
   <h1>PromptHub</h1>
-  <p><strong>🚀 开源、本地优先的 AI Prompt 管理器</strong></p>
-  <p>高效管理、版本控制、变量填充、多模型测试 — 一站式 Prompt 工作流</p>
+  <p><strong>🚀 开源免费的 AI Prompt 管理工具，数据完全存储在本地</strong></p>
+  <p>高效管理、版本控制、变量模板、多模型测试 — 一站式 Prompt 工作台</p>
   
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
@@ -29,7 +29,7 @@
 
 > 💡 **为什么选择 PromptHub？**
 > 
-> 厌倦了在笔记本、文档和聊天记录中翻找 Prompt？PromptHub 让你像管理代码一样管理 Prompt — 版本控制、变量模板、多模型测试，一切都在本地，隐私无忧。
+> 还在笔记本、文档和聊天记录里到处翻找 Prompt？PromptHub 让你像管理代码一样管理 Prompt — 支持版本控制、变量模板、多模型测试，所有数据都存在本地，隐私安全有保障。
 
 ---
 
@@ -44,7 +44,8 @@
 - **📤 数据导出** - JSON 格式备份和恢复
 - **🎨 主题定制** - 深色/浅色/跟随系统，多种主题色可选
 - **🌐 多语言** - 支持中文和英文界面
-- **💾 本地存储** - 数据完全存储在本地，隐私安全
+- **💾 本地存储** - 所有数据存储在本地，隐私安全有保障
+- **🖥️ 跨平台** - 支持 macOS、Windows、Linux
 
 ## 📸 截图
 
@@ -73,9 +74,10 @@
 
 | 平台 | 下载 |
 |------|------|
-| macOS (Intel) | `PromptHub-x.x.x.dmg` |
+| macOS (Intel) | `PromptHub-x.x.x-x64.dmg` |
 | macOS (Apple Silicon) | `PromptHub-x.x.x-arm64.dmg` |
-| Windows | `PromptHub-x.x.x-setup.exe` |
+| Windows | `PromptHub-Setup-x.x.x-x64.exe` |
+| Linux | `PromptHub-x.x.x.AppImage` 或 `.deb` |
 
 ### macOS 首次启动
 
@@ -145,11 +147,11 @@ pnpm build
 
 | 类别 | 技术 |
 |------|------|
-| 框架 | Electron 28 |
+| 框架 | Electron 33 |
 | 前端 | React 18 + TypeScript 5 |
 | 样式 | TailwindCSS |
 | 状态管理 | Zustand |
-| 本地存储 | IndexedDB |
+| 本地存储 | IndexedDB + SQLite |
 | 构建工具 | Vite + electron-builder |
 
 ## 📁 项目结构
@@ -157,15 +159,30 @@ pnpm build
 ```
 PromptHub/
 ├── src/
-│   ├── main/           # Electron 主进程
-│   ├── preload/        # 预加载脚本
-│   ├── renderer/       # React 渲染进程
-│   │   ├── components/ # UI 组件
-│   │   ├── stores/     # Zustand 状态管理
-│   │   ├── services/   # 数据库服务
-│   │   └── styles/     # 全局样式
-│   └── shared/         # 共享类型
-├── resources/          # 静态资源
+│   ├── main/                # Electron 主进程
+│   │   ├── database/        # SQLite 数据库操作
+│   │   ├── ipc/             # IPC 通信处理
+│   │   ├── index.ts         # 主进程入口
+│   │   ├── menu.ts          # 应用菜单
+│   │   ├── shortcuts.ts     # 快捷键
+│   │   └── updater.ts       # 自动更新
+│   ├── preload/             # 预加载脚本
+│   ├── renderer/            # React 渲染进程
+│   │   ├── components/      # UI 组件
+│   │   │   ├── folder/      # 文件夹组件
+│   │   │   ├── layout/      # 布局组件
+│   │   │   ├── prompt/      # Prompt 组件
+│   │   │   ├── settings/    # 设置页面
+│   │   │   └── ui/          # 通用 UI 组件
+│   │   ├── i18n/            # 国际化
+│   │   ├── services/        # 服务层 (IndexedDB, AI, WebDAV)
+│   │   ├── stores/          # Zustand 状态管理
+│   │   └── styles/          # 全局样式
+│   └── shared/              # 共享类型和常量
+│       ├── constants/       # 常量定义
+│       └── types/           # TypeScript 类型
+├── resources/               # 应用图标等静态资源
+├── .github/workflows/       # CI/CD 配置
 └── package.json
 ```
 
@@ -181,7 +198,7 @@ PromptHub/
 
 ## 🗺️ 路线图
 
-### v0.1.7 (当前)
+### v0.1.8 (当前)
 - [x] Prompt CRUD 管理
 - [x] 文件夹和标签系统
 - [x] 收藏功能
@@ -200,6 +217,9 @@ PromptHub/
 - [x] 全面国际化支持（主页、编辑器、弹窗）
 - [x] 应用内自动更新
 - [x] 变量填充界面（复制/AI测试时均支持）
+- [x] 最小化到系统托盘
+- [x] Linux 平台支持
+- [x] 编辑器行号显示
 
 ### 未来规划
 - [ ] Web 版本（Docker/Cloudflare 部署）
@@ -209,6 +229,27 @@ PromptHub/
 - [ ] 浏览器插件
 
 ## 📝 更新日志
+
+### v0.1.8 (2025-12-01)
+**新功能**
+- ✨ 最小化到系统托盘功能（Windows/macOS/Linux）
+- ✨ 数据目录路径可点击打开
+- ✨ 编辑器支持行号显示
+- ✨ 新增 Linux 平台支持（AppImage/deb）
+- ✨ AI 模型动态获取（从供应商 API 获取可用模型列表）
+- ✨ 模型选择弹窗（支持搜索、分类、批量添加）
+- ✨ 模型分类展示（GPT/Claude/Gemini/DeepSeek 等自动分类）
+- ✨ 模型分类图标（每个类别显示对应的 SVG 图标）
+- ✨ API URL 智能预览（自动补全 /v1/chat/completions）
+- ✨ 已添加模型按供应商分组折叠显示
+
+**优化**
+- 🎨 变量输入框支持自动变高（多行文本输入更友好）
+- 🎨 优化 macOS 托盘图标显示
+- 🎨 AI 测试状态按 Prompt 独立管理（切换 Prompt 不影响测试）
+- 🎨 测试结果持久化（切换 Prompt 后结果保留）
+- 🔧 检查更新支持多次点击
+- 🔧 修复通知功能图标路径问题
 
 ### v0.1.7 (2025-11-30)
 **新功能**
@@ -315,7 +356,7 @@ PromptHub/
 
 ## 📄 许可证
 
-本项目采用 [MIT License](./LICENSE) 开源协议。
+本项目采用 [AGPL-3.0 License](./LICENSE) 开源协议。
 
 ## 💬 支持
 

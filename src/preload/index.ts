@@ -86,7 +86,9 @@ contextBridge.exposeInMainWorld('electron', {
   maximize: () => ipcRenderer.send('window:maximize'),
   close: () => ipcRenderer.send('window:close'),
   setAutoLaunch: (enabled: boolean) => ipcRenderer.send('app:setAutoLaunch', enabled),
+  setMinimizeToTray: (enabled: boolean) => ipcRenderer.send('app:setMinimizeToTray', enabled),
   selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+  openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
   showNotification: (title: string, body: string) => ipcRenderer.invoke('notification:show', { title, body }),
   // 更新器
   updater: {
@@ -114,7 +116,9 @@ declare global {
       maximize?: () => void;
       close?: () => void;
       setAutoLaunch?: (enabled: boolean) => void;
+      setMinimizeToTray?: (enabled: boolean) => void;
       selectFolder?: () => Promise<string | null>;
+      openPath?: (path: string) => Promise<{ success: boolean; error?: string }>;
       showNotification?: (title: string, body: string) => Promise<boolean>;
       updater?: {
         check: () => Promise<{ success: boolean; result?: any; error?: string }>;

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, dialog, Notification } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog, Notification, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
 // TODO: 暂时禁用数据库（需要解决 better-sqlite3 与 Electron 39 的兼容问题）
 // import { initDatabase } from './database';
@@ -11,6 +11,9 @@ import { initUpdater, registerUpdaterIPC } from './updater';
 // app.disableHardwareAcceleration();
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let minimizeToTray = false;
+let isQuitting = false;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
@@ -69,6 +72,15 @@ async function createWindow() {
     return { action: 'deny' };
   });
 
+  // 关闭行为：根据设置决定是最小化到托盘还是关闭
+  mainWindow.on('close', (event) => {
+    if (minimizeToTray && !isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+      return false;
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -99,6 +111,120 @@ ipcMain.on('app:setAutoLaunch', (_event, enabled: boolean) => {
   });
 });
 
+// 设置最小化到托盘
+ipcMain.on('app:setMinimizeToTray', (_event, enabled: boolean) => {
+  minimizeToTray = enabled;
+  if (enabled) {
+    createTray();
+  } else {
+    destroyTray();
+  }
+});
+
+// 创建 macOS 模板图标
+function createMacTrayIcon(): Electron.NativeImage {
+  // 使用应用图标作为托盘图标
+  let iconPath: string;
+  if (isDev) {
+    iconPath = path.join(__dirname, '../../resources/icon.iconset/icon_16x16@2x.png');
+  } else {
+    iconPath = path.join(process.resourcesPath, 'icon.iconset/icon_16x16@2x.png');
+  }
+  
+  const icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) {
+    console.error('Failed to load tray icon from:', iconPath);
+    // 尝试备用路径
+    const altPath = isDev 
+      ? path.join(__dirname, '../../resources/icon.iconset/icon_32x32.png')
+      : path.join(process.resourcesPath, 'icon.iconset/icon_32x32.png');
+    const altIcon = nativeImage.createFromPath(altPath);
+    altIcon.setTemplateImage(true);
+    return altIcon.resize({ width: 18, height: 18 });
+  }
+  
+  icon.setTemplateImage(true);
+  return icon.resize({ width: 18, height: 18 });
+}
+
+// 创建系统托盘
+function createTray() {
+  if (tray) return;
+  
+  const isMac = process.platform === 'darwin';
+  
+  try {
+    let icon: Electron.NativeImage;
+    
+    if (isMac) {
+      // macOS: 使用 P 字母模板图标
+      icon = createMacTrayIcon();
+    } else {
+      // Windows/Linux: 使用应用图标
+      let iconPath: string;
+      if (isDev) {
+        iconPath = path.join(__dirname, '../../resources/icon.ico');
+      } else {
+        iconPath = path.join(process.resourcesPath, 'icon.ico');
+      }
+      icon = nativeImage.createFromPath(iconPath);
+      icon = icon.resize({ width: 16, height: 16 });
+    }
+    
+    tray = new Tray(icon);
+  } catch (e) {
+    console.error('Failed to load tray icon:', e);
+    // 如果加载图标失败，使用应用图标
+    let iconPath: string;
+    if (isDev) {
+      iconPath = path.join(__dirname, '../../resources/icon.iconset/icon_16x16@2x.png');
+    } else {
+      iconPath = path.join(process.resourcesPath, 'icon.iconset/icon_16x16@2x.png');
+    }
+    const fallbackIcon = nativeImage.createFromPath(iconPath);
+    tray = new Tray(fallbackIcon.resize({ width: 18, height: 18 }));
+  }
+  
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示窗口',
+      click: () => {
+        mainWindow?.show();
+        mainWindow?.focus();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  
+  tray.setToolTip('PromptHub');
+  tray.setContextMenu(contextMenu);
+  
+  // 点击托盘图标显示窗口
+  tray.on('click', () => {
+    if (mainWindow?.isVisible()) {
+      mainWindow.focus();
+    } else {
+      mainWindow?.show();
+      mainWindow?.focus();
+    }
+  });
+}
+
+// 销毁托盘
+function destroyTray() {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+}
+
 // 选择文件夹对话框
 ipcMain.handle('dialog:selectFolder', async () => {
   const result = await dialog.showOpenDialog(mainWindow!, {
@@ -111,13 +237,39 @@ ipcMain.handle('dialog:selectFolder', async () => {
   return null;
 });
 
+// 在文件管理器中打开文件夹
+ipcMain.handle('shell:openPath', async (_event, folderPath: string) => {
+  // 处理特殊路径
+  let realPath = folderPath;
+  if (folderPath.startsWith('~')) {
+    realPath = folderPath.replace('~', app.getPath('home'));
+  } else if (folderPath.includes('%APPDATA%')) {
+    realPath = folderPath.replace('%APPDATA%', app.getPath('appData'));
+  }
+  
+  try {
+    await shell.openPath(realPath);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
 // 发送系统通知
 ipcMain.handle('notification:show', async (_event, options: { title: string; body: string }) => {
   if (Notification.isSupported()) {
+    // 获取图标路径
+    let iconPath: string;
+    if (isDev) {
+      iconPath = path.join(__dirname, '../../resources/icon.png');
+    } else {
+      iconPath = path.join(process.resourcesPath, 'icon.png');
+    }
+    
     const notification = new Notification({
       title: options.title,
       body: options.body,
-      icon: path.join(__dirname, '../renderer/icon.png'),
+      icon: iconPath,
     });
     notification.show();
     return true;
@@ -148,10 +300,14 @@ app.whenReady().then(async () => {
     initUpdater(mainWindow);
   }
 
-  // macOS: 点击 dock 图标时重新创建窗口
+  // macOS: 点击 dock 图标时显示窗口
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       await createWindow();
+    } else if (mainWindow) {
+      // 窗口存在但被隐藏时，显示窗口
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 });
@@ -161,6 +317,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// 应用退出前清理
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 // 导出主窗口引用（供其他模块使用）

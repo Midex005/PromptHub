@@ -177,7 +177,7 @@ export function VariableInputModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('prompt.variableInput')} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('prompt.variableInput')} size="2xl">
       <div className="space-y-5">
         {/* 变量输入 */}
         <div className="space-y-3">
@@ -205,12 +205,23 @@ export function VariableInputModal({
                     </span>
                   )}
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={variables[v.name] || ''}
-                  onChange={(e) => setVariables({ ...variables, [v.name]: e.target.value })}
+                  onChange={(e) => {
+                    setVariables({ ...variables, [v.name]: e.target.value });
+                    // 自动调整高度
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                  }}
                   placeholder={v.defaultValue || t('prompt.inputVariable', { name: v.name })}
-                  className="w-full h-10 px-4 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200"
+                  rows={1}
+                  className="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200 resize-none overflow-hidden"
+                  style={{ height: 'auto' }}
+                  onFocus={(e) => {
+                    // 初始化高度
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                  }}
                 />
               </div>
             ))}

@@ -52,6 +52,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
       tags: data.tags || [],
       isFavorite: false,
       usageCount: 0,
+      currentVersion: 1,
     });
     set((state) => ({ prompts: [prompt, ...state.prompts] }));
     return prompt;

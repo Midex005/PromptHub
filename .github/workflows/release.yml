@@ -15,6 +15,8 @@ jobs:
             platform: mac
           - os: windows-latest
             platform: win
+          - os: ubuntu-latest
+            platform: linux
 
     runs-on: ${{ matrix.os }}
 
@@ -62,6 +64,12 @@ jobs:
           # 删除通用 exe，只保留带架构标识的
           find dist -name "*.exe" ! -name "*-x64.exe" ! -name "*-arm64.exe" -delete || true
 
+      - name: Remove debug files
+        shell: bash
+        run: |
+          # 删除 builder-debug.yml
+          find dist -name "builder-debug.yml" -delete || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -70,7 +78,9 @@ jobs:
             dist/*.dmg
             dist/*-x64.exe
             dist/*-arm64.exe
-            dist/*.yml
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest*.yml
           if-no-files-found: ignore
 
   release:
@@ -101,6 +111,7 @@ jobs:
             | macOS | Intel 芯片 | `PromptHub-x.x.x-x64.dmg` |
             | macOS | M 系列芯片 | `PromptHub-x.x.x-arm64.dmg` |
             | Windows | x64 | `PromptHub-Setup-x.x.x-x64.exe` |
+            | Linux | x64 | `PromptHub-x.x.x.AppImage` / `.deb` |
             
             > 💡 实际文件名中的 `x.x.x` 会是本次发布的版本号，例如 `0.1.6`。
             

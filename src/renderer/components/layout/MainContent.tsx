@@ -65,26 +65,75 @@ export function MainContent() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isTestingAI, setIsTestingAI] = useState(false);
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [showAiPanel, setShowAiPanel] = useState(false);
-  const [isComparingModels, setIsComparingModels] = useState(false);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
-  const [compareResults, setCompareResults] = useState<AITestResult[] | null>(null);
-  const [compareError, setCompareError] = useState<string | null>(null);
   const [isVariableModalOpen, setIsVariableModalOpen] = useState(false);
   const [isAiTestVariableModalOpen, setIsAiTestVariableModalOpen] = useState(false);
   const [isCompareVariableModalOpen, setIsCompareVariableModalOpen] = useState(false);
   const { showToast } = useToast();
 
-  // 切换 Prompt 时清除对比结果
+  // 按 prompt ID 保存测试状态和结果（持久化）
+  const [promptTestStates, setPromptTestStates] = useState<Record<string, {
+    isTestingAI: boolean;
+    isComparingModels: boolean;
+    aiResponse: string | null;
+    compareResults: AITestResult[] | null;
+    compareError: string | null;
+  }>>({});
+
+  // 获取当前 prompt 的测试状态和结果
+  const currentState = selectedId ? promptTestStates[selectedId] : null;
+  const isTestingAI = currentState?.isTestingAI || false;
+  const isComparingModels = currentState?.isComparingModels || false;
+  const aiResponse = currentState?.aiResponse || null;
+  const compareResults = currentState?.compareResults || null;
+  const compareError = currentState?.compareError || null;
+
+  // 更新当前 prompt 的测试状态
+  const updatePromptState = (promptId: string, updates: Partial<typeof currentState>) => {
+    setPromptTestStates(prev => ({
+      ...prev,
+      [promptId]: { 
+        isTestingAI: prev[promptId]?.isTestingAI || false,
+        isComparingModels: prev[promptId]?.isComparingModels || false,
+        aiResponse: prev[promptId]?.aiResponse || null,
+        compareResults: prev[promptId]?.compareResults || null,
+        compareError: prev[promptId]?.compareError || null,
+        ...updates 
+      }
+    }));
+  };
+
+  const setIsTestingAI = (testing: boolean) => {
+    if (selectedId) updatePromptState(selectedId, { isTestingAI: testing });
+  };
+
+  const setIsComparingModels = (comparing: boolean) => {
+    if (selectedId) updatePromptState(selectedId, { isComparingModels: comparing });
+  };
+
+  const setAiResponse = (response: string | null) => {
+    if (selectedId) updatePromptState(selectedId, { aiResponse: response });
+  };
+
+  const setCompareResults = (results: AITestResult[] | null) => {
+    if (selectedId) updatePromptState(selectedId, { compareResults: results });
+  };
+
+  const setCompareError = (error: string | null) => {
+    if (selectedId) updatePromptState(selectedId, { compareError: error });
+  };
+
+  // 切换 Prompt 时重置选中的模型（但保留测试结果和状态）
   useEffect(() => {
     setSelectedModelIds([]);
-    setCompareResults(null);
-    setCompareError(null);
-    setShowAiPanel(false);
-    setAiResponse(null);
-  }, [selectedId]);
+    // 如果当前 prompt 有测试结果，显示 AI 面板
+    if (selectedId && promptTestStates[selectedId]?.aiResponse) {
+      setShowAiPanel(true);
+    } else {
+      setShowAiPanel(false);
+    }
+  }, [selectedId, promptTestStates]);
   
   // AI 配置
   const aiProvider = useSettingsStore((state) => state.aiProvider);
@@ -92,6 +141,7 @@ export function MainContent() {
   const aiApiUrl = useSettingsStore((state) => state.aiApiUrl);
   const aiModel = useSettingsStore((state) => state.aiModel);
   const aiModels = useSettingsStore((state) => state.aiModels);
+  const showCopyNotification = useSettingsStore((state) => state.showCopyNotification);
 
   const handleRestoreVersion = async (version: PromptVersion) => {
     if (selectedPrompt) {
@@ -307,6 +357,9 @@ export function MainContent() {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {aiModels.map((model) => {
                     const isSelected = selectedModelIds.includes(model.id);
+                    // 获取供应商简称
+                    const providerName = model.name || model.provider;
+                    const displayName = `${providerName} | ${model.model}`;
                     return (
                       <button
                         key={model.id}
@@ -324,6 +377,7 @@ export function MainContent() {
                             : 'bg-muted hover:bg-accent text-foreground'
                           }
                         `}
+                        title={displayName}
                       >
                         {model.model}
                         {model.isDefault && (
@@ -420,7 +474,7 @@ export function MainContent() {
                     const text = selectedPrompt.userPrompt;
                     navigator.clipboard.writeText(text);
                     setCopied(true);
-                    showToast(t('toast.copied'), 'success');
+                    showToast(t('toast.copied'), 'success', showCopyNotification);
                     setTimeout(() => setCopied(false), 2000);
                   }
                 }}
@@ -501,7 +555,15 @@ export function MainContent() {
                   <div className="flex items-center gap-2">
                     <SparklesIcon className="w-4 h-4 text-green-500" />
                     <span className="text-sm font-medium">{t('prompt.aiResponse')}</span>
-                    <span className="text-xs text-muted-foreground">({aiModel})</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({(() => {
+                        const defaultModel = aiModels.find(m => m.isDefault);
+                        if (defaultModel) {
+                          return `${defaultModel.name || defaultModel.provider} | ${defaultModel.model}`;
+                        }
+                        return aiModel;
+                      })()})
+                    </span>
                   </div>
                   <button
                     onClick={() => setShowAiPanel(false)}

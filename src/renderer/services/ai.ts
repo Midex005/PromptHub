@@ -426,3 +426,132 @@ export function buildMessagesFromPrompt(
   
   return messages;
 }
+
+// ============ 获取模型列表 ============
+
+export interface ModelInfo {
+  id: string;
+  name?: string;
+  owned_by?: string;
+  created?: number;
+}
+
+export interface FetchModelsResult {
+  success: boolean;
+  models: ModelInfo[];
+  error?: string;
+}
+
+/**
+ * 计算 Base URL（用于显示预览）
+ * 处理各种用户输入情况，返回标准化的 base URL
+ */
+export function getBaseUrl(apiUrl: string): string {
+  if (!apiUrl) return '';
+  
+  let url = apiUrl.trim();
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  
+  // 移除常见的端点后缀
+  const suffixes = ['/chat/completions', '/completions', '/models', '/embeddings', '/images/generations'];
+  for (const suffix of suffixes) {
+    if (url.endsWith(suffix)) {
+      url = url.slice(0, -suffix.length);
+      break;
+    }
+  }
+  
+  return url;
+}
+
+/**
+ * 获取完整的 API 端点预览（用于显示）
+ * 如果用户没有输入 /v1，会自动补全
+ */
+export function getApiEndpointPreview(apiUrl: string): string {
+  if (!apiUrl) return '';
+  
+  const baseUrl = getBaseUrl(apiUrl);
+  
+  // 检查是否已经包含版本路径
+  if (baseUrl.endsWith('/v1') || baseUrl.match(/\/v\d+$/)) {
+    return baseUrl + '/chat/completions';
+  }
+  
+  // 自动补全 /v1
+  return baseUrl + '/v1/chat/completions';
+}
+
+/**
+ * 从 API 获取可用模型列表
+ * 大部分 OpenAI 兼容的 API 都支持 /models 端点
+ */
+export async function fetchAvailableModels(
+  apiUrl: string,
+  apiKey: string
+): Promise<FetchModelsResult> {
+  if (!apiKey || !apiUrl) {
+    return { success: false, models: [], error: '请先填写 API Key 和 API 地址' };
+  }
+
+  try {
+    // 计算 base URL 并添加 /models
+    const baseUrl = getBaseUrl(apiUrl);
+    const endpoint = baseUrl + '/models';
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { 
+        success: false, 
+        models: [], 
+        error: `获取模型列表失败: ${response.status} - ${errorText.substring(0, 100)}` 
+      };
+    }
+
+    const data = await response.json();
+    
+    // OpenAI 格式的响应
+    if (data.data && Array.isArray(data.data)) {
+      const models = data.data
+        .filter((m: { id?: string }) => m.id) // 过滤掉没有 id 的
+        .map((m: { id: string; owned_by?: string; created?: number }) => ({
+          id: m.id,
+          name: m.id,
+          owned_by: m.owned_by,
+          created: m.created,
+        }))
+        .sort((a: ModelInfo, b: ModelInfo) => a.id.localeCompare(b.id));
+      
+      return { success: true, models };
+    }
+
+    // 某些 API 直接返回数组
+    if (Array.isArray(data)) {
+      const models = data
+        .filter((m: { id?: string; model?: string }) => m.id || m.model)
+        .map((m: { id?: string; model?: string; name?: string }) => ({
+          id: m.id || m.model || '',
+          name: m.name || m.id || m.model,
+        }));
+      return { success: true, models };
+    }
+
+    return { success: false, models: [], error: '无法解析模型列表响应' };
+  } catch (error) {
+    return { 
+      success: false, 
+      models: [], 
+      error: error instanceof Error ? error.message : '获取模型列表失败' 
+    };
+  }
+}

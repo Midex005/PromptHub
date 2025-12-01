@@ -235,7 +235,7 @@ export class PromptDB {
       userPrompt: prompt.userPrompt,
       variables: prompt.variables,
       note,
-      createdAt: now,
+      createdAt: new Date(now).toISOString(),
     };
   }
 
@@ -283,6 +283,7 @@ export class PromptDB {
       tags: JSON.parse(row.tags || '[]'),
       folderId: row.folder_id,
       isFavorite: row.is_favorite === 1,
+      version: row.current_version,
       currentVersion: row.current_version,
       usageCount: row.usage_count,
       createdAt: row.created_at,

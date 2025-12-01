@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '../ui';
 import { ClockIcon, RotateCcwIcon, GitCompareIcon, PlusIcon, MinusIcon } from 'lucide-react';
 import { getPromptVersions } from '../../services/database';
@@ -170,6 +171,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [compareVersion, setCompareVersion] = useState<PromptVersion | null>(null);
   const [showDiff, setShowDiff] = useState(false);
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -221,17 +223,17 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="历史版本" size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('prompt.history')} size="2xl">
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">加载中...</div>
+          <div className="text-muted-foreground">{t('prompt.historyLoading')}</div>
         </div>
       ) : versions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <ClockIcon className="w-12 h-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">暂无历史版本</p>
+          <p className="text-muted-foreground">{t('prompt.noHistory')}</p>
           <p className="text-sm text-muted-foreground/70 mt-1">
-            编辑 Prompt 后会自动保存版本记录
+            {t('prompt.noHistoryHint')}
           </p>
         </div>
       ) : (
@@ -239,7 +241,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
           {/* 版本列表 */}
           <div className="w-48 border-r border-border pr-4 space-y-1">
             <div className="text-xs text-muted-foreground mb-2 px-1">
-              {showDiff ? '选择对比版本' : '选择版本'}
+              {showDiff ? t('prompt.selectCompareVersion') : t('prompt.selectVersion')}
             </div>
             {versions.map((version, index) => (
               <button
@@ -305,7 +307,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                     System Prompt
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                    {selectedVersion.systemPrompt || '(无)'}
+                    {selectedVersion.systemPrompt || t('prompt.noContent')}
                   </div>
                 </div>
                 <div>
@@ -319,7 +321,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                 {selectedVersion.note && (
                   <div>
                     <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
-                      修改说明
+                      {t('prompt.changeNote')}
                     </div>
                     <div className="p-3 rounded-lg bg-muted/50 text-sm">
                       {selectedVersion.note}
@@ -351,14 +353,14 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
             }`}
           >
             <GitCompareIcon className="w-4 h-4" />
-            {showDiff ? '退出对比' : '版本对比'}
+            {showDiff ? t('prompt.exitCompare') : t('prompt.versionCompare')}
           </button>
           <div className="flex gap-3">
             <button
               onClick={onClose}
               className="h-9 px-4 rounded-lg text-sm font-medium hover:bg-muted transition-colors"
             >
-              取消
+              {t('common.cancel')}
             </button>
             {!showDiff && (
               <button
@@ -366,7 +368,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                 className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <RotateCcwIcon className="w-4 h-4" />
-                恢复此版本
+                {t('prompt.restoreVersion')}
               </button>
             )}
           </div>

@@ -30,15 +30,20 @@ import {
   HeartIcon,
   ExternalLinkIcon,
   SparklesIcon,
+  SearchIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { downloadBackup, restoreFromFile, clearDatabase } from '../../services/database';
 import { testConnection, uploadToWebDAV, downloadFromWebDAV } from '../../services/webdav';
-import { testAIConnection, testImageGeneration, AITestResult, ImageTestResult } from '../../services/ai';
+import { testAIConnection, testImageGeneration, fetchAvailableModels, getBaseUrl, getApiEndpointPreview, AITestResult, ImageTestResult, ModelInfo } from '../../services/ai';
 import { useSettingsStore, MORANDI_THEMES, FONT_SIZES, ThemeMode } from '../../stores/settings.store';
 import { useToast } from '../ui/Toast';
 import { Select, SelectOption } from '../ui/Select';
 import { UpdateDialog } from '../UpdateDialog';
+import { getCategoryIcon } from '../ui/ModelIcons';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -125,6 +130,13 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   });
   const [testingModelId, setTestingModelId] = useState<string | null>(null);
 
+  // 获取模型列表状态
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [modelSearchQuery, setModelSearchQuery] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
   // 分离对话模型和生图模型
   const chatModels = settings.aiModels.filter(m => m.type === 'chat' || !m.type);
   const imageModels = settings.aiModels.filter(m => m.type === 'image');
@@ -169,6 +181,174 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     } else {
       showToast(result.error || '生图失败', 'error');
     }
+  };
+
+  // 获取可用模型列表
+  const handleFetchModels = async () => {
+    if (!newModel.apiKey || !newModel.apiUrl) {
+      showToast(t('settings.fillApiFirst'), 'error');
+      return;
+    }
+    
+    setFetchingModels(true);
+    setAvailableModels([]);
+    setModelSearchQuery('');
+    
+    const result = await fetchAvailableModels(newModel.apiUrl, newModel.apiKey);
+    
+    setFetchingModels(false);
+    
+    if (result.success && result.models.length > 0) {
+      setAvailableModels(result.models);
+      setShowModelPicker(true);
+      showToast(t('settings.modelsLoaded', { count: result.models.length }), 'success');
+    } else {
+      showToast(result.error || t('settings.noModelsFound'), 'error');
+    }
+  };
+
+  // 添加选中的模型
+  const handleAddModel = (modelId: string) => {
+    if (!newModel.apiKey || !newModel.apiUrl) {
+      showToast(t('settings.fillApiFirst'), 'error');
+      return;
+    }
+    
+    // 添加模型到列表
+    settings.addAiModel({
+      name: modelId,
+      provider: newModel.provider,
+      apiKey: newModel.apiKey,
+      apiUrl: newModel.apiUrl,
+      model: modelId,
+      type: 'chat',
+    });
+    showToast(t('settings.modelAdded'), 'success');
+  };
+
+  // 过滤模型列表
+  const filteredModels = availableModels.filter((m) => 
+    m.id.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
+    m.owned_by?.toLowerCase().includes(modelSearchQuery.toLowerCase())
+  );
+
+  // 模型分类配置：优先按 owned_by / id 关键字匹配到具体供应商
+  const MODEL_CATEGORY_CONFIG: { category: string; idKeywords?: string[]; ownerKeywords?: string[] }[] = [
+    { category: 'GPT', idKeywords: ['gpt', 'o1-', 'o3-'], ownerKeywords: ['openai'] },
+    { category: 'Claude', idKeywords: ['claude'], ownerKeywords: ['anthropic'] },
+    { category: 'Gemini', idKeywords: ['gemini'], ownerKeywords: ['google', 'vertexai'] },
+    { category: 'DeepSeek', idKeywords: ['deepseek'], ownerKeywords: ['deepseek'] },
+    { category: 'Qwen', idKeywords: ['qwen', 'qwq'], ownerKeywords: ['qwen', 'aliyun', 'dashscope'] },
+    { category: 'Doubao', idKeywords: ['doubao'], ownerKeywords: ['doubao', 'volcengine'] },
+    { category: 'GLM', idKeywords: ['glm'], ownerKeywords: ['zhipu'] },
+    { category: 'Moonshot', idKeywords: ['moonshot', 'kimi'], ownerKeywords: ['moonshot'] },
+    { category: 'Llama', idKeywords: ['llama'], ownerKeywords: ['meta', 'llama'] },
+    { category: 'Mistral', idKeywords: ['mistral', 'mixtral'], ownerKeywords: ['mistral'] },
+    { category: 'Yi', idKeywords: ['yi-'], ownerKeywords: ['01-ai', 'zeroone', 'zero-one'] },
+    { category: 'ERNIE', idKeywords: ['ernie'], ownerKeywords: ['baidu', 'wenxin'] },
+    { category: 'Spark', idKeywords: ['spark'], ownerKeywords: ['xunfei', 'iflytek'] },
+    { category: 'Baichuan', idKeywords: ['baichuan'], ownerKeywords: ['baichuan'] },
+  ];
+
+  // 模型分类函数：配置优先，失败再按通用规则降级
+  const getModelCategory = (model: ModelInfo): string => {
+    const id = model.id.toLowerCase();
+    const owner = model.owned_by?.toLowerCase() || '';
+
+    // 1. 先按 owned_by 匹配供应商
+    for (const item of MODEL_CATEGORY_CONFIG) {
+      if (item.ownerKeywords && item.ownerKeywords.some((k) => owner.includes(k))) {
+        return item.category;
+      }
+    }
+
+    // 2. 再按 id 关键字匹配供应商
+    for (const item of MODEL_CATEGORY_CONFIG) {
+      if (item.idKeywords && item.idKeywords.some((k) => id.includes(k))) {
+        return item.category;
+      }
+    }
+
+    // 3. 按模型类型降级分类
+    if (id.includes('embedding') || id.includes('text-embedding')) return 'Embedding';
+    if (id.includes('whisper') || id.includes('tts')) return 'Audio';
+    if (id.includes('dall-e') || id.includes('stable-diffusion')) return 'Image';
+
+    return 'Other';
+  };
+
+  // 按分类组织模型
+  const categorizedModels = filteredModels.reduce((acc, model) => {
+    const category = getModelCategory(model);
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(model);
+    return acc;
+  }, {} as Record<string, ModelInfo[]>);
+
+  // 分类排序（常用的在前）
+  const categoryOrder = ['GPT', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Doubao', 'GLM', 'Moonshot', 'Llama', 'Mistral', 'Yi', 'ERNIE', 'Spark', 'Baichuan', 'Embedding', 'Audio', 'Image', 'Other'];
+  const sortedCategories = Object.keys(categorizedModels).sort((a, b) => {
+    const indexA = categoryOrder.indexOf(a);
+    const indexB = categoryOrder.indexOf(b);
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+  });
+
+  // 切换分类折叠状态
+  const toggleCategory = (category: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
+  // 计算预览 URL
+  const previewBaseUrl = getBaseUrl(newModel.apiUrl);
+  const previewEndpoint = getApiEndpointPreview(newModel.apiUrl);
+
+  // 按供应商（API URL）分组已添加的模型
+  const groupedChatModels = chatModels.reduce((acc, model) => {
+    const key = model.apiUrl || 'unknown';
+    if (!acc[key]) {
+      acc[key] = {
+        provider: AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider,
+        models: []
+      };
+    }
+    acc[key].models.push(model);
+    return acc;
+  }, {} as Record<string, { provider: string; models: typeof chatModels }>);
+
+  // 按供应商分组生图模型
+  const groupedImageModels = imageModels.reduce((acc, model) => {
+    const key = model.apiUrl || 'unknown';
+    if (!acc[key]) {
+      acc[key] = {
+        provider: AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider,
+        models: []
+      };
+    }
+    acc[key].models.push(model);
+    return acc;
+  }, {} as Record<string, { provider: string; models: typeof imageModels }>);
+
+  // 供应商折叠状态
+  const [collapsedProviders, setCollapsedProviders] = useState<Set<string>>(new Set());
+  
+  const toggleProviderCollapse = (apiUrl: string) => {
+    setCollapsedProviders(prev => {
+      const next = new Set(prev);
+      if (next.has(apiUrl)) {
+        next.delete(apiUrl);
+      } else {
+        next.add(apiUrl);
+      }
+      return next;
+    });
   };
 
   // AI 测试函数
@@ -454,15 +634,21 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   <FolderIcon className="w-5 h-5 text-muted-foreground" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{t('settings.dataPath')}</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    <button
+                      onClick={() => window.electron?.openPath?.(settings.dataPath)}
+                      className="text-xs text-primary font-mono mt-0.5 hover:underline flex items-center gap-1 cursor-pointer"
+                      title={t('settings.openFolder')}
+                    >
                       {settings.dataPath}
-                    </p>
+                      <ExternalLinkIcon className="w-3 h-3" />
+                    </button>
                   </div>
                   <button
                     onClick={async () => {
                       const result = await window.electron?.selectFolder?.();
                       if (result) {
                         settings.setDataPath(result);
+                        showToast(t('toast.dataPathChanged'), 'success');
                       }
                     }}
                     className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors"
@@ -645,83 +831,123 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       case 'ai':
         return (
           <div className="space-y-6">
-            {/* 对话模型列表 */}
+            {/* 对话模型列表 - 按供应商分组 */}
             <SettingSection title={t('settings.chatModels')}>
               <div className="p-4 space-y-3">
-                {chatModels.length > 0 && (
+                {Object.keys(groupedChatModels).length > 0 && (
                   <div className="space-y-2">
-                    {chatModels.map((model) => (
-                      <div
-                        key={model.id}
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          model.isDefault ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {model.isDefault && (
-                            <StarIcon className="w-4 h-4 text-primary fill-primary" />
-                          )}
-                          <div>
-                            <div className="font-medium text-sm">{model.name || model.model}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {model.name ? `${model.model} • ` : ''}{AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider}
+                    {Object.entries(groupedChatModels).map(([apiUrl, group]) => {
+                      const isCollapsed = collapsedProviders.has(apiUrl);
+                      const hasDefault = group.models.some(m => m.isDefault);
+                      
+                      return (
+                        <div key={apiUrl} className="border border-border rounded-lg overflow-hidden">
+                          {/* 供应商标题 */}
+                          <button
+                            onClick={() => toggleProviderCollapse(apiUrl)}
+                            className={`w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors ${
+                              hasDefault ? 'bg-primary/5' : 'bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isCollapsed ? (
+                                <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="font-medium text-sm">{group.provider}</span>
+                              <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                                {group.models.length}
+                              </span>
+                              {hasDefault && (
+                                <StarIcon className="w-3.5 h-3.5 text-primary fill-primary" />
+                              )}
                             </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleTestModel(model)}
-                            disabled={testingModelId === model.id}
-                            className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                            title="测试连接"
-                          >
-                            {testingModelId === model.id ? (
-                              <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" />
-                            ) : (
-                              <PlayIcon className="w-4 h-4 text-muted-foreground" />
-                            )}
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={apiUrl}>
+                              {new URL(apiUrl).host}
+                            </span>
                           </button>
-                          {!model.isDefault && (
-                            <button
-                              onClick={() => settings.setDefaultAiModel(model.id)}
-                              className="p-1.5 rounded hover:bg-muted transition-colors"
-                              title="设为默认"
-                            >
-                              <StarIcon className="w-4 h-4 text-muted-foreground" />
-                            </button>
+                          
+                          {/* 模型列表 */}
+                          {!isCollapsed && (
+                            <div className="divide-y divide-border">
+                              {group.models.map((model) => (
+                                <div
+                                  key={model.id}
+                                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors ${
+                                    model.isDefault ? 'bg-primary/5' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {model.isDefault && (
+                                      <StarIcon className="w-3.5 h-3.5 text-primary fill-primary" />
+                                    )}
+                                    <div>
+                                      <div className="font-medium text-sm">{model.name || model.model}</div>
+                                      {model.name && (
+                                        <div className="text-xs text-muted-foreground">{model.model}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleTestModel(model)}
+                                      disabled={testingModelId === model.id}
+                                      className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
+                                      title="测试连接"
+                                    >
+                                      {testingModelId === model.id ? (
+                                        <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" />
+                                      ) : (
+                                        <PlayIcon className="w-4 h-4 text-muted-foreground" />
+                                      )}
+                                    </button>
+                                    {!model.isDefault && (
+                                      <button
+                                        onClick={() => settings.setDefaultAiModel(model.id)}
+                                        className="p-1.5 rounded hover:bg-muted transition-colors"
+                                        title="设为默认"
+                                      >
+                                        <StarIcon className="w-4 h-4 text-muted-foreground" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        setEditingModelId(model.id);
+                                        setEditingModelType('chat');
+                                        setNewModel({
+                                          name: model.name || '',
+                                          provider: model.provider,
+                                          apiKey: model.apiKey,
+                                          apiUrl: model.apiUrl,
+                                          model: model.model,
+                                        });
+                                        setShowAddChatModel(true);
+                                      }}
+                                      className="p-1.5 rounded hover:bg-muted transition-colors"
+                                      title="编辑"
+                                    >
+                                      <EditIcon className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (confirm('确定要删除这个模型配置吗？')) {
+                                          settings.deleteAiModel(model.id);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                                      title="删除"
+                                    >
+                                      <TrashIcon className="w-4 h-4 text-red-500" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           )}
-                          <button
-                            onClick={() => {
-                              setEditingModelId(model.id);
-                              setEditingModelType('chat');
-                              setNewModel({
-                                name: model.name || '',
-                                provider: model.provider,
-                                apiKey: model.apiKey,
-                                apiUrl: model.apiUrl,
-                                model: model.model,
-                              });
-                              setShowAddChatModel(true);
-                            }}
-                            className="p-1.5 rounded hover:bg-muted transition-colors"
-                            title="编辑"
-                          >
-                            <EditIcon className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('确定要删除这个模型配置吗？')) {
-                                settings.deleteAiModel(model.id);
-                              }
-                            }}
-                            className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                            title="删除"
-                          >
-                            <TrashIcon className="w-4 h-4 text-red-500" />
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -788,9 +1014,30 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                         onChange={(e) => setNewModel({ ...newModel, apiUrl: e.target.value })}
                         className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
                       />
+                      {newModel.apiUrl && (
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
+                          <span className="font-mono text-primary">{previewEndpoint}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">{t('settings.modelName')}</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs text-muted-foreground">{t('settings.modelName')}</label>
+                        <button
+                          type="button"
+                          onClick={handleFetchModels}
+                          disabled={fetchingModels || !newModel.apiKey || !newModel.apiUrl}
+                          className="text-xs text-primary hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1"
+                        >
+                          {fetchingModels ? (
+                            <Loader2Icon className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RefreshCwIcon className="w-3 h-3" />
+                          )}
+                          {t('settings.fetchModels')}
+                        </button>
+                      </div>
                       <input
                         type="text"
                         placeholder={t('settings.modelNamePlaceholder')}
@@ -839,74 +1086,96 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               </div>
             </SettingSection>
 
-            {/* 生图模型列表 */}
+            {/* 生图模型列表 - 按供应商分组 */}
             <SettingSection title={t('settings.imageModels')}>
               <div className="p-4 space-y-3">
-                {imageModels.length > 0 && (
+                {Object.keys(groupedImageModels).length > 0 && (
                   <div className="space-y-2">
-                    {imageModels.map((model) => (
-                      <div
-                        key={model.id}
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          model.isDefault ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {model.isDefault && (
-                            <StarIcon className="w-4 h-4 text-primary fill-primary" />
-                          )}
-                          <div>
-                            <div className="font-medium text-sm">{model.model}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider}
+                    {Object.entries(groupedImageModels).map(([apiUrl, group]) => {
+                      const isCollapsed = collapsedProviders.has(`image-${apiUrl}`);
+                      
+                      return (
+                        <div key={apiUrl} className="border border-border rounded-lg overflow-hidden">
+                          {/* 供应商标题 */}
+                          <button
+                            onClick={() => toggleProviderCollapse(`image-${apiUrl}`)}
+                            className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              {isCollapsed ? (
+                                <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="font-medium text-sm">{group.provider}</span>
+                              <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                                {group.models.length}
+                              </span>
                             </div>
-                          </div>
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={apiUrl}>
+                              {(() => { try { return new URL(apiUrl).host; } catch { return apiUrl; } })()}
+                            </span>
+                          </button>
+                          
+                          {/* 模型列表 */}
+                          {!isCollapsed && (
+                            <div className="divide-y divide-border">
+                              {group.models.map((model) => (
+                                <div
+                                  key={model.id}
+                                  className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                                >
+                                  <div className="font-medium text-sm">{model.model}</div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleTestImageModel(model)}
+                                      disabled={testingModelId === model.id}
+                                      className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
+                                      title="测试生图"
+                                    >
+                                      {testingModelId === model.id ? (
+                                        <Loader2Icon className="w-4 h-4 text-primary animate-spin" />
+                                      ) : (
+                                        <PlayIcon className="w-4 h-4 text-muted-foreground" />
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingModelId(model.id);
+                                        setEditingModelType('image');
+                                        setNewModel({
+                                          name: model.name || '',
+                                          provider: model.provider,
+                                          apiKey: model.apiKey,
+                                          apiUrl: model.apiUrl,
+                                          model: model.model,
+                                        });
+                                        setShowAddImageModel(true);
+                                      }}
+                                      className="p-1.5 rounded hover:bg-muted transition-colors"
+                                      title="编辑"
+                                    >
+                                      <EditIcon className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (confirm('确定要删除这个模型配置吗？')) {
+                                          settings.deleteAiModel(model.id);
+                                        }
+                                      }}
+                                      className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                                      title="删除"
+                                    >
+                                      <TrashIcon className="w-4 h-4 text-red-500" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleTestImageModel(model)}
-                            disabled={testingModelId === model.id}
-                            className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                            title="测试生图"
-                          >
-                            {testingModelId === model.id ? (
-                              <Loader2Icon className="w-4 h-4 text-primary animate-spin" />
-                            ) : (
-                              <PlayIcon className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingModelId(model.id);
-                              setEditingModelType('image');
-                              setNewModel({
-                                name: model.name || '',
-                                provider: model.provider,
-                                apiKey: model.apiKey,
-                                apiUrl: model.apiUrl,
-                                model: model.model,
-                              });
-                              setShowAddImageModel(true);
-                            }}
-                            className="p-1.5 rounded hover:bg-muted transition-colors"
-                            title="编辑"
-                          >
-                            <EditIcon className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('确定要删除这个模型配置吗？')) {
-                                settings.deleteAiModel(model.id);
-                              }
-                            }}
-                            className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                            title="删除"
-                          >
-                            <TrashIcon className="w-4 h-4 text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1098,11 +1367,14 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           <div className="space-y-6">
             {/* 应用信息卡片 */}
             <div className="text-center py-6">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                <SparklesIcon className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <svg viewBox="0 0 24 24" width="32" height="32" className="text-white">
+                  <path fill="currentColor" d="M12 3L14.5 8.5L20.5 9L16 13.5L17 19.5L12 17L7 19.5L8 13.5L3.5 9L9.5 8.5L12 3Z" opacity="0.9"/>
+                  <path fill="currentColor" d="M12 7L13.5 10H17L14 12.5L15 16L12 14L9 16L10 12.5L7 10H10.5L12 7Z"/>
+                </svg>
               </div>
               <h2 className="text-lg font-semibold">PromptHub</h2>
-              <p className="text-sm text-muted-foreground mt-1">{t('settings.version')} 0.1.7</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('settings.version')} 0.1.8</p>
             </div>
 
             <SettingSection title={t('settings.projectInfo')}>
@@ -1120,7 +1392,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   onChange={settings.setAutoCheckUpdate}
                 />
               </SettingItem>
-              <SettingItem label={t('settings.checkUpdate')} description={`${t('settings.version')}: 0.1.7`}>
+              <SettingItem label={t('settings.checkUpdate')} description={`${t('settings.version')}: 0.1.8`}>
                 <button
                   onClick={() => setShowUpdateDialog(true)}
                   className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors"
@@ -1181,7 +1453,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 <HeartIcon className="w-4 h-4 text-red-500 fill-red-500" />
                 <span>by legeling</span>
               </div>
-              <div>MIT License © 2025 PromptHub</div>
+              <div>AGPL-3.0 License © 2025 PromptHub</div>
             </div>
           </div>
         );
@@ -1237,6 +1509,155 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         isOpen={showUpdateDialog}
         onClose={() => setShowUpdateDialog(false)}
       />
+
+      {/* 模型选择弹窗 */}
+      {showModelPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-2xl w-[600px] max-h-[80vh] flex flex-col shadow-2xl">
+            {/* 弹窗头部 */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-lg font-semibold">{t('settings.selectModels')}</h3>
+              <button
+                onClick={() => setShowModelPicker(false)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* 搜索框 */}
+            <div className="p-4 border-b border-border">
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={t('settings.searchModels')}
+                  value={modelSearchQuery}
+                  onChange={(e) => setModelSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-10 pr-4 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('settings.totalModels', { count: availableModels.length })}
+                {modelSearchQuery && ` • ${t('settings.filteredModels', { count: filteredModels.length })}`}
+              </p>
+            </div>
+            
+            {/* 模型列表 - 按分类折叠显示 */}
+            <div className="flex-1 overflow-y-auto p-2">
+              {filteredModels.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('settings.noModelsMatch')}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedCategories.map((category) => {
+                    const models = categorizedModels[category];
+                    const isCollapsed = collapsedCategories.has(category);
+                    const addedCount = models.filter(m => 
+                      settings.aiModels.some(am => am.model === m.id && am.apiUrl === newModel.apiUrl)
+                    ).length;
+                    
+                    return (
+                      <div key={category} className="border border-border rounded-lg overflow-hidden">
+                        {/* 分类标题 */}
+                        <button
+                          onClick={() => toggleCategory(category)}
+                          className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {isCollapsed ? (
+                              <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="flex-shrink-0">{getCategoryIcon(category, 18)}</span>
+                            <span className="font-medium text-sm">{category}</span>
+                            <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                              {models.length}
+                            </span>
+                            {addedCount > 0 && (
+                              <span className="text-xs text-primary px-1.5 py-0.5 bg-primary/10 rounded">
+                                {t('settings.addedCount', { count: addedCount })}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              models.forEach(m => {
+                                const isAdded = settings.aiModels.some(
+                                  am => am.model === m.id && am.apiUrl === newModel.apiUrl
+                                );
+                                if (!isAdded) handleAddModel(m.id);
+                              });
+                            }}
+                            className="text-xs text-primary hover:underline px-2 py-1"
+                          >
+                            {t('settings.addAll')}
+                          </button>
+                        </button>
+                        
+                        {/* 模型列表 */}
+                        {!isCollapsed && (
+                          <div className="divide-y divide-border">
+                            {models.map((model) => {
+                              const isAdded = settings.aiModels.some(
+                                m => m.model === model.id && m.apiUrl === newModel.apiUrl
+                              );
+                              return (
+                                <div
+                                  key={model.id}
+                                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors ${
+                                    isAdded ? 'bg-primary/5' : ''
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm truncate">{model.id}</div>
+                                    {model.owned_by && (
+                                      <div className="text-xs text-muted-foreground">{model.owned_by}</div>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleAddModel(model.id)}
+                                    disabled={isAdded}
+                                    className={`ml-3 p-1.5 rounded-lg transition-colors ${
+                                      isAdded 
+                                        ? 'bg-primary/20 text-primary cursor-default' 
+                                        : 'hover:bg-primary/10 text-muted-foreground hover:text-primary'
+                                    }`}
+                                    title={isAdded ? t('settings.modelAlreadyAdded') : t('settings.addModel')}
+                                  >
+                                    {isAdded ? (
+                                      <CheckIcon className="w-4 h-4" />
+                                    ) : (
+                                      <PlusIcon className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* 底部按钮 */}
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={() => setShowModelPicker(false)}
+                className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                {t('common.done')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

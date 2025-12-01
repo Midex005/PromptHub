@@ -1,5 +1,6 @@
-import { forwardRef, TextareaHTMLAttributes } from 'react';
+import { forwardRef, TextareaHTMLAttributes, useState, useEffect, useRef } from 'react';
 import { clsx } from 'clsx';
+import { useSettingsStore } from '../../stores/settings.store';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -7,7 +8,36 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, value, onChange, ...props }, ref) => {
+    const showLineNumbers = useSettingsStore((state) => state.showLineNumbers);
+    const [lineCount, setLineCount] = useState(1);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const lineNumbersRef = useRef<HTMLDivElement>(null);
+
+    // 计算行数
+    useEffect(() => {
+      const text = String(value || '');
+      const lines = text.split('\n').length;
+      setLineCount(Math.max(lines, 1));
+    }, [value]);
+
+    // 同步滚动
+    const handleScroll = () => {
+      if (lineNumbersRef.current && textareaRef.current) {
+        lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      }
+    };
+
+    // 合并 ref
+    const setRefs = (element: HTMLTextAreaElement | null) => {
+      textareaRef.current = element;
+      if (typeof ref === 'function') {
+        ref(element);
+      } else if (ref) {
+        ref.current = element;
+      }
+    };
+
     return (
       <div className="space-y-1.5">
         {label && (
@@ -15,20 +45,44 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             {label}
           </label>
         )}
-        <textarea
-          ref={ref}
-          className={clsx(
-            'w-full min-h-[120px] px-4 py-3 rounded-xl',
-            'bg-muted/50 border-0',
-            'text-sm placeholder:text-muted-foreground',
-            'focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background',
-            'transition-all duration-200 resize-none',
-            'font-mono leading-relaxed',
-            error && 'ring-2 ring-destructive/50',
-            className
+        <div className={clsx(
+          'flex rounded-xl overflow-hidden',
+          'bg-muted/50 border-0',
+          'focus-within:ring-2 focus-within:ring-primary/30 focus-within:bg-background',
+          'transition-all duration-200',
+          error && 'ring-2 ring-destructive/50'
+        )}>
+          {/* 行号 */}
+          {showLineNumbers && (
+            <div
+              ref={lineNumbersRef}
+              className="flex-shrink-0 py-3 px-2 text-right text-xs text-muted-foreground select-none overflow-hidden font-mono leading-relaxed bg-muted/30"
+              style={{ minWidth: '3rem' }}
+            >
+              {Array.from({ length: lineCount }, (_, i) => (
+                <div key={i + 1} className="h-[1.625rem]">
+                  {i + 1}
+                </div>
+              ))}
+            </div>
           )}
-          {...props}
-        />
+          <textarea
+            ref={setRefs}
+            value={value}
+            onChange={onChange}
+            onScroll={handleScroll}
+            className={clsx(
+              'flex-1 min-h-[120px] py-3 bg-transparent border-0',
+              showLineNumbers ? 'pl-2 pr-4' : 'px-4',
+              'text-sm placeholder:text-muted-foreground',
+              'focus:outline-none',
+              'resize-none',
+              'font-mono leading-relaxed',
+              className
+            )}
+            {...props}
+          />
+        </div>
         {error && (
           <p className="text-xs text-destructive">{error}</p>
         )}

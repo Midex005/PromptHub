@@ -198,7 +198,11 @@ export const useSettingsStore = create<SettingsState>()(
       setAutoSave: (enabled) => set({ autoSave: enabled }),
       setShowLineNumbers: (enabled) => set({ showLineNumbers: enabled }),
       setLaunchAtStartup: (enabled) => set({ launchAtStartup: enabled }),
-      setMinimizeOnLaunch: (enabled) => set({ minimizeOnLaunch: enabled }),
+      setMinimizeOnLaunch: (enabled) => {
+        set({ minimizeOnLaunch: enabled });
+        // 通知主进程更新托盘状态
+        window.electron?.setMinimizeToTray?.(enabled);
+      },
       setEnableNotifications: (enabled) => set({ enableNotifications: enabled }),
       setShowCopyNotification: (enabled) => set({ showCopyNotification: enabled }),
       setShowSaveNotification: (enabled) => set({ showSaveNotification: enabled }),
@@ -303,6 +307,10 @@ export const useSettingsStore = create<SettingsState>()(
         const fontConfig = FONT_SIZES.find(f => f.id === state.fontSize);
         if (fontConfig) {
           document.documentElement.style.setProperty('--base-font-size', `${fontConfig.value}px`);
+        }
+        // 初始化托盘状态
+        if (state.minimizeOnLaunch) {
+          window.electron?.setMinimizeToTray?.(true);
         }
       },
     }),

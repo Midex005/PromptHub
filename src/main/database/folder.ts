@@ -119,6 +119,7 @@ export class FolderDB {
       parentId: row.parent_id,
       order: row.sort_order,
       createdAt: row.created_at,
+      updatedAt: row.updated_at || row.created_at,
     };
   }
 }
