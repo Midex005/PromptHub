@@ -76,10 +76,12 @@ jobs:
           name: ${{ matrix.platform }}-build
           path: |
             dist/*.dmg
+            dist/*.zip
             dist/*-x64.exe
             dist/*-arm64.exe
             dist/*.AppImage
             dist/*.deb
+            dist/*.blockmap
             dist/latest*.yml
           if-no-files-found: ignore
 

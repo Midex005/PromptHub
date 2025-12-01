@@ -15,14 +15,34 @@ interface ProgressInfo {
   transferred: number;
 }
 
+// 将 GitHub Release 返回的 HTML 说明转换为适合展示的纯文本
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>(?=\s*)/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol|table|thead|tbody|tr)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\u2022 ')
+    .replace(/<(p|div|h[1-6]|ul|ol|table|thead|tbody|tr)[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // 从 electron-updater 的 UpdateInfo 转换为简化格式
 function toSimpleInfo(info: ElectronUpdateInfo): SimpleUpdateInfo {
   let releaseNotes = '';
   if (typeof info.releaseNotes === 'string') {
-    releaseNotes = info.releaseNotes;
+    releaseNotes = htmlToPlainText(info.releaseNotes);
   } else if (Array.isArray(info.releaseNotes)) {
-    releaseNotes = info.releaseNotes.map(n => n.note || '').join('\n');
+    releaseNotes = info.releaseNotes
+      .map((n) => (n.note ? htmlToPlainText(n.note) : ''))
+      .filter(Boolean)
+      .join('\n\n');
   }
+
+  if (releaseNotes.length > 1000) {
+    releaseNotes = releaseNotes.slice(0, 1000) + '...';
+  }
+
   return {
     version: info.version,
     releaseNotes,
@@ -49,9 +69,14 @@ export function initUpdater(win: BrowserWindow) {
   // 检查更新出错
   autoUpdater.on('error', (error) => {
     console.error('Update error:', error);
+    let message = (error && (error as Error).message) || String(error);
+    if (message.includes('ZIP file not provided')) {
+      message =
+        '自动更新需要 ZIP 安装包，但当前版本的 Release 中没有对应的 ZIP 文件。请前往 GitHub Releases 页面手动下载安装，或等待下一个版本修复自动更新。';
+    }
     sendStatusToWindow({
       status: 'error',
-      error: error.message,
+      error: message,
     });
   });
 

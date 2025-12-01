@@ -217,7 +217,9 @@ export function UpdateDialog({ isOpen, onClose }: UpdateDialogProps) {
               <XIcon className="w-6 h-6 text-red-500" />
             </div>
             <h3 className="font-semibold text-lg mb-1 text-red-500">{t('common.error')}</h3>
-            <p className="text-sm text-muted-foreground">{updateStatus.error}</p>
+            <p className="text-sm text-muted-foreground break-all whitespace-pre-wrap max-h-40 overflow-y-auto">
+              {updateStatus.error}
+            </p>
             <button
               onClick={handleCheckUpdate}
               className="mt-4 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"

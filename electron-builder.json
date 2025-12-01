@@ -16,6 +16,10 @@
       {
         "target": "dmg",
         "arch": ["x64", "arm64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64", "arm64"]
       }
     ],
     "artifactName": "${productName}-${version}-${arch}.${ext}",
@@ -51,7 +55,8 @@
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "differentialPackage": true
   },
   "publish": {
     "provider": "github",
