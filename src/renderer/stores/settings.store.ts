@@ -56,6 +56,8 @@ interface SettingsState {
   themeHue: number;
   themeSaturation: number;
   fontSize: string;
+  renderMarkdown: boolean; // 详情页默认使用 Markdown 渲染
+  editorMarkdownPreview: boolean; // 编辑器默认开启预览
   
   // 常规设置
   autoSave: boolean;
@@ -98,6 +100,8 @@ interface SettingsState {
   setDarkMode: (isDark: boolean) => void;
   setThemeColor: (colorId: string) => void;
   setFontSize: (size: string) => void;
+  setRenderMarkdown: (enabled: boolean) => void;
+  setEditorMarkdownPreview: (enabled: boolean) => void;
   setAutoSave: (enabled: boolean) => void;
   setShowLineNumbers: (enabled: boolean) => void;
   setLaunchAtStartup: (enabled: boolean) => void;
@@ -135,6 +139,8 @@ export const useSettingsStore = create<SettingsState>()(
       themeHue: 220,
       themeSaturation: 70,
       fontSize: 'medium',
+      renderMarkdown: true,
+      editorMarkdownPreview: false,
       autoSave: true,
       showLineNumbers: false,
       launchAtStartup: false,
@@ -186,6 +192,8 @@ export const useSettingsStore = create<SettingsState>()(
           document.documentElement.style.setProperty('--theme-saturation', String(theme.saturation));
         }
       },
+      setRenderMarkdown: (enabled) => set({ renderMarkdown: enabled }),
+      setEditorMarkdownPreview: (enabled) => set({ editorMarkdownPreview: enabled }),
       
       setFontSize: (size) => {
         set({ fontSize: size });

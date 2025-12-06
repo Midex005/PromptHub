@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Textarea, Input, Button } from '../ui';
 import { SaveIcon, XIcon, HashIcon, PlayIcon, CopyIcon } from 'lucide-react';
 import type { Prompt } from '../../../shared/types';
+import { useSettingsStore } from '../../stores/settings.store';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import { defaultSchema } from 'hast-util-sanitize';
 
 interface PromptEditorProps {
   prompt: Prompt;
@@ -17,6 +23,11 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   const [tags, setTags] = useState<string[]>(prompt.tags);
   const [tagInput, setTagInput] = useState('');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const { editorMarkdownPreview, setEditorMarkdownPreview } = useSettingsStore((state) => ({
+    editorMarkdownPreview: state.editorMarkdownPreview,
+    setEditorMarkdownPreview: state.setEditorMarkdownPreview,
+  }));
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>(editorMarkdownPreview ? 'preview' : 'edit');
 
   // 提取变量
   const extractVariables = useCallback((text: string): string[] => {
@@ -31,6 +42,14 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
 
   const variables = extractVariables(userPrompt + (systemPrompt || ''));
 
+  useEffect(() => {
+    setActiveTab(editorMarkdownPreview ? 'preview' : 'edit');
+  }, [editorMarkdownPreview]);
+
+  useEffect(() => {
+    setEditorMarkdownPreview(activeTab === 'preview');
+  }, [activeTab, setEditorMarkdownPreview]);
+
   // 生成预览
   const generatePreview = useCallback(() => {
     let preview = userPrompt;
@@ -39,6 +58,49 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
     }
     return preview;
   }, [userPrompt, variableValues]);
+
+  const sanitizeSchema: any = useMemo(() => {
+    const schema = { ...defaultSchema, attributes: { ...defaultSchema.attributes } };
+    schema.attributes.code = [...(schema.attributes.code || []), ['className']];
+    schema.attributes.span = [...(schema.attributes.span || []), ['className']];
+    schema.attributes.pre = [...(schema.attributes.pre || []), ['className']];
+    return schema;
+  }, []);
+
+  const rehypePlugins = useMemo(
+    () => [
+      [rehypeHighlight, { ignoreMissing: true }] as any,
+      [rehypeSanitize, sanitizeSchema] as any,
+    ],
+    [sanitizeSchema],
+  );
+
+  const markdownComponents = {
+    h1: (props: any) => <h1 className="text-2xl font-bold mb-4 text-foreground" {...props} />,
+    h2: (props: any) => <h2 className="text-xl font-semibold mb-3 mt-5 text-foreground" {...props} />,
+    h3: (props: any) => <h3 className="text-lg font-semibold mb-3 mt-4 text-foreground" {...props} />,
+    h4: (props: any) => <h4 className="text-base font-semibold mb-2 mt-3 text-foreground" {...props} />,
+    p: (props: any) => <p className="mb-3 leading-relaxed text-foreground/90" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
+    li: (props: any) => <li className="leading-relaxed" {...props} />,
+    code: (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[13px]" {...props} />,
+    pre: (props: any) => (
+      <pre className="p-3 rounded-lg bg-muted overflow-x-auto text-[13px] leading-relaxed" {...props} />
+    ),
+    blockquote: (props: any) => (
+      <blockquote className="border-l-4 border-border pl-3 text-muted-foreground italic mb-3" {...props} />
+    ),
+    hr: () => <hr className="my-4 border-border" />,
+    table: (props: any) => <table className="table-auto border-collapse w-full text-sm mb-3" {...props} />,
+    th: (props: any) => (
+      <th className="border border-border px-2 py-1 bg-muted text-left font-medium" {...props} />
+    ),
+    td: (props: any) => <td className="border border-border px-2 py-1" {...props} />,
+    a: (props: any) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
+    strong: (props: any) => <strong className="font-semibold text-foreground" {...props} />,
+    em: (props: any) => <em className="italic text-foreground/90" {...props} />,
+  };
 
   const handleSave = () => {
     onSave({
@@ -137,13 +199,55 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           />
 
           {/* User Prompt */}
-          <Textarea
-            label="User Prompt"
-            placeholder="输入你的 Prompt 内容..."
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            className="min-h-[200px]"
-          />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-foreground">User Prompt</label>
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+                <button
+                  onClick={() => setActiveTab('edit')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    activeTab === 'edit'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => setActiveTab('preview')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    activeTab === 'preview'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  预览
+                </button>
+              </div>
+            </div>
+            {activeTab === 'edit' ? (
+              <Textarea
+                placeholder="输入你的 Prompt 内容..."
+                value={userPrompt}
+                onChange={(e) => setUserPrompt(e.target.value)}
+                className="min-h-[200px]"
+              />
+            ) : (
+              <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-[1.7] markdown-content break-words space-y-3 min-h-[200px]">
+                {userPrompt ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={rehypePlugins}
+                    components={markdownComponents}
+                  >
+                    {userPrompt}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="text-muted-foreground text-sm">暂无内容</div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 变量填充 */}
           {variables.length > 0 && (

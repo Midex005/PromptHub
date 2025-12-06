@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StarIcon, CopyIcon, PlayIcon, EditIcon, TrashIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, HistoryIcon, FolderIcon, Trash2Icon } from 'lucide-react';
 import type { Prompt } from '../../../shared/types';
 import { useFolderStore } from '../../stores/folder.store';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeSanitize from 'rehype-sanitize';
+import { defaultSchema } from 'hast-util-sanitize';
 
 // 自定义 Checkbox 组件
 function Checkbox({ checked, onChange, className = '' }: { checked: boolean; onChange: () => void; className?: string }) {
@@ -65,6 +70,36 @@ export function PromptTableView({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const folders = useFolderStore((state) => state.folders);
+
+  const sanitizeSchema: any = useMemo(() => {
+    const schema = { ...defaultSchema, attributes: { ...defaultSchema.attributes } };
+    schema.attributes.code = [...(schema.attributes.code || []), ['className']];
+    schema.attributes.span = [...(schema.attributes.span || []), ['className']];
+    schema.attributes.pre = [...(schema.attributes.pre || []), ['className']];
+    return schema;
+  }, []);
+
+  const rehypePlugins = useMemo(
+    () => [
+      [rehypeHighlight, { ignoreMissing: true }] as any,
+      [rehypeSanitize, sanitizeSchema] as any,
+    ],
+    [sanitizeSchema],
+  );
+
+  const renderMarkdownPreview = (text: string) => {
+    if (!text) return <span className="text-muted-foreground/40 text-xs">-</span>;
+    return (
+      <div className="text-muted-foreground text-xs leading-relaxed line-clamp-2 max-w-[220px] markdown-content">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={rehypePlugins}
+        >
+          {text}
+        </ReactMarkdown>
+      </div>
+    );
+  };
 
   // 分页
   const totalPages = Math.ceil(prompts.length / pageSize);
@@ -280,26 +315,16 @@ export function PromptTableView({
 
                   {/* Prompt 内容预览 */}
                   <td className="px-4 py-3 min-w-[180px]">
-                    <p 
-                      className="text-muted-foreground text-xs line-clamp-2 max-w-[200px] cursor-help"
-                      title={prompt.userPrompt}
-                    >
-                      {prompt.userPrompt.slice(0, 100)}{prompt.userPrompt.length > 100 ? '...' : ''}
-                    </p>
+                    <div className="cursor-help" title={prompt.userPrompt}>
+                      {renderMarkdownPreview(prompt.userPrompt)}
+                    </div>
                   </td>
 
                   {/* AI 响应预览 */}
                   <td className="px-4 py-3 min-w-[180px]">
-                    {aiContent ? (
-                      <p 
-                        className="text-muted-foreground text-xs line-clamp-2 max-w-[200px] cursor-help"
-                        title={aiContent}
-                      >
-                        {aiContent.slice(0, 100)}{aiContent.length > 100 ? '...' : ''}
-                      </p>
-                    ) : (
-                      <span className="text-muted-foreground/40 text-xs">-</span>
-                    )}
+                    <div className="cursor-help" title={aiContent}>
+                      {renderMarkdownPreview(aiContent)}
+                    </div>
                   </td>
 
                   {/* 变量数 */}

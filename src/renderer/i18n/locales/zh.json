@@ -62,6 +62,8 @@
     "waitingResponse": "等待响应...",
     "copyResponse": "复制响应",
     "responseCopied": "已复制 AI 响应",
+    "viewRaw": "显示原文",
+    "viewMarkdown": "Markdown 渲染",
     "createPrompt": "新建 Prompt",
     "editPrompt": "编辑 Prompt",
     "titleLabel": "标题",

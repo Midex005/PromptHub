@@ -62,6 +62,8 @@
     "waitingResponse": "Waiting for response...",
     "copyResponse": "Copy Response",
     "responseCopied": "AI response copied",
+    "viewRaw": "Show Plain Text",
+    "viewMarkdown": "Render Markdown",
     "createPrompt": "New Prompt",
     "editPrompt": "Edit Prompt",
     "titleLabel": "Title",

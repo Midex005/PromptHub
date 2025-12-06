@@ -9,9 +9,10 @@ interface ModalProps {
   title?: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  extraActions?: ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', extraActions }: ModalProps) {
   // ESC 关闭
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -45,7 +46,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       <div
         className={clsx(
           'relative bg-card rounded-2xl shadow-2xl border border-border',
-          'max-h-[85vh] overflow-hidden flex flex-col',
+          'overflow-hidden flex flex-col',
           'transform transition-all duration-200',
           {
             'w-full max-w-sm': size === 'sm',
@@ -53,15 +54,18 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             'w-full max-w-lg': size === 'lg',
             'w-full max-w-2xl': size === 'xl',
             'w-full max-w-3xl': size === '2xl',
-            'w-full max-w-4xl': size === 'full',
+            'w-full max-w-6xl': size === 'full',
           }
         )}
-        style={{ margin: 'auto' }}
+        style={{ margin: 'auto', maxHeight: size === 'full' ? '92vh' : '85vh' }}
       >
         {/* 标题栏 */}
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+              {extraActions}
+            </div>
             <button
               onClick={onClose}
               className="p-2 -mr-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
