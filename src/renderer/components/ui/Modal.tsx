@@ -7,11 +7,12 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  headerActions?: ReactNode;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, headerActions, children, size = 'md' }: ModalProps) {
   // ESC 关闭
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -30,13 +31,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   if (!isOpen) return null;
 
   const modalContent = (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* 背景遮罩 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md"
         onClick={onClose}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
@@ -62,12 +63,15 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            <button
-              onClick={onClose}
-              className="p-2 -mr-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <XIcon className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {headerActions}
+              <button
+                onClick={onClose}
+                className="p-2 -mr-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
 

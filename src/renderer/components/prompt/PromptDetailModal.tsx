@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { StarIcon, HashIcon, ClockIcon, CopyIcon, CheckIcon, SparklesIcon } from 'lucide-react';
+import { StarIcon, HashIcon, ClockIcon, CopyIcon, CheckIcon, SparklesIcon, EditIcon } from 'lucide-react';
 import { Modal } from '../ui/Modal';
+import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import type { Prompt } from '../../../shared/types';
 import { useState } from 'react';
 
@@ -9,6 +10,7 @@ interface PromptDetailModalProps {
   onClose: () => void;
   prompt: Prompt | null;
   onCopy?: (prompt: Prompt) => void;
+  onEdit?: (prompt: Prompt) => void;
 }
 
 export function PromptDetailModal({
@@ -16,11 +18,13 @@ export function PromptDetailModal({
   onClose,
   prompt,
   onCopy,
+  onEdit,
 }: PromptDetailModalProps) {
   const { t } = useTranslation();
   const [copiedSystem, setCopiedSystem] = useState(false);
   const [copiedUser, setCopiedUser] = useState(false);
   const [copiedAi, setCopiedAi] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   if (!prompt) return null;
 
@@ -78,6 +82,20 @@ export function PromptDetailModal({
       onClose={onClose}
       title={prompt.title}
       size="2xl"
+      headerActions={
+        onEdit && (
+          <button
+            onClick={() => {
+              onEdit(prompt);
+              onClose();
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            <EditIcon className="w-4 h-4" />
+            <span>{t('prompt.edit', '编辑')}</span>
+          </button>
+        )
+      }
     >
       <div className="space-y-6">
         {/* 基本信息 */}
@@ -102,6 +120,25 @@ export function PromptDetailModal({
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('prompt.description')}</h4>
             <p className="text-sm bg-muted/30 rounded-lg p-3">{prompt.description}</p>
+          </div>
+        )}
+
+        {/* 图片 */}
+        {prompt.images && prompt.images.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('prompt.images', '参考图片')}</h4>
+            <div className="flex flex-wrap gap-4">
+              {prompt.images.map((img, index) => (
+                <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
+                  <img
+                    src={`local-image://${img}`}
+                    alt={`image-${index}`}
+                    className="max-w-[200px] max-h-[200px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => setPreviewImage(img)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -200,6 +237,13 @@ export function PromptDetailModal({
           </div>
         )}
       </div>
+
+      {/* 图片预览弹窗 */}
+      <ImagePreviewModal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        imageSrc={previewImage}
+      />
     </Modal>
   );
 }
