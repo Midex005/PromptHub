@@ -261,7 +261,8 @@ export function MainContent() {
 
   // AI 测试函数（支持变量替换后的 prompt）
   const runAiTest = async (systemPrompt: string | undefined, userPrompt: string, promptId?: string) => {
-    setShowAiPanel(true);
+    // 卡片视图不使用弹窗，直接在页面内显示结果
+    // setShowAiPanel(true);  // 移除：不再打开 AiTestModal
     setIsTestingAI(true);
     setAiResponse(null);
     setIsAiTestVariableModalOpen(false);
@@ -960,6 +961,41 @@ export function MainContent() {
                 )}
               </div>
             )}
+            
+            {/* AI 测试响应区域 */}
+            {(isTestingAI || aiResponse) && (
+              <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <SparklesIcon className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">{t('prompt.aiResponse', 'AI 响应')}</span>
+                    <span className="text-xs text-muted-foreground">({aiModel})</span>
+                  </div>
+                  {aiResponse && (
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(aiResponse);
+                        showToast(t('toast.copied'), 'success');
+                      }}
+                      className="p-1.5 rounded hover:bg-muted transition-colors"
+                      title={t('prompt.copy')}
+                    >
+                      <CopyIcon className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                {isTestingAI ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <LoaderIcon className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">{t('prompt.testing', '测试中...')}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                    {aiResponse}
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           </div>
           {/* 操作按钮 - 固定底部 */}
@@ -1051,14 +1087,7 @@ export function MainContent() {
         />
       )}
 
-      {/* AI 测试弹窗（变量输入） */}
-      <AiTestModal
-        isOpen={showAiPanel}
-        onClose={() => setShowAiPanel(false)}
-        prompt={selectedPrompt || null}
-        onUsageIncrement={handleAiUsageIncrement}
-        onSaveResponse={handleSaveAiResponse}
-      />
+      {/* 卡片视图不使用 AiTestModal，AI 响应直接在页面内显示 */}
 
       {/* 变量输入弹窗（用于复制） */}
       {

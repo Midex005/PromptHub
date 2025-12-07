@@ -81,7 +81,11 @@ interface SettingsState {
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
-  webdavAutoSync: boolean;
+  webdavAutoSync: boolean;  // 旧版兼容，等同于 webdavSyncOnStartup
+  webdavSyncOnStartup: boolean;  // 启动后自动同步一次
+  webdavSyncOnStartupDelay: number;  // 启动后延迟秒数（0-60）
+  webdavAutoSyncInterval: number;  // 自动同步间隔（分钟，0=关闭）
+  webdavSyncOnSave: boolean;  // 保存时同步（实验性）
   
   // 更新设置
   autoCheckUpdate: boolean;
@@ -116,6 +120,10 @@ interface SettingsState {
   setWebdavUsername: (username: string) => void;
   setWebdavPassword: (password: string) => void;
   setWebdavAutoSync: (enabled: boolean) => void;
+  setWebdavSyncOnStartup: (enabled: boolean) => void;
+  setWebdavSyncOnStartupDelay: (delay: number) => void;
+  setWebdavAutoSyncInterval: (interval: number) => void;
+  setWebdavSyncOnSave: (enabled: boolean) => void;
   setAutoCheckUpdate: (enabled: boolean) => void;
   setAiProvider: (provider: string) => void;
   setAiApiKey: (key: string) => void;
@@ -155,6 +163,10 @@ export const useSettingsStore = create<SettingsState>()(
       webdavUsername: '',
       webdavPassword: '',
       webdavAutoSync: false,
+      webdavSyncOnStartup: true,
+      webdavSyncOnStartupDelay: 10,
+      webdavAutoSyncInterval: 0,
+      webdavSyncOnSave: false,
       autoCheckUpdate: true,
       aiProvider: 'openai',
       aiApiKey: '',
@@ -223,7 +235,11 @@ export const useSettingsStore = create<SettingsState>()(
       setWebdavUrl: (url) => set({ webdavUrl: url }),
       setWebdavUsername: (username) => set({ webdavUsername: username }),
       setWebdavPassword: (password) => set({ webdavPassword: password }),
-      setWebdavAutoSync: (enabled) => set({ webdavAutoSync: enabled }),
+      setWebdavAutoSync: (enabled) => set({ webdavAutoSync: enabled, webdavSyncOnStartup: enabled }),
+      setWebdavSyncOnStartup: (enabled) => set({ webdavSyncOnStartup: enabled }),
+      setWebdavSyncOnStartupDelay: (delay) => set({ webdavSyncOnStartupDelay: Math.max(0, Math.min(60, delay)) }),
+      setWebdavAutoSyncInterval: (interval) => set({ webdavAutoSyncInterval: Math.max(0, interval) }),
+      setWebdavSyncOnSave: (enabled) => set({ webdavSyncOnSave: enabled }),
       setAutoCheckUpdate: (enabled) => set({ autoCheckUpdate: enabled }),
       setAiProvider: (provider) => set({ aiProvider: provider }),
       setAiApiKey: (key) => set({ aiApiKey: key }),
@@ -284,18 +300,28 @@ export const useSettingsStore = create<SettingsState>()(
       },
       
       setDefaultAiModel: (id) => {
-        const models = get().aiModels.map((m) => ({
-          ...m,
-          isDefault: m.id === id,
-        }));
+        const targetModel = get().aiModels.find((m) => m.id === id);
+        if (!targetModel) return;
+        
+        const targetType = targetModel.type || 'chat';
+        
+        // 只更新同类型模型的 isDefault 状态
+        const models = get().aiModels.map((m) => {
+          const modelType = m.type || 'chat';
+          if (modelType === targetType) {
+            return { ...m, isDefault: m.id === id };
+          }
+          return m;
+        });
         set({ aiModels: models });
-        const defaultModel = models.find((m) => m.id === id);
-        if (defaultModel) {
+        
+        // 只有对话模型才同步到旧版配置
+        if (targetType === 'chat') {
           set({
-            aiProvider: defaultModel.provider,
-            aiApiKey: defaultModel.apiKey,
-            aiApiUrl: defaultModel.apiUrl,
-            aiModel: defaultModel.model,
+            aiProvider: targetModel.provider,
+            aiApiKey: targetModel.apiKey,
+            aiApiUrl: targetModel.apiUrl,
+            aiModel: targetModel.model,
           });
         }
       },

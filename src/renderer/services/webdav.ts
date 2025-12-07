@@ -29,6 +29,14 @@ interface BackupData {
   folders: any[];
   versions?: any[];
   images?: { [fileName: string]: string }; // fileName -> base64
+  // AI 配置（可选，用于同步）
+  aiConfig?: {
+    aiModels?: any[];
+    aiProvider?: string;
+    aiApiKey?: string;
+    aiApiUrl?: string;
+    aiModel?: string;
+  };
 }
 
 // WebDAV 文件路径
@@ -92,7 +100,57 @@ async function collectImages(prompts: any[]): Promise<{ [fileName: string]: stri
 }
 
 /**
- * 上传数据到 WebDAV（包含图片）
+ * 获取 AI 配置（从 localStorage）
+ */
+function getAiConfig(): BackupData['aiConfig'] {
+  try {
+    const stored = localStorage.getItem('settings-storage');
+    if (stored) {
+      const data = JSON.parse(stored);
+      const state = data?.state;
+      if (state) {
+        return {
+          aiModels: state.aiModels || [],
+          aiProvider: state.aiProvider,
+          aiApiKey: state.aiApiKey,
+          aiApiUrl: state.aiApiUrl,
+          aiModel: state.aiModel,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to get AI config:', error);
+  }
+  return undefined;
+}
+
+/**
+ * 恢复 AI 配置（到 localStorage）
+ */
+function restoreAiConfig(aiConfig: BackupData['aiConfig']): void {
+  if (!aiConfig) return;
+  
+  try {
+    const stored = localStorage.getItem('settings-storage');
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (data?.state) {
+        // 只更新 AI 相关配置
+        if (aiConfig.aiModels) data.state.aiModels = aiConfig.aiModels;
+        if (aiConfig.aiProvider) data.state.aiProvider = aiConfig.aiProvider;
+        if (aiConfig.aiApiKey) data.state.aiApiKey = aiConfig.aiApiKey;
+        if (aiConfig.aiApiUrl) data.state.aiApiUrl = aiConfig.aiApiUrl;
+        if (aiConfig.aiModel) data.state.aiModel = aiConfig.aiModel;
+        localStorage.setItem('settings-storage', JSON.stringify(data));
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to restore AI config:', error);
+  }
+}
+
+/**
+ * 上传数据到 WebDAV（包含图片和 AI 配置）
  */
 export async function uploadToWebDAV(config: WebDAVConfig): Promise<SyncResult> {
   try {
@@ -104,12 +162,16 @@ export async function uploadToWebDAV(config: WebDAVConfig): Promise<SyncResult> 
     const images = await collectImages(prompts);
     const imagesCount = Object.keys(images).length;
     
+    // 获取 AI 配置
+    const aiConfig = getAiConfig();
+    
     const backupData: BackupData = {
       version: '2.0',
       exportedAt: new Date().toISOString(),
       prompts,
       folders,
       images,
+      aiConfig,
     };
 
     const fileUrl = `${config.url.replace(/\/$/, '')}/${BACKUP_FILENAME}`;
@@ -200,9 +262,14 @@ export async function downloadFromWebDAV(config: WebDAVConfig): Promise<SyncResu
       imagesRestored = await restoreImages(data.images);
     }
     
+    // 恢复 AI 配置
+    if (data.aiConfig) {
+      restoreAiConfig(data.aiConfig);
+    }
+    
     return { 
       success: true, 
-      message: `下载成功 (${data.prompts?.length || 0} 条 Prompt, ${imagesRestored} 张图片)`,
+      message: `下载成功 (${data.prompts?.length || 0} 条 Prompt, ${imagesRestored} 张图片${data.aiConfig ? ', AI配置已同步' : ''})`,
       timestamp: data.exportedAt,
       details: {
         promptsDownloaded: data.prompts?.length || 0,

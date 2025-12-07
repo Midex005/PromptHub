@@ -197,7 +197,7 @@ export function PromptDetailModal({
         {/* 图片 */}
         {prompt.images && prompt.images.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('prompt.images', '参考图片')}</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('prompt.referenceImages')}</h4>
             <div className="flex flex-wrap gap-4">
               {prompt.images.map((img, index) => (
                 <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">

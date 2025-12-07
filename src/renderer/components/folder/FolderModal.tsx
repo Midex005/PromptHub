@@ -272,14 +272,10 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
 
             {isPrivate && (
               <div className="pl-6 animate-in fade-in slide-in-from-top-2 duration-200">
-                {!securityStatus.configured && (
-                  <p className="text-xs text-destructive">请到“设置 - 安全”设置主密码后再开启私密。</p>
-                )}
-                {securityStatus.configured && !securityStatus.unlocked && (
-                  <p className="text-xs text-muted-foreground">当前未解锁主密码，私密内容将保持隐藏。</p>
-                )}
-                {securityStatus.configured && securityStatus.unlocked && (
-                  <p className="text-xs text-muted-foreground">已解锁主密码，保存后此文件夹内容将加密存储。</p>
+                {!securityStatus.configured ? (
+                  <p className="text-xs text-destructive">请到"设置 - 安全"设置主密码后再开启私密。</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">保存后此文件夹内容将加密存储，进入时需要验证密码。</p>
                 )}
               </div>
             )}

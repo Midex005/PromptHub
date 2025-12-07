@@ -161,6 +161,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordFolder, setPasswordFolder] = useState<Folder | null>(null);
+  const [showAllTags, setShowAllTags] = useState(false);
   const filterTags = usePromptStore((state) => state.filterTags);
   const toggleFilterTag = usePromptStore((state) => state.toggleFilterTag);
 
@@ -293,13 +294,21 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         {/* 标签区域 */}
         {uniqueTags.length > 0 && (
           <div className="pt-4">
-            <div className="flex items-center px-3 mb-2">
+            <div className="flex items-center justify-between px-3 mb-2">
               <span className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
                 {t('nav.tags')}
               </span>
+              {uniqueTags.length > 8 && (
+                <button
+                  onClick={() => setShowAllTags(!showAllTags)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {showAllTags ? t('common.collapse', '收起') : t('common.showAll', `全部 ${uniqueTags.length}`)}
+                </button>
+              )}
             </div>
             <div className="flex flex-wrap gap-1.5 px-3">
-              {uniqueTags.slice(0, 8).map((tag) => (
+              {(showAllTags ? uniqueTags : uniqueTags.slice(0, 8)).map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {

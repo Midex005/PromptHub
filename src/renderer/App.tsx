@@ -56,16 +56,32 @@ function App() {
     }
     
     // 初始化数据库，然后加载数据
-    const init = async () => {
+    const init = async (retryCount = 0) => {
       try {
         await initDatabase();
         await seedDatabase();
-        
-        // 检查是否需要自动同步（双向同步）
-        const settings = useSettingsStore.getState();
-        if (settings.webdavEnabled && settings.webdavAutoSync && 
-            settings.webdavUrl && settings.webdavUsername && settings.webdavPassword) {
-          console.log('🔄 Auto syncing with WebDAV (bidirectional)...');
+        await fetchPrompts();
+        await fetchFolders();
+        console.log('✅ App initialized');
+      } catch (error) {
+        console.error('❌ Init failed:', error);
+        // 如果是超时错误，尝试重试一次
+        if (retryCount < 1 && error instanceof Error && error.message.includes('timeout')) {
+          console.log('🔄 Retrying database initialization...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return init(retryCount + 1);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+      
+      // 启动后同步（在数据加载完成后执行，不阻塞 UI）
+      const settings = useSettingsStore.getState();
+      if (settings.webdavEnabled && settings.webdavSyncOnStartup && 
+          settings.webdavUrl && settings.webdavUsername && settings.webdavPassword) {
+        const delay = (settings.webdavSyncOnStartupDelay || 10) * 1000;
+        console.log(`🔄 Will sync with WebDAV in ${delay / 1000}s...`);
+        setTimeout(async () => {
           try {
             const result = await autoSync({
               url: settings.webdavUrl,
@@ -73,25 +89,49 @@ function App() {
               password: settings.webdavPassword,
             });
             if (result.success) {
-              console.log('✅ Auto sync completed:', result.message);
+              console.log('✅ Startup sync completed:', result.message);
+              // 同步后重新加载数据
+              await fetchPrompts();
+              await fetchFolders();
             } else {
-              console.log('⚠️ Auto sync failed:', result.message);
+              console.log('⚠️ Startup sync failed:', result.message);
             }
           } catch (syncError) {
-            console.error('⚠️ Auto sync error:', syncError);
+            console.error('⚠️ Startup sync error:', syncError);
           }
-        }
-        
-        await fetchPrompts();
-        await fetchFolders();
-        console.log('✅ App initialized');
-      } catch (error) {
-        console.error('❌ Init failed:', error);
-      } finally {
-        setIsLoading(false);
+        }, delay);
       }
     };
     init();
+    
+    // 定时自动同步
+    const settings = useSettingsStore.getState();
+    let intervalId: NodeJS.Timeout | null = null;
+    if (settings.webdavEnabled && settings.webdavAutoSyncInterval > 0 &&
+        settings.webdavUrl && settings.webdavUsername && settings.webdavPassword) {
+      const intervalMs = settings.webdavAutoSyncInterval * 60 * 1000;
+      console.log(`🔄 Auto sync interval: ${settings.webdavAutoSyncInterval} minutes`);
+      intervalId = setInterval(async () => {
+        try {
+          const result = await autoSync({
+            url: settings.webdavUrl,
+            username: settings.webdavUsername,
+            password: settings.webdavPassword,
+          });
+          if (result.success) {
+            console.log('✅ Interval sync completed:', result.message);
+            await fetchPrompts();
+            await fetchFolders();
+          }
+        } catch (e) {
+          console.error('⚠️ Interval sync error:', e);
+        }
+      }, intervalMs);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   if (isLoading) {

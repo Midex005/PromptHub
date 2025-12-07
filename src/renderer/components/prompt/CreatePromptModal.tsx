@@ -221,7 +221,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate }: CreatePromptMod
         {/* 图片上传 */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
-            {t('prompt.imagesOptional', '参考图片（可选）')}
+            {t('prompt.referenceImages')}
           </label>
           <div className="flex flex-wrap gap-3">
             {images.map((img, index) => (

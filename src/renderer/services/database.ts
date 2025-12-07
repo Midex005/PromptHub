@@ -8,18 +8,18 @@ import type { Prompt, PromptVersion, Folder } from '../../shared/types';
 const DB_NAME = 'PromptHubDB';
 const DB_VERSION = 1;
 
-// 预制数据
+// 预制数据 - 3个文件夹：AI编程、角色扮演、绘图提示词
 const SEED_PROMPTS: Prompt[] = [
-  // ========== 开发类 ==========
+  // ========== AI 编程规则 ==========
   {
     id: 'seed-1',
-    title: '代码审查专家',
-    description: '专业代码审查，发现问题并给出改进建议',
-    folderId: 'folder-dev',
-    systemPrompt: '你是一位资深软件工程师，专注于代码质量和最佳实践。你的审查风格严谨但友好，会解释每个建议背后的原因。',
-    userPrompt: '请审查以下 {{language}} 代码：\n\n```{{language}}\n{{code}}\n```\n\n请从以下方面进行审查：\n1. **代码质量**：命名规范、代码结构、可读性\n2. **潜在问题**：Bug、边界情况、异常处理\n3. **性能优化**：时间复杂度、内存使用、潜在瓶颈\n4. **安全隐患**：输入验证、数据安全\n5. **改进建议**：具体的优化方案和代码示例',
+    title: 'Cursor Rules 专家',
+    description: '生成高质量的 Cursor/Windsurf AI 编程规则',
+    folderId: 'folder-coding',
+    systemPrompt: '你是一位 AI 辅助编程专家，精通 Cursor、Windsurf 等 AI IDE 的规则编写。你了解如何编写清晰、有效的 AI 编程指令，让 AI 更好地理解项目上下文和编码规范。',
+    userPrompt: '请为我的 {{project_type}} 项目生成一份 Cursor Rules 文件：\n\n技术栈：{{tech_stack}}\n项目描述：{{description}}\n\n要求包含：\n1. 项目概述和目录结构说明\n2. 代码风格和命名规范\n3. 架构模式和设计原则\n4. 常用代码模板\n5. 禁止的实现方式\n6. 测试和文档要求',
     variables: [],
-    tags: ['开发', '代码审查'],
+    tags: ['AI编程', 'Cursor', '规则'],
     isFavorite: true,
     version: 1,
     currentVersion: 1,
@@ -29,62 +29,13 @@ const SEED_PROMPTS: Prompt[] = [
   },
   {
     id: 'seed-2',
-    title: '代码解释器',
-    description: '逐行解释代码逻辑，适合学习和理解复杂代码',
-    folderId: 'folder-dev',
-    systemPrompt: '你是一位耐心的编程导师，擅长将复杂的代码逻辑用简单易懂的方式解释清楚。',
-    userPrompt: '请详细解释以下代码的功能和工作原理：\n\n```\n{{code}}\n```\n\n请包含：\n1. 代码整体功能概述\n2. 逐行或逐块详细解释\n3. 关键算法/设计模式说明\n4. 输入输出示例',
+    title: '代码审查专家',
+    description: '专业代码审查，发现问题并给出改进建议',
+    folderId: 'folder-coding',
+    systemPrompt: '你是一位资深软件工程师，专注于代码质量和最佳实践。审查时要严谨但友好，解释每个建议背后的原因。',
+    userPrompt: '请审查以下 {{language}} 代码：\n\n```{{language}}\n{{code}}\n```\n\n请从以下方面审查：\n1. **代码质量**：命名规范、代码结构、可读性\n2. **潜在问题**：Bug、边界情况、异常处理\n3. **性能优化**：时间复杂度、内存使用\n4. **安全隐患**：输入验证、数据安全\n5. **改进建议**：具体的优化方案',
     variables: [],
-    tags: ['开发', '学习'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'seed-3',
-    title: 'SQL 查询优化',
-    description: '分析并优化 SQL 查询性能',
-    folderId: 'folder-dev',
-    systemPrompt: '你是一位数据库性能优化专家，精通各种 SQL 优化技巧和索引策略。',
-    userPrompt: '请分析并优化以下 SQL 查询：\n\n```sql\n{{sql}}\n```\n\n表结构信息（如有）：\n{{schema}}\n\n请提供：\n1. 性能问题分析\n2. 优化后的 SQL\n3. 建议的索引策略\n4. 预期性能提升',
-    variables: [],
-    tags: ['开发', 'SQL', '性能优化'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'seed-4',
-    title: 'Git Commit 信息生成',
-    description: '根据代码变更生成规范的 commit 信息',
-    folderId: 'folder-dev',
-    systemPrompt: '你是一位遵循 Conventional Commits 规范的开发者。',
-    userPrompt: '请根据以下代码变更生成规范的 Git commit 信息：\n\n```diff\n{{diff}}\n```\n\n要求：\n1. 遵循 Conventional Commits 格式：type(scope): description\n2. type 可选：feat/fix/docs/style/refactor/test/chore\n3. 描述简洁明了，不超过 50 字符\n4. 如需要，添加详细的 body 说明',
-    variables: [],
-    tags: ['开发', 'Git'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // ========== 写作类 ==========
-  {
-    id: 'seed-5',
-    title: '文章润色大师',
-    description: '优化文章表达，提升文章质量和可读性',
-    folderId: 'folder-writing',
-    systemPrompt: '你是一位资深编辑，擅长在保持作者原意的基础上优化文章表达，使其更加流畅、专业。',
-    userPrompt: '请帮我润色以下文章：\n\n{{content}}\n\n润色要求：\n- 保持原文核心观点和风格\n- 优化语言表达，使其更加流畅自然\n- 修正语法和标点错误\n- 提升逻辑连贯性\n\n请先给出修改后的版本，然后列出主要修改点。',
-    variables: [],
-    tags: ['写作', '润色'],
+    tags: ['AI编程', '代码审查'],
     isFavorite: true,
     version: 1,
     currentVersion: 1,
@@ -93,14 +44,14 @@ const SEED_PROMPTS: Prompt[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'seed-6',
-    title: '周报/日报生成器',
-    description: '根据工作内容快速生成结构化周报',
-    folderId: 'folder-writing',
-    systemPrompt: '你是一位职场写作专家，擅长将零散的工作内容整理成结构清晰、重点突出的工作汇报。',
-    userPrompt: '请根据以下工作内容生成一份{{type}}：\n\n{{tasks}}\n\n要求：\n1. 分类整理（已完成/进行中/计划中）\n2. 突出重点成果和数据\n3. 说明遇到的问题和解决方案\n4. 下一步计划\n5. 语言简洁专业',
+    id: 'seed-3',
+    title: 'Git Commit 生成器',
+    description: '根据代码变更生成规范的 commit 信息',
+    folderId: 'folder-coding',
+    systemPrompt: '你是一位遵循 Conventional Commits 规范的开发者，擅长编写清晰、规范的提交信息。',
+    userPrompt: '请根据以下代码变更生成 Git commit 信息：\n\n```diff\n{{diff}}\n```\n\n要求：\n1. 遵循格式：type(scope): description\n2. type：feat/fix/docs/style/refactor/test/chore\n3. 描述简洁，不超过 50 字符\n4. 如需要，添加详细 body',
     variables: [],
-    tags: ['写作', '职场'],
+    tags: ['AI编程', 'Git'],
     isFavorite: false,
     version: 1,
     currentVersion: 1,
@@ -108,32 +59,81 @@ const SEED_PROMPTS: Prompt[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ========== 角色扮演 ==========
+  {
+    id: 'seed-4',
+    title: '资深产品经理',
+    description: '扮演产品经理，帮助分析需求和设计产品',
+    folderId: 'folder-roleplay',
+    systemPrompt: '你是一位有 10 年经验的资深产品经理，曾在多家知名互联网公司工作。你擅长用户研究、需求分析、产品设计和项目管理。你的回答务实、有洞察力，会从用户价值和商业价值两个角度思考问题。',
+    userPrompt: '{{question}}',
+    variables: [],
+    tags: ['角色扮演', '产品'],
+    isFavorite: true,
+    version: 1,
+    currentVersion: 1,
+    usageCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-5',
+    title: '创业导师',
+    description: '扮演创业导师，提供创业建议和指导',
+    folderId: 'folder-roleplay',
+    systemPrompt: '你是一位成功的连续创业者和天使投资人，有丰富的创业和投资经验。你直言不讳，会指出创业者的盲点，但也会给予鼓励和实用建议。你关注商业模式、市场机会、团队建设和融资策略。',
+    userPrompt: '{{question}}',
+    variables: [],
+    tags: ['角色扮演', '创业'],
+    isFavorite: false,
+    version: 1,
+    currentVersion: 1,
+    usageCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-6',
+    title: '心理咨询师',
+    description: '扮演心理咨询师，提供情感支持和建议',
+    folderId: 'folder-roleplay',
+    systemPrompt: '你是一位专业的心理咨询师，拥有丰富的临床经验。你温和、有同理心，善于倾听和引导。你会帮助来访者探索自己的情绪和想法，但不会做出诊断或开具处方。如遇严重心理问题，你会建议寻求专业帮助。',
+    userPrompt: '{{question}}',
+    variables: [],
+    tags: ['角色扮演', '心理'],
+    isFavorite: false,
+    version: 1,
+    currentVersion: 1,
+    usageCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ========== 绘图提示词 ==========
   {
     id: 'seed-7',
-    title: '邮件撰写助手',
-    description: '快速生成专业得体的商务邮件',
-    folderId: 'folder-writing',
-    systemPrompt: '你是一位商务沟通专家，擅长撰写简洁、专业、得体的商务邮件。',
-    userPrompt: '请帮我撰写一封{{purpose}}的邮件：\n\n收件人：{{recipient}}\n主要内容：{{content}}\n语气要求：{{tone}}\n\n请生成邮件标题和正文。',
+    title: 'Midjourney 提示词生成',
+    description: '生成高质量的 Midjourney 绘图提示词',
+    folderId: 'folder-image',
+    systemPrompt: '你是一位精通 Midjourney 的 AI 绘画专家，了解各种艺术风格、构图技巧和提示词写法。你会生成详细、有创意的英文提示词，包含主体、风格、光影、构图等要素。',
+    userPrompt: '请为以下描述生成 Midjourney 提示词：\n\n{{description}}\n\n风格偏好：{{style}}\n\n请生成：\n1. 完整的英文提示词\n2. 推荐的参数（--ar, --v, --s 等）\n3. 3个变体版本',
     variables: [],
-    tags: ['写作', '邮件', '职场'],
-    isFavorite: false,
+    tags: ['绘图', 'Midjourney'],
+    isFavorite: true,
     version: 1,
     currentVersion: 1,
     usageCount: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
-  // ========== 翻译类 ==========
   {
     id: 'seed-8',
-    title: '专业翻译',
-    description: '精准的多语言翻译，保留原文风格',
-    folderId: 'folder-translate',
-    systemPrompt: '你是一位专业翻译，精通中、英、日、韩等多国语言。翻译时注重准确传达原文含义、语气和文化背景。',
-    userPrompt: '请将以下{{source_lang}}文本翻译成{{target_lang}}：\n\n{{text}}\n\n翻译要求：\n- 准确传达原意\n- 符合目标语言表达习惯\n- 保持原文风格和语气',
+    title: 'Stable Diffusion 提示词',
+    description: '生成 Stable Diffusion / FLUX 绘图提示词',
+    folderId: 'folder-image',
+    systemPrompt: '你是一位精通 Stable Diffusion 和 FLUX 的 AI 绘画专家，了解各种模型特点、LoRA 使用和提示词技巧。你会生成结构化的提示词，包含正向和负向提示。',
+    userPrompt: '请为以下描述生成 SD/FLUX 提示词：\n\n{{description}}\n\n风格：{{style}}\n模型：{{model}}\n\n请生成：\n1. Positive Prompt（正向提示词）\n2. Negative Prompt（负向提示词）\n3. 推荐的采样器和步数',
     variables: [],
-    tags: ['翻译'],
+    tags: ['绘图', 'SD', 'FLUX'],
     isFavorite: true,
     version: 1,
     currentVersion: 1,
@@ -143,95 +143,13 @@ const SEED_PROMPTS: Prompt[] = [
   },
   {
     id: 'seed-9',
-    title: '技术文档翻译',
-    description: '专业技术文档翻译，保留术语准确性',
-    folderId: 'folder-translate',
-    systemPrompt: '你是一位技术文档翻译专家，熟悉软件开发、云计算、人工智能等领域的专业术语。翻译时保持技术术语的准确性和一致性。',
-    userPrompt: '请将以下技术文档从{{source_lang}}翻译成{{target_lang}}：\n\n{{text}}\n\n要求：\n- 技术术语保持准确\n- 代码和命令保持原样\n- 可以添加译注说明关键术语',
+    title: 'DALL-E 提示词优化',
+    description: '优化 DALL-E / GPT-4V 绘图提示词',
+    folderId: 'folder-image',
+    systemPrompt: '你是一位精通 DALL-E 和 GPT-4V 图像生成的专家，了解 OpenAI 图像模型的特点和最佳实践。你会生成清晰、具体的自然语言描述。',
+    userPrompt: '请优化以下绘图描述，使其更适合 DALL-E 生成：\n\n原始描述：{{description}}\n\n请提供：\n1. 优化后的详细描述\n2. 艺术风格建议\n3. 构图和光影建议',
     variables: [],
-    tags: ['翻译', '技术文档'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // ========== 学习类 ==========
-  {
-    id: 'seed-10',
-    title: '概念解释器',
-    description: '用简单的语言解释复杂概念',
-    folderId: 'folder-learning',
-    systemPrompt: '你是一位优秀的教育者，擅长用简单、生动的方式解释复杂概念，善于使用类比和实例。',
-    userPrompt: '请用通俗易懂的方式解释以下概念：\n\n{{concept}}\n\n要求：\n1. 先给出简明定义\n2. 用生活中的例子类比\n3. 说明实际应用场景\n4. 列出相关概念\n5. 适合{{level}}理解',
-    variables: [],
-    tags: ['学习', '解释'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'seed-11',
-    title: '学习计划制定',
-    description: '制定系统的学习计划和路线图',
-    folderId: 'folder-learning',
-    systemPrompt: '你是一位学习规划专家，擅长根据学习者的背景和目标制定切实可行的学习计划。',
-    userPrompt: '请帮我制定{{subject}}的学习计划：\n\n当前水平：{{current_level}}\n目标：{{goal}}\n可用时间：{{time}}\n\n请提供：\n1. 学习路线图\n2. 推荐资源（书籍/课程/项目）\n3. 阶段性目标和里程碑\n4. 学习方法建议\n5. 常见误区提醒',
-    variables: [],
-    tags: ['学习', '规划'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  // ========== AI/ChatGPT ==========
-  {
-    id: 'seed-12',
-    title: '角色扮演模板',
-    description: '让 AI 扮演特定角色进行对话',
-    folderId: 'folder-ai',
-    systemPrompt: '{{role_description}}',
-    userPrompt: '{{task}}',
-    variables: [],
-    tags: ['AI', '角色扮演'],
-    isFavorite: false,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'seed-13',
-    title: '思维链分析',
-    description: '引导 AI 进行深度思考和推理',
-    folderId: 'folder-ai',
-    systemPrompt: '你是一位逻辑分析专家。解答问题时，请展示完整的思维过程：先分析问题，列出关键信息，逐步推理，最后给出结论。',
-    userPrompt: '请深入分析以下问题：\n\n{{question}}\n\n请按以下步骤思考：\n1. **理解问题**：明确问题的核心是什么\n2. **收集信息**：列出相关的已知条件\n3. **逻辑推理**：一步步分析\n4. **得出结论**：给出最终答案\n5. **验证检查**：确认答案的合理性',
-    variables: [],
-    tags: ['AI', '分析', '推理'],
-    isFavorite: true,
-    version: 1,
-    currentVersion: 1,
-    usageCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'seed-14',
-    title: '文本摘要',
-    description: '快速提炼长文章的核心要点',
-    folderId: 'folder-ai',
-    systemPrompt: '你是一位信息提炼专家，擅长从长篇内容中准确提取核心信息。',
-    userPrompt: '请为以下内容生成摘要：\n\n{{content}}\n\n要求：\n1. 摘要长度：{{length}}\n2. 突出核心观点和关键数据\n3. 保持客观中立\n4. 结构化呈现（如适用）',
-    variables: [],
-    tags: ['AI', '摘要'],
+    tags: ['绘图', 'DALL-E'],
     isFavorite: false,
     version: 1,
     currentVersion: 1,
@@ -242,11 +160,9 @@ const SEED_PROMPTS: Prompt[] = [
 ];
 
 const SEED_FOLDERS: Folder[] = [
-  { id: 'folder-dev', name: '开发工具', icon: '�', order: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'folder-writing', name: '写作助手', icon: '✍️', order: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'folder-translate', name: '翻译工具', icon: '🌐', order: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'folder-learning', name: '学习成长', icon: '📚', order: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'folder-ai', name: 'AI 技巧', icon: '🤖', order: 4, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'folder-coding', name: 'AI 编程', icon: '💻', order: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'folder-roleplay', name: '角色扮演', icon: '🎭', order: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'folder-image', name: '绘图提示词', icon: '🎨', order: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 // 使用浏览器原生 API 生成 UUID
@@ -266,15 +182,46 @@ let db: IDBDatabase | null = null;
  * 初始化数据库
  */
 export async function initDatabase(): Promise<IDBDatabase> {
+  // 如果已有连接，先关闭
+  if (db) {
+    try {
+      db.close();
+    } catch (e) {
+      console.warn('Failed to close existing db connection:', e);
+    }
+    db = null;
+  }
+  
   return new Promise((resolve, reject) => {
+    // 添加超时机制，防止无限等待
+    const timeout = setTimeout(() => {
+      console.error('Database open timeout after 10s');
+      reject(new Error('Database open timeout'));
+    }, 10000);
+    
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
+      clearTimeout(timeout);
       reject(new Error('Failed to open database'));
+    };
+    
+    request.onblocked = () => {
+      console.warn('Database open blocked - another connection is open');
+      // 不立即 reject，等待 onsuccess 或超时
     };
 
     request.onsuccess = () => {
+      clearTimeout(timeout);
       db = request.result;
+      
+      // 监听版本变化事件，当其他标签页升级数据库时关闭连接
+      db.onversionchange = () => {
+        console.log('Database version change detected, closing connection');
+        db?.close();
+        db = null;
+      };
+      
       resolve(db);
     };
 
@@ -536,7 +483,11 @@ export async function getAllFolders(): Promise<Folder[]> {
     const store = transaction.objectStore(STORES.FOLDERS);
     const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      // 按 order 字段排序
+      const folders = request.result.sort((a, b) => (a.order || 0) - (b.order || 0));
+      resolve(folders);
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -603,24 +554,29 @@ export async function deleteFolder(id: string): Promise<void> {
 
 export async function updateFolderOrders(updates: { id: string; order: number }[]): Promise<void> {
   const database = await getDatabase();
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(STORES.FOLDERS, 'readwrite');
-    const store = transaction.objectStore(STORES.FOLDERS);
-
-    updates.forEach(({ id, order }) => {
+  
+  // 逐个更新文件夹顺序
+  for (const { id, order } of updates) {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(STORES.FOLDERS, 'readwrite');
+      const store = transaction.objectStore(STORES.FOLDERS);
       const request = store.get(id);
+      
       request.onsuccess = () => {
         const folder = request.result;
         if (folder) {
           folder.order = order;
-          store.put(folder);
+          folder.updatedAt = new Date().toISOString();
+          const putRequest = store.put(folder);
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(putRequest.error);
+        } else {
+          resolve();
         }
       };
+      request.onerror = () => reject(request.error);
     });
-
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-  });
+  }
 }
 
 // ==================== 备份与恢复 ====================
@@ -631,10 +587,97 @@ export interface DatabaseBackup {
   prompts: Prompt[];
   folders: Folder[];
   versions: PromptVersion[];
+  images?: { [fileName: string]: string }; // fileName -> base64
+  aiConfig?: {
+    aiModels?: any[];
+    aiProvider?: string;
+    aiApiKey?: string;
+    aiApiUrl?: string;
+    aiModel?: string;
+  };
 }
 
 /**
- * 导出数据库为 JSON
+ * 收集所有需要备份的图片
+ */
+async function collectImages(prompts: Prompt[]): Promise<{ [fileName: string]: string }> {
+  const images: { [fileName: string]: string } = {};
+  const imageFileNames = new Set<string>();
+
+  // 收集所有 prompt 中引用的图片
+  for (const prompt of prompts) {
+    if (prompt.images && Array.isArray(prompt.images)) {
+      for (const img of prompt.images) {
+        imageFileNames.add(img);
+      }
+    }
+  }
+
+  // 读取图片为 Base64
+  for (const fileName of imageFileNames) {
+    try {
+      const base64 = await window.electron?.readImageBase64?.(fileName);
+      if (base64) {
+        images[fileName] = base64;
+      }
+    } catch (error) {
+      console.warn(`Failed to read image ${fileName}:`, error);
+    }
+  }
+
+  return images;
+}
+
+/**
+ * 获取 AI 配置（从 localStorage）
+ */
+function getAiConfig(): DatabaseBackup['aiConfig'] {
+  try {
+    const stored = localStorage.getItem('settings-storage');
+    if (stored) {
+      const data = JSON.parse(stored);
+      const state = data?.state;
+      if (state) {
+        return {
+          aiModels: state.aiModels || [],
+          aiProvider: state.aiProvider,
+          aiApiKey: state.aiApiKey,
+          aiApiUrl: state.aiApiUrl,
+          aiModel: state.aiModel,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to get AI config:', e);
+  }
+  return undefined;
+}
+
+/**
+ * 恢复 AI 配置（到 localStorage）
+ */
+function restoreAiConfig(aiConfig: DatabaseBackup['aiConfig']): void {
+  if (!aiConfig) return;
+  try {
+    const stored = localStorage.getItem('settings-storage');
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (data.state) {
+        data.state.aiModels = aiConfig.aiModels || [];
+        data.state.aiProvider = aiConfig.aiProvider || data.state.aiProvider;
+        data.state.aiApiKey = aiConfig.aiApiKey || data.state.aiApiKey;
+        data.state.aiApiUrl = aiConfig.aiApiUrl || data.state.aiApiUrl;
+        data.state.aiModel = aiConfig.aiModel || data.state.aiModel;
+        localStorage.setItem('settings-storage', JSON.stringify(data));
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to restore AI config:', e);
+  }
+}
+
+/**
+ * 导出数据库为 JSON（包含图片和 AI 配置）
  */
 export async function exportDatabase(): Promise<DatabaseBackup> {
   const [prompts, folders] = await Promise.all([
@@ -652,17 +695,25 @@ export async function exportDatabase(): Promise<DatabaseBackup> {
     request.onerror = () => reject(request.error);
   });
 
+  // 收集图片
+  const images = await collectImages(prompts);
+  
+  // 获取 AI 配置
+  const aiConfig = getAiConfig();
+
   return {
     version: DB_VERSION,
     exportedAt: new Date().toISOString(),
     prompts,
     folders,
     versions,
+    images,
+    aiConfig,
   };
 }
 
 /**
- * 从 JSON 导入数据库
+ * 从 JSON 导入数据库（包含图片和 AI 配置）
  */
 export async function importDatabase(backup: DatabaseBackup): Promise<void> {
   const database = await getDatabase();
@@ -692,10 +743,29 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
     versionStore.add(version);
   }
 
-  return new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
   });
+  
+  // 恢复图片
+  if (backup.images) {
+    let imagesRestored = 0;
+    for (const [fileName, base64] of Object.entries(backup.images)) {
+      try {
+        await window.electron?.saveImageBase64?.(fileName, base64);
+        imagesRestored++;
+      } catch (error) {
+        console.warn(`Failed to restore image ${fileName}:`, error);
+      }
+    }
+    console.log(`Restored ${imagesRestored} images`);
+  }
+  
+  // 恢复 AI 配置
+  if (backup.aiConfig) {
+    restoreAiConfig(backup.aiConfig);
+  }
 }
 
 /**

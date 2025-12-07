@@ -232,10 +232,11 @@ export async function generateImage(
   config: AIConfig,
   prompt: string,
   options?: {
-    size?: '256x256' | '512x512' | '1024x1024' | '1024x1792' | '1792x1024';
+    size?: string;  // 不同 API 支持不同的尺寸格式
     quality?: 'standard' | 'hd';
     style?: 'vivid' | 'natural';
     n?: number;
+    response_format?: 'url' | 'b64_json';
   }
 ): Promise<ImageGenerationResponse> {
   const { apiKey, apiUrl, model } = config;
@@ -249,9 +250,20 @@ export async function generateImage(
   }
 
   // 构建请求 URL
-  let endpoint = apiUrl;
-  if (!endpoint.endsWith('/images/generations')) {
-    endpoint = endpoint.replace(/\/$/, '').replace(/\/chat\/completions$/, '') + '/images/generations';
+  let endpoint = apiUrl.replace(/\/$/, '');
+  
+  // 如果已经包含 images/generations，直接使用
+  if (endpoint.includes('/images/generations')) {
+    // 保持原样
+  } else if (endpoint.endsWith('/chat/completions')) {
+    // 替换 chat/completions 为 images/generations
+    endpoint = endpoint.replace(/\/chat\/completions$/, '/images/generations');
+  } else if (endpoint.match(/\/v\d+$/)) {
+    // 如果以 /v1, /v2, /v3 等结尾，追加 /images/generations
+    endpoint = endpoint + '/images/generations';
+  } else {
+    // 默认追加 /v1/images/generations
+    endpoint = endpoint + '/v1/images/generations';
   }
 
   const headers: Record<string, string> = {
@@ -259,15 +271,28 @@ export async function generateImage(
     'Authorization': `Bearer ${apiKey}`,
   };
 
-  const body: ImageGenerationRequest = {
+  // 构建请求体 - 只包含必要参数，避免不兼容的参数导致错误
+  const body: Record<string, any> = {
     prompt,
     model: model || 'dall-e-3',
     n: options?.n ?? 1,
-    size: options?.size ?? '1024x1024',
-    quality: options?.quality ?? 'standard',
-    style: options?.style ?? 'vivid',
-    response_format: 'url',
   };
+  
+  // 只有明确指定了 size 才添加（不同 API 对 size 的要求不同）
+  if (options?.size) {
+    body.size = options.size;
+  }
+  
+  // OpenAI 特有参数，只在需要时添加
+  if (options?.quality) {
+    body.quality = options.quality;
+  }
+  if (options?.style) {
+    body.style = options.style;
+  }
+  if (options?.response_format !== undefined) {
+    body.response_format = options.response_format;
+  }
 
   try {
     const response = await fetch(endpoint, {
@@ -301,27 +326,18 @@ export async function generateImage(
 
 /**
  * 测试图像生成模型
+ * 注意：不同 API 对参数的支持不同，测试时只传递最基本的参数
  */
 export async function testImageGeneration(
   config: AIConfig,
-  testPrompt?: string,
-  options?: {
-    size?: '256x256' | '512x512' | '1024x1024' | '1024x1792' | '1792x1024';
-    quality?: 'standard' | 'hd';
-    style?: 'vivid' | 'natural';
-    n?: number;
-  }
+  testPrompt?: string
 ): Promise<ImageTestResult> {
   const startTime = Date.now();
   const prompt = testPrompt || 'A cute cat sitting on a windowsill';
   
   try {
-    const result = await generateImage(config, prompt, { 
-      size: options?.size ?? '1024x1024',
-      quality: options?.quality ?? 'standard',
-      style: options?.style ?? 'vivid',
-      n: options?.n ?? 1,
-    });
+    // 测试时不传递 size 等参数，让 API 使用默认值
+    const result = await generateImage(config, prompt, { n: 1 });
     
     const imageData = result.data[0];
     
@@ -492,6 +508,29 @@ export function getApiEndpointPreview(apiUrl: string): string {
   
   // 自动补全 /v1
   return baseUrl + '/v1/chat/completions';
+}
+
+/**
+ * 获取生图 API 端点预览（用于显示）
+ */
+export function getImageApiEndpointPreview(apiUrl: string): string {
+  if (!apiUrl) return '';
+  
+  let endpoint = apiUrl.replace(/\/$/, '');
+  
+  // 如果已经包含 images/generations，直接使用
+  if (endpoint.includes('/images/generations')) {
+    return endpoint;
+  } else if (endpoint.endsWith('/chat/completions')) {
+    // 替换 chat/completions 为 images/generations
+    return endpoint.replace(/\/chat\/completions$/, '/images/generations');
+  } else if (endpoint.match(/\/v\d+$/)) {
+    // 如果以 /v1, /v2, /v3 等结尾，追加 /images/generations
+    return endpoint + '/images/generations';
+  } else {
+    // 默认追加 /v1/images/generations
+    return endpoint + '/v1/images/generations';
+  }
 }
 
 /**

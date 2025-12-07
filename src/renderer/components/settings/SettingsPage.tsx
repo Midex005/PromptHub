@@ -38,7 +38,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { downloadBackup, restoreFromFile, clearDatabase } from '../../services/database';
 import { testConnection, uploadToWebDAV, downloadFromWebDAV } from '../../services/webdav';
-import { testAIConnection, testImageGeneration, fetchAvailableModels, getBaseUrl, getApiEndpointPreview, AITestResult, ImageTestResult, ModelInfo } from '../../services/ai';
+import { testAIConnection, testImageGeneration, fetchAvailableModels, getBaseUrl, getApiEndpointPreview, getImageApiEndpointPreview, AITestResult, ImageTestResult, ModelInfo } from '../../services/ai';
 import { useSettingsStore, MORANDI_THEMES, FONT_SIZES, ThemeMode } from '../../stores/settings.store';
 import { useToast } from '../ui/Toast';
 import { Select, SelectOption } from '../ui/Select';
@@ -131,12 +131,22 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   });
   const [testingModelId, setTestingModelId] = useState<string | null>(null);
 
-  // 获取模型列表状态
+  // 获取模型列表状态（对话模型）
   const [fetchingModels, setFetchingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  
+  // 获取模型列表状态（生图模型）
+  const [fetchingImageModels, setFetchingImageModels] = useState(false);
+  const [availableImageModels, setAvailableImageModels] = useState<ModelInfo[]>([]);
+  const [showImageModelPicker, setShowImageModelPicker] = useState(false);
+  const [imageModelSearchQuery, setImageModelSearchQuery] = useState('');
+  const [collapsedImageCategories, setCollapsedImageCategories] = useState<Set<string>>(new Set());
+  
+  // 生图测试结果弹窗
+  const [imageTestModalResult, setImageTestModalResult] = useState<ImageTestResult | null>(null);
 
   // 分离对话模型和生图模型
   const chatModels = settings.aiModels.filter(m => m.type === 'chat' || !m.type);
@@ -288,18 +298,15 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       apiKey: model.apiKey,
       apiUrl: model.apiUrl,
       model: model.model,
-    }, 'A simple blue circle on white background');
+    }, 'A cute cat sitting on a windowsill');
     
     setTestingModelId(null);
     
-    if (result.success) {
-      showToast(`生图成功 (${result.latency}ms)`, 'success');
-    } else {
-      showToast(result.error || '生图失败', 'error');
-    }
+    // 显示结果弹窗
+    setImageTestModalResult(result);
   };
 
-  // 获取可用模型列表
+  // 获取可用模型列表（对话模型）
   const handleFetchModels = async () => {
     if (!newModel.apiKey || !newModel.apiUrl) {
       showToast(t('settings.fillApiFirst'), 'error');
@@ -322,8 +329,31 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       showToast(result.error || t('settings.noModelsFound'), 'error');
     }
   };
+  
+  // 获取可用模型列表（生图模型）
+  const handleFetchImageModels = async () => {
+    if (!newModel.apiKey || !newModel.apiUrl) {
+      showToast(t('settings.fillApiFirst'), 'error');
+      return;
+    }
+    
+    setFetchingImageModels(true);
+    setAvailableImageModels([]);
+    
+    const result = await fetchAvailableModels(newModel.apiUrl, newModel.apiKey);
+    
+    setFetchingImageModels(false);
+    
+    if (result.success && result.models.length > 0) {
+      setAvailableImageModels(result.models);
+      setShowImageModelPicker(true);
+      showToast(t('settings.modelsLoaded', { count: result.models.length }), 'success');
+    } else {
+      showToast(result.error || t('settings.noModelsFound'), 'error');
+    }
+  };
 
-  // 添加选中的模型
+  // 添加选中的模型（对话模型）
   const handleAddModel = (modelId: string) => {
     if (!newModel.apiKey || !newModel.apiUrl) {
       showToast(t('settings.fillApiFirst'), 'error');
@@ -341,11 +371,36 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     });
     showToast(t('settings.modelAdded'), 'success');
   };
+  
+  // 添加选中的模型（生图模型）
+  const handleAddImageModel = (modelId: string) => {
+    if (!newModel.apiKey || !newModel.apiUrl) {
+      showToast(t('settings.fillApiFirst'), 'error');
+      return;
+    }
+    
+    // 添加模型到列表
+    settings.addAiModel({
+      name: modelId,
+      provider: newModel.provider,
+      apiKey: newModel.apiKey,
+      apiUrl: newModel.apiUrl,
+      model: modelId,
+      type: 'image',
+    });
+    showToast(t('settings.modelAdded'), 'success');
+  };
 
-  // 过滤模型列表
+  // 过滤模型列表（对话模型）
   const filteredModels = availableModels.filter((m) => 
     m.id.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
     m.owned_by?.toLowerCase().includes(modelSearchQuery.toLowerCase())
+  );
+  
+  // 过滤模型列表（生图模型）
+  const filteredImageModels = availableImageModels.filter((m) => 
+    m.id.toLowerCase().includes(imageModelSearchQuery.toLowerCase()) ||
+    m.owned_by?.toLowerCase().includes(imageModelSearchQuery.toLowerCase())
   );
 
   // 模型分类配置：优先按 owned_by / id 关键字匹配到具体供应商
@@ -409,7 +464,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
   });
 
-  // 切换分类折叠状态
+  // 切换分类折叠状态（对话模型）
   const toggleCategory = (category: string) => {
     setCollapsedCategories(prev => {
       const next = new Set(prev);
@@ -421,10 +476,39 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       return next;
     });
   };
+  
+  // 切换分类折叠状态（生图模型）
+  const toggleImageCategory = (category: string) => {
+    setCollapsedImageCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+  
+  // 按分类组织生图模型
+  const categorizedImageModels = filteredImageModels.reduce((acc, model) => {
+    const category = getModelCategory(model);
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(model);
+    return acc;
+  }, {} as Record<string, ModelInfo[]>);
+  
+  // 生图模型分类排序
+  const sortedImageCategories = Object.keys(categorizedImageModels).sort((a, b) => {
+    const indexA = categoryOrder.indexOf(a);
+    const indexB = categoryOrder.indexOf(b);
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+  });
 
   // 计算预览 URL
   const previewBaseUrl = getBaseUrl(newModel.apiUrl);
   const previewEndpoint = getApiEndpointPreview(newModel.apiUrl);
+  const previewImageEndpoint = getImageApiEndpointPreview(newModel.apiUrl);
 
   // 按供应商（API URL）分组已添加的模型
   const groupedChatModels = chatModels.reduce((acc, model) => {
@@ -543,14 +627,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         apiKey: settings.aiApiKey,
         apiUrl: settings.aiApiUrl,
         model: settings.aiModel,
-        type: 'image',
       },
-      imagePrompt,
-      {
-        size: imageSize,
-        quality: imageQuality,
-        style: imageStyle,
-      }
+      imagePrompt
     );
 
     setImageTestResult(result);
@@ -987,17 +1065,71 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                       </button>
                     </div>
                     
-                    {/* 自动同步选项 */}
+                    {/* 自动运行（定时同步） */}
                     <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <div>
-                        <p className="text-sm font-medium">{t('settings.webdavAutoSync')}</p>
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavAutoRun', '自动运行')}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {t('settings.webdavAutoSyncDesc')}
+                          {t('settings.webdavAutoRunDesc')}
+                        </p>
+                      </div>
+                      <div className="min-w-[140px]">
+                        <Select
+                          value={String(settings.webdavAutoSyncInterval)}
+                          onChange={(val) => settings.setWebdavAutoSyncInterval(Number(val))}
+                          options={[
+                            { value: '0', label: t('common.off', '关闭') },
+                            { value: '5', label: t('settings.every5min', '每 5 分钟') },
+                            { value: '15', label: t('settings.every15min', '每 15 分钟') },
+                            { value: '30', label: t('settings.every30min', '每 30 分钟') },
+                            { value: '60', label: t('settings.every60min', '每 60 分钟') },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* 启动后自动运行一次 */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavSyncOnStartup', '启动后自动运行一次')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {t('settings.webdavSyncOnStartupDesc')}
+                        </p>
+                      </div>
+                      <div className="min-w-[180px]">
+                        <Select
+                          value={String(settings.webdavSyncOnStartup ? settings.webdavSyncOnStartupDelay : -1)}
+                          onChange={(val) => {
+                            const num = Number(val);
+                            if (num === -1) {
+                              settings.setWebdavSyncOnStartup(false);
+                            } else {
+                              settings.setWebdavSyncOnStartup(true);
+                              settings.setWebdavSyncOnStartupDelay(num);
+                            }
+                          }}
+                          options={[
+                            { value: '-1', label: t('common.off', '关闭') },
+                            { value: '0', label: t('settings.startupImmediate', '启动后立即运行') },
+                            { value: '5', label: t('settings.startupDelay5s', '启动后第 5 秒运行一次') },
+                            { value: '10', label: t('settings.startupDelay10s', '启动后第 10 秒运行一次') },
+                            { value: '30', label: t('settings.startupDelay30s', '启动后第 30 秒运行一次') },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* 保存时同步（实验性质） */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavSyncOnSave', '保存时同步（实验性质）')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {t('settings.webdavSyncOnSaveDesc')}
                         </p>
                       </div>
                       <ToggleSwitch 
-                        checked={settings.webdavAutoSync}
-                        onChange={settings.setWebdavAutoSync}
+                        checked={settings.webdavSyncOnSave}
+                        onChange={settings.setWebdavSyncOnSave}
                       />
                     </div>
                   </div>
@@ -1347,7 +1479,17 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                   key={model.id}
                                   className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
                                 >
-                                  <div className="font-medium text-sm">{model.model}</div>
+                                  <div className="flex items-center gap-2">
+                                    {model.isDefault && (
+                                      <StarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                    )}
+                                    <div>
+                                      <div className="font-medium text-sm">{model.name || model.model}</div>
+                                      {model.name && (
+                                        <div className="text-xs text-muted-foreground">{model.model}</div>
+                                      )}
+                                    </div>
+                                  </div>
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={() => handleTestImageModel(model)}
@@ -1361,6 +1503,15 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                         <PlayIcon className="w-4 h-4 text-muted-foreground" />
                                       )}
                                     </button>
+                                    {!model.isDefault && (
+                                      <button
+                                        onClick={() => settings.setDefaultAiModel(model.id)}
+                                        className="p-1.5 rounded hover:bg-muted transition-colors"
+                                        title="设为默认"
+                                      >
+                                        <StarIcon className="w-4 h-4 text-muted-foreground" />
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => {
                                         setEditingModelId(model.id);
@@ -1464,9 +1615,30 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                         onChange={(e) => setNewModel({ ...newModel, apiUrl: e.target.value })}
                         className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
                       />
+                      {newModel.apiUrl && (
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
+                          <span className="font-mono text-primary">{previewImageEndpoint}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">{t('settings.modelName')}</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs text-muted-foreground">{t('settings.modelName')}</label>
+                        <button
+                          type="button"
+                          onClick={handleFetchImageModels}
+                          disabled={fetchingImageModels || !newModel.apiKey || !newModel.apiUrl}
+                          className="text-xs text-primary hover:underline disabled:opacity-50 disabled:no-underline flex items-center gap-1"
+                        >
+                          {fetchingImageModels ? (
+                            <Loader2Icon className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RefreshCwIcon className="w-3 h-3" />
+                          )}
+                          {t('settings.fetchModels')}
+                        </button>
+                      </div>
                       <input
                         type="text"
                         placeholder="e.g., dall-e-3, stable-diffusion"
@@ -1490,6 +1662,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                         }
                         setShowAddImageModel(false);
                         setEditingModelId(null);
+                        setShowImageModelPicker(false);
                         setNewModel({ name: '', provider: 'openai', apiKey: '', apiUrl: '', model: '' });
                       }}
                       className="w-full h-9 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -1875,6 +2048,246 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 {t('common.done')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 生图模型选择弹窗 */}
+      {showImageModelPicker && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-2xl w-[600px] max-h-[80vh] flex flex-col shadow-2xl">
+            {/* 弹窗头部 */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-lg font-semibold">{t('settings.selectImageModels', '选择生图模型')}</h3>
+              <button
+                onClick={() => setShowImageModelPicker(false)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* 搜索框 */}
+            <div className="p-4 border-b border-border">
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder={t('settings.searchModels')}
+                  value={imageModelSearchQuery}
+                  onChange={(e) => setImageModelSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-10 pr-4 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('settings.totalModels', { count: availableImageModels.length })}
+                {imageModelSearchQuery && ` • ${t('settings.filteredModels', { count: filteredImageModels.length })}`}
+              </p>
+            </div>
+            
+            {/* 模型列表 - 按分类折叠显示 */}
+            <div className="flex-1 overflow-y-auto p-2">
+              {filteredImageModels.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('settings.noModelsMatch')}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedImageCategories.map((category) => {
+                    const models = categorizedImageModels[category];
+                    const isCollapsed = collapsedImageCategories.has(category);
+                    const addedCount = models.filter(m => 
+                      settings.aiModels.some(am => am.model === m.id && am.apiUrl === newModel.apiUrl && am.type === 'image')
+                    ).length;
+                    
+                    return (
+                      <div key={category} className="border border-border rounded-lg overflow-hidden">
+                        {/* 分类标题 */}
+                        <button
+                          onClick={() => toggleImageCategory(category)}
+                          className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {isCollapsed ? (
+                              <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="flex-shrink-0">{getCategoryIcon(category, 18)}</span>
+                            <span className="font-medium text-sm">{category}</span>
+                            <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                              {models.length}
+                            </span>
+                            {addedCount > 0 && (
+                              <span className="text-xs text-primary px-1.5 py-0.5 bg-primary/10 rounded">
+                                {t('settings.addedCount', { count: addedCount })}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              models.forEach(m => {
+                                const isAdded = settings.aiModels.some(
+                                  am => am.model === m.id && am.apiUrl === newModel.apiUrl && am.type === 'image'
+                                );
+                                if (!isAdded) handleAddImageModel(m.id);
+                              });
+                            }}
+                            className="text-xs text-primary hover:underline px-2 py-1"
+                          >
+                            {t('settings.addAll')}
+                          </button>
+                        </button>
+                        
+                        {/* 模型列表 */}
+                        {!isCollapsed && (
+                          <div className="divide-y divide-border">
+                            {models.map((model) => {
+                              const isAdded = settings.aiModels.some(
+                                m => m.model === model.id && m.apiUrl === newModel.apiUrl && m.type === 'image'
+                              );
+                              return (
+                                <div
+                                  key={model.id}
+                                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors ${
+                                    isAdded ? 'bg-primary/5' : ''
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm truncate">{model.id}</div>
+                                    {model.owned_by && (
+                                      <div className="text-xs text-muted-foreground">{model.owned_by}</div>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleAddImageModel(model.id)}
+                                    disabled={isAdded}
+                                    className={`ml-3 p-1.5 rounded-lg transition-colors ${
+                                      isAdded 
+                                        ? 'bg-primary/20 text-primary cursor-default' 
+                                        : 'hover:bg-primary/10 text-muted-foreground hover:text-primary'
+                                    }`}
+                                    title={isAdded ? t('settings.modelAlreadyAdded') : t('settings.addModel')}
+                                  >
+                                    {isAdded ? (
+                                      <CheckIcon className="w-4 h-4" />
+                                    ) : (
+                                      <PlusIcon className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* 底部按钮 */}
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={() => setShowImageModelPicker(false)}
+                className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                {t('common.done')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 生图测试结果弹窗 */}
+      {imageTestModalResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-2xl w-[500px] max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* 弹窗头部 */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="text-lg font-semibold">
+                {imageTestModalResult.success ? t('settings.imageTestSuccess', '生图测试成功') : t('settings.imageTestFailed', '生图测试失败')}
+              </h3>
+              <button
+                onClick={() => setImageTestModalResult(null)}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* 弹窗内容 */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {imageTestModalResult.success ? (
+                <div className="space-y-4">
+                  {/* 生成的图片 */}
+                  {imageTestModalResult.imageUrl && (
+                    <div className="rounded-lg overflow-hidden border border-border">
+                      <img 
+                        src={imageTestModalResult.imageUrl} 
+                        alt="Generated" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  {imageTestModalResult.imageBase64 && (
+                    <div className="rounded-lg overflow-hidden border border-border">
+                      <img 
+                        src={`data:image/png;base64,${imageTestModalResult.imageBase64}`} 
+                        alt="Generated" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  
+                  {/* 信息 */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('settings.model', '模型')}</span>
+                      <span className="font-medium">{imageTestModalResult.model}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('settings.latency', '耗时')}</span>
+                      <span className="font-medium">{imageTestModalResult.latency}ms</span>
+                    </div>
+                    {imageTestModalResult.revisedPrompt && (
+                      <div>
+                        <span className="text-muted-foreground block mb-1">{t('settings.revisedPrompt', '修正后的提示词')}</span>
+                        <p className="text-xs bg-muted p-2 rounded">{imageTestModalResult.revisedPrompt}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <p className="text-sm text-destructive">{imageTestModalResult.error}</p>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('settings.model', '模型')}</span>
+                      <span className="font-medium">{imageTestModalResult.model}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('settings.latency', '耗时')}</span>
+                      <span className="font-medium">{imageTestModalResult.latency}ms</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* 底部按钮 */}
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={() => setImageTestModalResult(null)}
+                className="w-full h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                {t('common.close', '关闭')}
               </button>
             </div>
           </div>

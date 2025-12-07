@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Textarea, Input, Button } from '../ui';
 import { SaveIcon, XIcon, HashIcon, PlayIcon, CopyIcon, ImageIcon } from 'lucide-react';
 import type { Prompt } from '../../../shared/types';
@@ -16,6 +17,7 @@ interface PromptEditorProps {
 }
 
 export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(prompt.title);
   const [description, setDescription] = useState(prompt.description || '');
   const [systemPrompt, setSystemPrompt] = useState(prompt.systemPrompt || '');
@@ -184,7 +186,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
 
           {/* 图片管理 */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">参考图片</label>
+            <label className="block text-sm font-medium text-foreground">{t('prompt.referenceImages')}</label>
             <div className="flex flex-wrap gap-3">
               {images.map((img, index) => (
                 <div key={index} className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border">
