@@ -32,6 +32,12 @@ export const IPC_CHANNELS = {
   // Import/Export
   EXPORT_PROMPTS: 'export:prompts',
   IMPORT_PROMPTS: 'import:prompts',
+
+  // Security / Encryption
+  SECURITY_SET_MASTER_PASSWORD: 'security:setMasterPassword',
+  SECURITY_UNLOCK: 'security:unlock',
+  SECURITY_STATUS: 'security:status',
+  SECURITY_LOCK: 'security:lock',
 } as const;
 
 export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

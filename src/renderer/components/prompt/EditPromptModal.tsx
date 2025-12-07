@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal, Button, Input, Textarea } from '../ui';
 import { Select } from '../ui/Select';
-import { HashIcon, XIcon, ImageIcon } from 'lucide-react';
+import { HashIcon, XIcon, ImageIcon, Maximize2Icon, Minimize2Icon } from 'lucide-react';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
   const [folderId, setFolderId] = useState<string | undefined>(undefined);
 
   const [images, setImages] = useState<string[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 获取所有已存在的标签
   const existingTags = [...new Set(prompts.flatMap((p) => p.tags))];
@@ -148,16 +149,25 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
       isOpen={isOpen}
       onClose={onClose}
       title={t('prompt.editPrompt')}
-      size="xl"
+      size={isFullscreen ? 'fullscreen' : 'xl'}
       headerActions={
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSubmit}
-          disabled={!title.trim() || !userPrompt.trim()}
-        >
-          {t('prompt.save')}
-        </Button>
+        <>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title={isFullscreen ? t('prompt.exitFullscreen', '退出全屏') : t('prompt.fullscreen', '全屏编辑')}
+          >
+            {isFullscreen ? <Minimize2Icon className="w-4 h-4" /> : <Maximize2Icon className="w-4 h-4" />}
+          </button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!title.trim() || !userPrompt.trim()}
+          >
+            {t('prompt.save')}
+          </Button>
+        </>
       }
     >
       <div className="space-y-5">

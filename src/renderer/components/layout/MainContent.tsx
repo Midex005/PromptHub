@@ -10,6 +10,7 @@ import { useToast } from '../ui/Toast';
 import { chatCompletion, buildMessagesFromPrompt, multiModelCompare, AITestResult } from '../../services/ai';
 import { useTranslation } from 'react-i18next';
 import type { Prompt, PromptVersion } from '../../../shared/types';
+import ReactMarkdown from 'react-markdown';
 
 // Prompt 卡片组件（紧凑版本）
 function PromptCard({
@@ -645,15 +646,17 @@ export function MainContent() {
       </div>
 
       {/* Prompt 详情 - iOS 风格 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {selectedPrompt ? (
-          <div className="max-w-3xl mx-auto p-8">
+          <>
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-3xl mx-auto px-6 py-4">
             {/* 标题区域 */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-foreground mb-2">{selectedPrompt.title}</h2>
+                <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
                 {selectedPrompt.description && (
-                  <p className="text-muted-foreground">{selectedPrompt.description}</p>
+                  <p className="text-sm text-muted-foreground">{selectedPrompt.description}</p>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -680,27 +683,26 @@ export function MainContent() {
             </div>
 
             {/* 元信息 */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-              <span className="flex items-center gap-1.5">
-                <ClockIcon className="w-4 h-4" />
-                {t('prompt.updatedAt')} {new Date(selectedPrompt.updatedAt).toLocaleString()}
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
+              <span className="flex items-center gap-1">
+                <ClockIcon className="w-3.5 h-3.5" />
+                {new Date(selectedPrompt.updatedAt).toLocaleString()}
               </span>
               <span className="px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
-                {t('prompt.versionLabel', { version: selectedPrompt.version })}
+                v{selectedPrompt.version}
               </span>
             </div>
 
             {/* 图片 */}
             {selectedPrompt.images && selectedPrompt.images.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('prompt.images', '参考图片')}</h4>
-                <div className="flex flex-wrap gap-4">
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-3">
                   {selectedPrompt.images.map((img, index) => (
                     <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
                       <img
                         src={`local-image://${img}`}
                         alt={`image-${index}`}
-                        className="max-w-[200px] max-h-[200px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                        className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
                         onClick={() => setPreviewImage(img)}
                       />
                     </div>
@@ -711,7 +713,7 @@ export function MainContent() {
 
             {/* 标签 */}
             {selectedPrompt.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-1.5 mb-4">
                 {selectedPrompt.tags.map((tag) => (
                   <span
                     key={tag}
@@ -726,33 +728,33 @@ export function MainContent() {
 
             {/* System Prompt */}
             {selectedPrompt.systemPrompt && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     System Prompt
                   </span>
                 </div>
-                <div className="p-5 rounded-2xl bg-card border border-border font-mono text-sm leading-relaxed whitespace-pre-wrap">
-                  {selectedPrompt.systemPrompt}
+                <div className="p-4 rounded-xl bg-card border border-border prose max-w-none">
+                  <ReactMarkdown>{selectedPrompt.systemPrompt}</ReactMarkdown>
                 </div>
               </div>
             )}
 
             {/* User Prompt */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   User Prompt
                 </span>
               </div>
-              <div className="p-5 rounded-2xl bg-card border border-border font-mono text-sm leading-relaxed whitespace-pre-wrap">
-                {selectedPrompt.userPrompt}
+              <div className="p-4 rounded-xl bg-card border border-border prose max-w-none">
+                <ReactMarkdown>{selectedPrompt.userPrompt}</ReactMarkdown>
               </div>
             </div>
 
             {/* 多模型对比区域 */}
             {aiModels.length > 0 && (
-              <div className="mb-8 p-5 rounded-2xl bg-card border border-border">
+              <div className="mb-4 p-4 rounded-xl bg-card border border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <GitCompareIcon className="w-4 h-4 text-primary" />
@@ -865,9 +867,11 @@ export function MainContent() {
                 )}
               </div>
             )}
-
-            {/* 操作按钮 - iOS 风格 */}
-            <div className="flex items-center gap-3 flex-wrap">
+            </div>
+          </div>
+          {/* 操作按钮 - 固定底部 */}
+          <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
+            <div className="max-w-3xl mx-auto flex items-center gap-3 flex-wrap">
               <button
                 onClick={async () => {
                   // 检查是否有变量
@@ -886,12 +890,7 @@ export function MainContent() {
                     setTimeout(() => setCopied(false), 2000);
                   }
                 }}
-                className="
-                  flex items-center gap-2 h-10 px-5 rounded-lg
-                  bg-primary text-white text-sm font-medium
-                  hover:bg-primary/90
-                  transition-colors duration-150
-                "
+                className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 {copied ? <CheckIcon className="w-4 h-4" /> : <CopyIcon className="w-4 h-4" />}
                 <span>{copied ? t('prompt.copied') : t('prompt.copy')}</span>
@@ -902,7 +901,6 @@ export function MainContent() {
                     showToast(t('toast.configAI'), 'error');
                     return;
                   }
-                  // 检查是否有变量
                   const variableRegex = /\{\{([^}]+)\}\}/g;
                   const hasVariables = variableRegex.test(selectedPrompt.userPrompt) ||
                     (selectedPrompt.systemPrompt && variableRegex.test(selectedPrompt.systemPrompt));
@@ -910,29 +908,18 @@ export function MainContent() {
                   if (hasVariables) {
                     setIsAiTestVariableModalOpen(true);
                   } else {
-                    // 没有变量，直接测试
                     runAiTest(selectedPrompt.systemPrompt, selectedPrompt.userPrompt);
                   }
                 }}
                 disabled={isTestingAI}
-                className="
-                  flex items-center gap-2 h-10 px-5 rounded-lg
-                  bg-primary/90 text-white text-sm font-medium
-                  hover:bg-primary disabled:opacity-50
-                  transition-colors duration-150
-                "
+                className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary/90 text-white text-sm font-medium hover:bg-primary disabled:opacity-50 transition-colors"
               >
                 {isTestingAI ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
                 <span>{isTestingAI ? t('prompt.testing') : t('prompt.aiTest')}</span>
               </button>
               <button
                 onClick={() => setIsVersionModalOpen(true)}
-                className="
-                  flex items-center gap-2 h-10 px-5 rounded-lg
-                  bg-card border border-border text-sm font-medium
-                  hover:bg-accent
-                  transition-colors duration-150
-                "
+                className="flex items-center gap-2 h-9 px-4 rounded-lg bg-card border border-border text-sm font-medium hover:bg-accent transition-colors"
               >
                 <HistoryIcon className="w-4 h-4" />
                 <span>{t('prompt.history')}</span>
@@ -944,18 +931,14 @@ export function MainContent() {
                     showToast(t('prompt.promptDeleted'), 'success');
                   }
                 }}
-                className="
-                  flex items-center gap-2 h-10 px-5 rounded-lg
-                  bg-card border border-destructive/30 text-destructive text-sm font-medium
-                  hover:bg-destructive/10
-                  transition-colors duration-150
-                "
+                className="flex items-center gap-2 h-9 px-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
               >
                 <TrashIcon className="w-4 h-4" />
                 <span>{t('prompt.delete')}</span>
               </button>
             </div>
           </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <div className="w-16 h-16 rounded-2xl bg-accent/50 flex items-center justify-center mb-4">

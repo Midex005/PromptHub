@@ -40,6 +40,23 @@ export function initDatabase(): Database.Database {
     console.error('Migration failed:', error);
   }
 
+  // 迁移：检查 folders 表是否有 is_private 和 updated_at 字段
+  try {
+    const folderInfo = db.pragma('table_info(folders)') as any[];
+    const hasIsPrivate = folderInfo.some(col => col.name === 'is_private');
+    if (!hasIsPrivate) {
+      console.log('Migrating: Adding is_private column to folders table');
+      db.prepare('ALTER TABLE folders ADD COLUMN is_private INTEGER DEFAULT 0').run();
+    }
+    const hasUpdatedAt = folderInfo.some(col => col.name === 'updated_at');
+    if (!hasUpdatedAt) {
+      console.log('Migrating: Adding updated_at column to folders table');
+      db.prepare('ALTER TABLE folders ADD COLUMN updated_at INTEGER').run();
+    }
+  } catch (error) {
+    console.error('Migration (folders) failed:', error);
+  }
+
   console.log(`Database initialized at: ${dbPath}`);
   return db;
 }

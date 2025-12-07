@@ -20,11 +20,20 @@ export class FolderDB {
     const order = (maxOrder?.max ?? -1) + 1;
 
     const stmt = this.db.prepare(`
-      INSERT INTO folders (id, name, icon, parent_id, sort_order, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO folders (id, name, icon, parent_id, sort_order, is_private, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(id, data.name, data.icon || null, data.parentId || null, order, now);
+    stmt.run(
+      id,
+      data.name,
+      data.icon || null,
+      data.parentId || null,
+      order,
+      data.isPrivate ? 1 : 0,
+      now,
+      now
+    );
 
     return this.getById(id)!;
   }
@@ -73,6 +82,12 @@ export class FolderDB {
       updates.push('sort_order = ?');
       values.push(data.order);
     }
+    if (data.isPrivate !== undefined) {
+      updates.push('is_private = ?');
+      values.push(data.isPrivate ? 1 : 0);
+    }
+    updates.push('updated_at = ?');
+    values.push(Date.now());
 
     if (updates.length === 0) return folder;
 
@@ -118,6 +133,7 @@ export class FolderDB {
       icon: row.icon,
       parentId: row.parent_id,
       order: row.sort_order,
+      isPrivate: !!row.is_private,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
     };

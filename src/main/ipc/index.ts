@@ -5,6 +5,7 @@ import { registerSettingsIPC } from './settings.ipc';
 import { registerImageIPC } from './image.ipc';
 import { PromptDB } from '../database/prompt';
 import { FolderDB } from '../database/folder';
+import { registerSecurityIPC } from './security.ipc';
 
 /**
  * 注册所有 IPC 处理器
@@ -16,5 +17,6 @@ export function registerAllIPC(db: Database.Database): void {
   registerPromptIPC(promptDB);
   registerFolderIPC(folderDB);
   registerSettingsIPC(db);
+  registerSecurityIPC(db);
   registerImageIPC();
 }

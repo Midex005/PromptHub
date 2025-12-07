@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Button, Input, Textarea } from '../ui';
 import { Select } from '../ui/Select';
-import { HashIcon, XIcon, FolderIcon, ImageIcon } from 'lucide-react';
+import { HashIcon, XIcon, FolderIcon, ImageIcon, Maximize2Icon, Minimize2Icon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate }: CreatePromptMod
   const [tagInput, setTagInput] = useState('');
   const [folderId, setFolderId] = useState<string>('');
   const [images, setImages] = useState<string[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const folders = useFolderStore((state) => state.folders);
   const prompts = usePromptStore((state) => state.prompts);
 
@@ -102,16 +103,25 @@ export function CreatePromptModal({ isOpen, onClose, onCreate }: CreatePromptMod
       isOpen={isOpen}
       onClose={onClose}
       title={t('prompt.createPrompt')}
-      size="xl"
+      size={isFullscreen ? 'fullscreen' : 'xl'}
       headerActions={
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSubmit}
-          disabled={!title.trim() || !userPrompt.trim()}
-        >
-          {t('prompt.create')}
-        </Button>
+        <>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title={isFullscreen ? t('prompt.exitFullscreen', '退出全屏') : t('prompt.fullscreen', '全屏编辑')}
+          >
+            {isFullscreen ? <Minimize2Icon className="w-4 h-4" /> : <Maximize2Icon className="w-4 h-4" />}
+          </button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!title.trim() || !userPrompt.trim()}
+          >
+            {t('prompt.create')}
+          </Button>
+        </>
       }
     >
       <div className="space-y-5">

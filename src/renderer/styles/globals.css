@@ -200,3 +200,65 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
+
+/* Markdown 渲染样式 */
+.prose {
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+}
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+.prose h1 { font-size: 1.5em; }
+.prose h2 { font-size: 1.25em; }
+.prose h3 { font-size: 1.1em; }
+.prose p {
+  margin-bottom: 0.75em;
+}
+.prose ul, .prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.prose li {
+  margin-bottom: 0.25em;
+}
+.prose code {
+  background: hsl(var(--muted));
+  padding: 0.15em 0.4em;
+  border-radius: 0.25em;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.prose pre {
+  background: hsl(var(--muted));
+  padding: 0.75em 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 1em;
+  margin-left: 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.prose a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.prose strong {
+  font-weight: 600;
+}
+.prose hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1em 0;
+}

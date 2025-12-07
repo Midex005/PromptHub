@@ -3,8 +3,7 @@ import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, LinkIcon, SettingsIcon, M
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { ResourcesModal } from '../resources/ResourcesModal';
-import { FolderModal } from '../folder';
-import { PasswordModal } from '../folder/PasswordModal';
+import { FolderModal, PrivateFolderUnlockModal } from '../folder';
 import { useTranslation } from 'react-i18next';
 import type { Folder } from '../../../shared/types';
 import {
@@ -358,29 +357,26 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         folder={editingFolder}
       />
 
-      <PasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => {
-          setIsPasswordModalOpen(false);
-          setPasswordFolder(null);
-        }}
-        onSubmit={(password) => {
-          if (passwordFolder && password === passwordFolder.password) {
-            unlockFolder(passwordFolder.id);
-            selectFolder(passwordFolder.id);
-            if (currentPage !== 'home') onNavigate('home');
+      {/* 私密文件夹解锁弹窗 */}
+      {isPasswordModalOpen && passwordFolder && (
+        <PrivateFolderUnlockModal
+          isOpen={isPasswordModalOpen}
+          folderName={passwordFolder.name}
+          onClose={() => {
             setIsPasswordModalOpen(false);
             setPasswordFolder(null);
-          } else {
-            // Error handling is inside PasswordModal? No, PasswordModal doesn't know correct password.
-            // I need to handle error in PasswordModal or pass error prop?
-            // PasswordModal handles empty password, but incorrect password needs to be handled here.
-            // Wait, PasswordModal onSubmit just passes password.
-            // I should probably show toast or alert.
-            alert('密码错误');
-          }
-        }}
-      />
+          }}
+          onSuccess={() => {
+            if (passwordFolder) {
+              unlockFolder(passwordFolder.id);
+              selectFolder(passwordFolder.id);
+              if (currentPage !== 'home') onNavigate('home');
+            }
+            setIsPasswordModalOpen(false);
+            setPasswordFolder(null);
+          }}
+        />
+      )}
     </aside>
   );
 }

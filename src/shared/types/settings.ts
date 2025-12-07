@@ -7,6 +7,11 @@ export interface Settings {
   language: Language;
   autoSave: boolean;
   defaultFolderId?: string;
+  // 安全相关
+  security?: {
+    masterPasswordConfigured: boolean;
+    unlocked: boolean;
+  };
 }
 
 export type Theme = 'light' | 'dark' | 'system';

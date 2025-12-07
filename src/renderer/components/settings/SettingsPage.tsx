@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SettingsIcon,
   PaletteIcon,
@@ -57,6 +57,7 @@ const SETTINGS_MENU = [
   { id: 'ai', labelKey: 'settings.ai', icon: BrainIcon },
   { id: 'language', labelKey: 'settings.language', icon: GlobeIcon },
   { id: 'notifications', labelKey: 'settings.notifications', icon: BellIcon },
+  { id: 'security', labelKey: 'settings.security', icon: KeyIcon },
   { id: 'about', labelKey: 'settings.about', icon: InfoIcon },
 ];
 
@@ -141,6 +142,17 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const chatModels = settings.aiModels.filter(m => m.type === 'chat' || !m.type);
   const imageModels = settings.aiModels.filter(m => m.type === 'image');
 
+  // 安全 / 主密码
+  const [securityStatus, setSecurityStatus] = useState<{ configured: boolean; unlocked: boolean }>({ configured: false, unlocked: false });
+  const [newMasterPwd, setNewMasterPwd] = useState('');
+  const [newMasterPwdConfirm, setNewMasterPwdConfirm] = useState('');
+  const [unlockPwd, setUnlockPwd] = useState('');
+  const [secLoading, setSecLoading] = useState(false);
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const [oldPwd, setOldPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [newPwdConfirm, setNewPwdConfirm] = useState('');
+
   // 测试单个对话模型
   const handleTestModel = async (model: typeof settings.aiModels[0]) => {
     setTestingModelId(model.id);
@@ -160,6 +172,110 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       showToast(`连接成功 (${result.latency}ms)`, 'success');
     } else {
       showToast(result.error || '连接失败', 'error');
+    }
+  };
+
+  const refreshSecurityStatus = async () => {
+    try {
+      const status = await window.api.security.status();
+      setSecurityStatus(status);
+    } catch (e: any) {
+      showToast(e?.message || '获取安全状态失败', 'error');
+    }
+  };
+
+  const handleSetMasterPassword = async () => {
+    if (!newMasterPwd || newMasterPwd.length < 4) {
+      showToast('主密码长度至少 4 位', 'error');
+      return;
+    }
+    if (newMasterPwd !== newMasterPwdConfirm) {
+      showToast('两次输入不一致', 'error');
+      return;
+    }
+    setSecLoading(true);
+    try {
+      await window.api.security.setMasterPassword(newMasterPwd);
+      await refreshSecurityStatus();
+      setNewMasterPwd('');
+      setNewMasterPwdConfirm('');
+      showToast('主密码已设置并解锁', 'success');
+    } catch (e: any) {
+      showToast(e?.message || '设置主密码失败', 'error');
+    } finally {
+      setSecLoading(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    if (!unlockPwd) {
+      showToast('请输入主密码', 'error');
+      return;
+    }
+    setSecLoading(true);
+    try {
+      const result = await window.api.security.unlock(unlockPwd);
+      if (result.success) {
+        await refreshSecurityStatus();
+        setUnlockPwd('');
+        showToast('解锁成功', 'success');
+      } else {
+        showToast('密码错误', 'error');
+      }
+    } catch (e: any) {
+      showToast(e?.message || '解锁失败', 'error');
+    } finally {
+      setSecLoading(false);
+    }
+  };
+
+  const handleLock = async () => {
+    setSecLoading(true);
+    try {
+      await window.api.security.lock();
+      await refreshSecurityStatus();
+      showToast('已锁定', 'success');
+    } catch (e: any) {
+      showToast(e?.message || '锁定失败', 'error');
+    } finally {
+      setSecLoading(false);
+    }
+  };
+
+  const handleChangeMasterPassword = async () => {
+    if (!oldPwd) {
+      showToast('请输入当前主密码', 'error');
+      return;
+    }
+    if (!newPwd || newPwd.length < 4) {
+      showToast('新密码长度至少 4 位', 'error');
+      return;
+    }
+    if (newPwd !== newPwdConfirm) {
+      showToast('两次输入不一致', 'error');
+      return;
+    }
+    setSecLoading(true);
+    try {
+      // 先验证旧密码
+      const unlockResult = await window.api.security.unlock(oldPwd);
+      if (!unlockResult.success) {
+        showToast('当前主密码错误', 'error');
+        setSecLoading(false);
+        return;
+      }
+      // 重设主密码
+      await window.api.security.setMasterPassword(newPwd);
+      await refreshSecurityStatus();
+      setOldPwd('');
+      setNewPwd('');
+      setNewPwdConfirm('');
+      setShowChangePwd(false);
+      showToast('主密码已修改并重新解锁', 'success');
+    } catch (e: any) {
+      showToast(e?.message || '修改失败', 'error');
+    } finally {
+      setSecLoading(false);
     }
   };
 
@@ -447,6 +563,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
 
+  // 初始化安全状态
+  useEffect(() => {
+    refreshSecurityStatus();
+  }, []);
+
   const handleExportData = async () => {
     try {
       await downloadBackup();
@@ -620,6 +741,107 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     </button>
                   );
                 })}
+              </div>
+            </SettingSection>
+          </div>
+        );
+
+      case 'security':
+        return (
+          <div className="space-y-4">
+            <SettingSection title={t('settings.security', '安全与主密码')}>
+              <div className="p-4 space-y-3 bg-muted/30 rounded-xl border border-border/60">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <KeyIcon className="w-4 h-4" />
+                  <span>
+                    {t('settings.securityStatus', '状态')}：
+                    {securityStatus.configured
+                      ? t('settings.masterSet', '已设置主密码')
+                      : t('settings.masterNotSet', '未设置主密码')}
+                  </span>
+                </div>
+
+                {!securityStatus.configured && (
+                  <div className="space-y-3 pt-2 border-t border-border/60">
+                    <div className="text-sm font-medium">
+                      {t('settings.setMaster', '设置主密码（至少 4 位）')}
+                    </div>
+                    <input
+                      type="password"
+                      value={newMasterPwd}
+                      onChange={(e) => setNewMasterPwd(e.target.value)}
+                      placeholder={t('settings.masterPlaceholder', '输入主密码')}
+                      className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
+                    />
+                    <input
+                      type="password"
+                      value={newMasterPwdConfirm}
+                      onChange={(e) => setNewMasterPwdConfirm(e.target.value)}
+                      placeholder={t('settings.masterConfirmPlaceholder', '确认主密码')}
+                      className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
+                    />
+                    <button
+                      onClick={handleSetMasterPassword}
+                      className="h-10 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                      disabled={secLoading}
+                    >
+                      {secLoading ? t('common.loading', '处理中...') : t('settings.setMasterBtn', '设置主密码')}
+                    </button>
+                  </div>
+                )}
+
+                {securityStatus.configured && (
+                  <div className="space-y-3 pt-2 border-t border-border/60">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">{t('settings.changePwd', '修改主密码')}</div>
+                      <button
+                        onClick={() => setShowChangePwd(!showChangePwd)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {showChangePwd ? t('common.cancel', '取消') : t('settings.changePwdBtn', '修改密码')}
+                      </button>
+                    </div>
+                    {showChangePwd && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <input
+                          type="password"
+                          value={oldPwd}
+                          onChange={(e) => setOldPwd(e.target.value)}
+                          placeholder={t('settings.oldPwdPlaceholder', '输入当前主密码')}
+                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
+                        />
+                        <input
+                          type="password"
+                          value={newPwd}
+                          onChange={(e) => setNewPwd(e.target.value)}
+                          placeholder={t('settings.newPwdPlaceholder', '输入新主密码（至少 4 位）')}
+                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
+                        />
+                        <input
+                          type="password"
+                          value={newPwdConfirm}
+                          onChange={(e) => setNewPwdConfirm(e.target.value)}
+                          placeholder={t('settings.newPwdConfirmPlaceholder', '确认新主密码')}
+                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
+                        />
+                        <button
+                          onClick={handleChangeMasterPassword}
+                          className="h-10 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                          disabled={secLoading}
+                        >
+                          {secLoading ? t('common.loading', '处理中...') : t('settings.confirmChange', '确认修改')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t(
+                    'settings.securityDesc',
+                    '主密码用于解锁私密内容。密码不落盘，未解锁时私密数据不可见。请务必记住主密码。',
+                  )}
+                </p>
               </div>
             </SettingSection>
           </div>

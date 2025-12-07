@@ -30,6 +30,15 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.PROMPT_COPY, id, variables),
   },
 
+  // Security
+  security: {
+    status: () => ipcRenderer.invoke(IPC_CHANNELS.SECURITY_STATUS),
+    setMasterPassword: (password: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SECURITY_SET_MASTER_PASSWORD, password),
+    unlock: (password: string) => ipcRenderer.invoke(IPC_CHANNELS.SECURITY_UNLOCK, password),
+    lock: () => ipcRenderer.invoke(IPC_CHANNELS.SECURITY_LOCK),
+  },
+
   // Version
   version: {
     getAll: (promptId: string) =>

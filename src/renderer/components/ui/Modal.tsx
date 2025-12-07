@@ -9,7 +9,7 @@ interface ModalProps {
   title?: string;
   headerActions?: ReactNode;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | 'fullscreen';
 }
 
 export function Modal({ isOpen, onClose, title, headerActions, children, size = 'md' }: ModalProps) {
@@ -45,9 +45,11 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
       {/* 弹窗内容 */}
       <div
         className={clsx(
-          'relative bg-card rounded-2xl shadow-2xl border border-border',
-          'max-h-[85vh] overflow-hidden flex flex-col',
+          'relative bg-card shadow-2xl border border-border',
+          'overflow-hidden flex flex-col',
           'transform transition-all duration-200',
+          size === 'fullscreen' ? 'rounded-none' : 'rounded-2xl',
+          size === 'fullscreen' ? 'w-full h-full max-w-none max-h-none' : 'max-h-[85vh]',
           {
             'w-full max-w-sm': size === 'sm',
             'w-full max-w-md': size === 'md',
@@ -57,7 +59,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
             'w-full max-w-4xl': size === 'full',
           }
         )}
-        style={{ margin: 'auto' }}
+        style={{ margin: size === 'fullscreen' ? 0 : 'auto' }}
       >
         {/* 标题栏 */}
         {title && (

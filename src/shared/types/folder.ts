@@ -9,7 +9,6 @@ export interface Folder {
   parentId?: string;
   order: number;
   isPrivate?: boolean;
-  password?: string;
   createdAt: string;  // ISO 8601 格式
   updatedAt: string;  // ISO 8601 格式
 }
@@ -19,7 +18,6 @@ export interface CreateFolderDTO {
   icon?: string;
   parentId?: string;
   isPrivate?: boolean;
-  password?: string;
 }
 
 export interface UpdateFolderDTO {
@@ -28,5 +26,4 @@ export interface UpdateFolderDTO {
   parentId?: string;
   order?: number;
   isPrivate?: boolean;
-  password?: string;
 }

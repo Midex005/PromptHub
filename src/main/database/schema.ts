@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS folders (
   icon TEXT,
   parent_id TEXT,
   sort_order INTEGER DEFAULT 0,
+  is_private INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL,
+  updated_at INTEGER,
   FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
 );
 
