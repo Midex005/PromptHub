@@ -1,31 +1,3 @@
-我大概来说一下我修改了哪些内容：
-
-1. 添加隐私文件夹并设置密码
-2. 添加图片预览
-	  - 可以本地上传或者直接复制粘贴
-	  - 可以窗口内预览图片
-3. 添加图片模式列表模式
-4. 修改【创建】【保存】的位置
-5. 右键菜单支持：
-     - 在卡片视图、列表视图和画廊视图中均已支持右键点击。
-     - 右键菜单包含：查看详情、编辑、复制、收藏、AI 测试、版本历史、删除。
-6. 画廊视图图片大小调整：
-     - 在画廊视图下，顶部工具栏会出现 S / M / L 切换按钮。
-     - 支持切换小图、中图、大图（自动调整网格列数）。
-     - 设置会自动保存。
-
----
-### 截图
-
-<img width="2412" alt="Image" src="https://github.com/user-attachments/assets/96295a98-af2a-4e66-86ef-a9a3aeb0fc24" />
-
-<img width="2397" alt="Image" src="https://github.com/user-attachments/assets/a6382801-d436-4e2d-b652-77834aae0f9f" />
-
-<img width="2414" alt="Image" src="https://github.com/user-attachments/assets/ae7258ed-7f70-4244-8f18-325e7cebffeb" />
-
-<img width="2402" alt="Image" src="https://github.com/user-attachments/assets/376c01b1-3654-468e-bb0b-80e7e8589932" />
-
----
 <div align="center">
   <img src="./docs/imgs/icon.png" alt="PromptHub Logo" width="120" height="120" />
   <h1>PromptHub</h1>
@@ -35,7 +7,7 @@
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
     <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.2.0-green?style=flat-square" alt="Version"/></a>
+    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.2.1-green?style=flat-square" alt="Version"/></a>
     <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Downloads"/></a>
     <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License: AGPL-3.0"/>
   </p>
@@ -76,6 +48,10 @@
 - **🖥️ 跨平台** - 支持 macOS、Windows、Linux
 - **📊 列表视图** - 表格式展示 Prompt，支持排序和批量操作
 - **🤖 AI 测试** - 内置多模型测试，支持 18+ 服务商
+- **🧭 Markdown 预览** - 全场景支持 Markdown 渲染与代码高亮（忽略未知语言）
+- **🪟 宽屏与全屏模式** - 编辑/查看详情时支持更宽的视野和全屏模式
+- **🔐 主密码与私密文件夹** - 支持设置主密码，锁定/解锁私密文件夹内容（加密存储开发中）
+- **🖼️ 图片上传与预览** - 支持上传/粘贴本地图片，并在弹窗内预览
 
 ## 📸 截图
 
@@ -231,7 +207,7 @@ PromptHub/
 
 ## 🗺️ 路线图
 
-### v0.2.0 (当前)
+### v0.2.1 (当前)
 - [x] Prompt CRUD 管理
 - [x] 文件夹和标签系统
 - [x] 收藏功能
@@ -256,6 +232,9 @@ PromptHub/
 - [x] 列表视图模式（表格式展示所有 Prompt）
 - [x] AI 测试结果持久化（每个 Prompt 保留最后一次测试结果）
 - [x] 排序功能（按时间、标题、使用次数排序）
+- [x] Markdown 全场景预览
+- [x] 主密码与安全设置（私密文件夹 WIP）
+- [x] Qwen/通义模型兼容性优化
 
 ### 未来规划
 - [ ] Web 版本（Docker/Cloudflare 部署）
@@ -263,6 +242,20 @@ PromptHub/
 - [ ] 浏览器插件
 
 ## 📝 更新日志
+
+### v0.2.1 (2025-12-07)
+**新功能**
+- ✨ **Markdown 全场景预览**：列表视图、详情弹窗、编辑弹窗均支持 Markdown 渲染与代码高亮（自动忽略未知语言错误）。
+- ✨ **主密码与安全设置**：支持设置应用级主密码，锁定/解锁状态管理。
+- ✨ **私密文件夹（Beta）**：支持将文件夹设为私密，需主密码解锁后方可操作（加密存储功能开发中）。
+- ✨ **编辑体验优化**：编辑弹窗支持“编辑/预览”模式切换，输入框高度优化，支持全屏/宽屏模式。
+- ✨ **标签排序**：标签列表自动按字母/拼音排序，保持视图一致性。
+- ✨ **图片上传与预览**：支持上传/粘贴本地图片，并在弹窗内预览。
+
+**优化**
+- 🔧 **Qwen/通义千问兼容**：修复非流式调用时的 `enable_thinking` 参数报错问题。
+- 🔧 **UI 细节**：修复编辑弹窗全屏遮挡左上角按钮的问题。
+- 🔧 **性能优化**：优化 Markdown 渲染性能与依赖配置。
 
 ### v0.2.0 (2025-12-03)
 **新功能**
@@ -385,7 +378,8 @@ PromptHub/
 **新功能**
 - ✨ 文件夹创建/编辑/删除功能
 - ✨ 标签筛选功能
-- ✨ 检查更新功能
+- ✨ 检查更新功能+
+
 - ✨ Windows 自定义标题栏
 
 **优化**
@@ -429,6 +423,8 @@ PromptHub/
 - [TailwindCSS](https://tailwindcss.com/) - CSS 框架
 - [Zustand](https://zustand-demo.pmnd.rs/) - 状态管理
 - [Lucide](https://lucide.dev/) - 图标库
+- 所有为 PromptHub 做出贡献的 [贡献者](https://github.com/legeling/PromptHub/graphs/contributors)！  
+  <a href="https://github.com/legeling/PromptHub/graphs/contributors"><img src="https://contrib.rocks/image?repo=legeling/PromptHub" alt="Contributors" /></a>
 
 ---
 

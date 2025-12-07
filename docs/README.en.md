@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
     <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.2.0-green?style=flat-square" alt="Version"/></a>
+    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.2.1-green?style=flat-square" alt="Version"/></a>
     <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Downloads"/></a>
     <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License: AGPL-3.0"/>
   </p>
@@ -48,6 +48,10 @@
 - **🖥️ Cross-Platform** - Support for macOS, Windows, Linux
 - **📊 List View** - Table-style display with sorting and batch operations
 - **🤖 AI Testing** - Built-in multi-model testing with 18+ providers
+- **🧭 Markdown Preview** - Safe Markdown rendering with syntax highlight everywhere (Detail, List, Edit)
+- **🪟 Wide & Full Modes** - Optimized editing experience with wider and fullscreen modes
+- **🔐 Master Password & Private Folders** - Secure private content with a master password (data encryption WIP)
+- **🖼️ Image Upload & Preview** - Upload/paste local images and preview them in modals
 
 ## 📸 Screenshots
 
@@ -188,7 +192,7 @@ PromptHub/
 
 ## 🗺️ Roadmap
 
-### v0.2.0 (Current)
+### v0.2.1 (Current)
 - [x] Prompt CRUD management
 - [x] Folder and tag system
 - [x] Favorites feature
@@ -208,16 +212,35 @@ PromptHub/
 - [x] Minimize to system tray
 - [x] Linux platform support
 - [x] Editor line numbers
-- [x] **List view mode** (table-style display of all prompts)
-- [x] **AI test result persistence** (save last test result for each prompt)
-- [x] **Sorting functionality** (by time, title, usage count)
+- [x] List view mode
+- [x] AI test result persistence
+- [x] Sorting functionality
+- [x] Markdown Preview Everywhere
+- [x] Master Password & Private Folders (Basic)
+- [x] Qwen/Tongyi Model Compatibility
+- [x] Image Upload & Preview (upload/paste + modal preview)
 
 ### Future Plans
+- [ ] Data encryption for private folders (AES-256)
 - [ ] Web version (Docker/Cloudflare deployment)
 - [ ] Prompt template marketplace
 - [ ] Browser extension
 
 ## 📝 Changelog
+
+### v0.2.1 (2025-12-07)
+**New Features**
+- ✨ Markdown Preview: Safe Markdown rendering in List view, Detail modal, and Edit modal (unknown languages ignored).
+- ✨ Master Password & Security: App-level master password setup with lock/unlock states.
+- ✨ Private Folders (Beta): Mark folders as private, requiring unlock to access (encryption WIP).
+- ✨ Enhanced Editing: Edit/Preview toggle, optimized input height, and Fullscreen/Wide modes.
+- ✨ Sorted Tags: Tags are automatically sorted for better consistency.
+- ✨ Image Upload & Preview: Upload/paste local images and preview them within modals.
+
+**Improvements**
+- 🔧 Qwen Compatibility: Fixed `enable_thinking` error for non-streaming calls.
+- 🔧 UI Polish: Fixed fullscreen edit modal overlapping header buttons.
+- 🔧 Performance: Optimized Markdown rendering and dependencies.
 
 ### v0.2.0 (2025-12-03)
 **New Features**
@@ -235,102 +258,129 @@ PromptHub/
 
 ### v0.1.9 (2025-12-01)
 **New Features**
-- ✨ Local SVG/PNG icons for model categories with real provider logos
-- ✨ Localized and wider prompt version history modal for better diff reading
+- ✨ Local SVG/PNG assets for AI model icons
+- ✨ Wider and internationalized Version History modal
 
 **Improvements**
-- 🔧 Fixed Linux packaging failure by adding missing author.email
-- 🔧 Full incremental auto-update support for macOS and Windows (dmg/zip/exe + blockmap)
-- 🔧 Update dialog now shows plain-text release notes and wraps long error messages
-- 🔧 Fixed update dialog always re-checking on every open (status is cached)
+- 🔧 Fixed Linux build failure (author.email)
+- 🔧 Full macOS/Windows delta update support
+- 🔧 Release Notes in update dialog support plain text wrapping
+- 🔧 Fixed redundant requests in update checker
 
 ### v0.1.8 (2025-12-01)
 **New Features**
-- ✨ Minimize to system tray (Windows/macOS)
+- ✨ Minimize to system tray
 - ✨ Clickable data directory path
-- ✨ Editor line numbers display
+- ✨ Editor line numbers
 - ✨ Linux platform support (AppImage/deb)
+- ✨ Dynamic AI model fetching
+- ✨ Model selection modal with search and categories
+- ✨ Auto-categorized model display with icons
+- ✨ Smart API URL preview
+- ✨ Grouped model display
 
 **Improvements**
-- 🎨 Variable input auto-expands for multi-line text
+- 🎨 Auto-expanding variable inputs
 - 🎨 Optimized macOS tray icon
-- 🔧 Update check can be clicked multiple times
+- 🎨 Independent AI test states per prompt
+- 🎨 Persistent test results
+- 🔧 Multiple clicks support for update check
+- 🔧 Fixed notification icon path
 
 ### v0.1.7 (2025-11-30)
 **New Features**
-- ✨ AI test now supports variable fill-in (same experience as copy)
-- ✨ Multi-model comparison supports variable fill-in
+- ✨ Variable filling in AI test
+- ✨ Variable filling in multi-model comparison
 
 **Improvements**
-- 🎨 Enhanced dark mode theme colors (better saturation and visibility)
-- 🎨 Improved toggle switch dark mode styling (added border and better contrast)
-- 🎨 AI test button now uses theme color
-- 🎨 Beautified About page icon
-- 🔧 Removed "Refresh Now" button from language settings (instant effect)
+- 🎨 Enhanced dark mode accent colors
+- 🎨 Improved toggle switch style
+- 🎨 Themed AI test button
+- 🎨 Polished About page icons
+- 🔧 Removed "Refresh" button from language settings
 
 ### v0.1.6 (2025-11-30)
 **Improvements**
-- 🔧 Fixed auto-update metadata file missing (CI uploads latest-mac.yml)
-- 🔧 Optimized Release notes format
+- 🔧 Fixed missing auto-update metadata (CI upload)
+- 🔧 Optimized Release Notes format
 
 ### v0.1.5 (2025-11-30)
 **New Features**
-- ✨ Variable fill-in interface (auto-detect variables on copy, show fill-in dialog)
+- ✨ Variable filling interface on copy
 
 **Improvements**
-- 🎨 Folder select dropdown now uses custom styled component
-- 🎨 Wider Edit/Create Prompt modal
-- 🔧 Fixed version comparison (current version added to version list)
-- 🔧 Disabled DevTools in production
+- 🎨 Custom folder selection dropdown
+- 🎨 Wider Edit/New Prompt modal
+- 🔧 Fixed current version display in comparison
+- 🔧 Disabled dev tools in production
 
 ### v0.1.4 (2025-11-30)
 **New Features**
-- ✨ Multi-model configuration (unlimited AI models)
-- ✨ Model comparison selection mode
-- ✨ Custom dropdown component
-- ✨ Full i18n support (homepage, editor, modals)
-- ✨ In-app auto update (check, download, install)
+- ✨ Multi-model configuration management
+- ✨ Selection-based model comparison
+- ✨ Custom Select component
+- ✨ Full internationalization
+- ✨ In-app auto update
 
 **Improvements**
-- 🎨 Prompt card compression
-- 🎨 Multi-model compare button moved to right
-- 🎨 Improved README and screenshots
-- 🔧 Fixed macOS top bar drag issue
-- 🔧 Fixed language setting sync issue
-- 🔧 Fixed compare results persisting on prompt switch
-- 🔧 Removed macOS zip builds, DMG only
+- 🎨 Compact Prompt cards
+- 🎨 Relocated comparison button
+- 🎨 Optimized README and screenshots
+- 🔧 Fixed macOS window dragging issue
+- 🔧 Fixed language setting sync
+- 🔧 Fixed comparison result persistence issue
+- 🔧 Removed macOS zip build artifact
 
 ### v0.1.3 (2025-11-29)
 **New Features**
-- ✨ AI model configuration (18+ domestic and international providers)
-- ✨ AI connection test (async test with response time)
-- ✨ AI model comparison (parallel test multiple models)
-- ✨ Image generation model support (DALL-E 3, etc.)
-- ✨ Complete i18n support (Settings page fully internationalized)
-- ✨ Git-style version diff (line-level diff, add/remove stats)
+- ✨ AI model configuration (18+ providers)
+- ✨ AI connection test
+- ✨ AI model comparison
+- ✨ Image generation support
+- ✨ Settings page i18n
+- ✨ Git-style version comparison
 
 **Improvements**
-- 🎨 Optimized settings page UI
-- 🔧 Removed prompt card drag (fixed click issues)
+- 🎨 Optimized Settings UI
+- 🔧 Removed card dragging (fixed click issues)
 
 ### v0.1.2 (2025-11-29)
 **New Features**
-- ✨ WebDAV sync (upload/download data to remote server)
+- ✨ WebDAV sync
 - ✨ Folder drag & drop sorting
-- ✨ Drag prompts to folders
-- ✨ Select folder when creating new prompt
+- ✨ Prompt drag & drop to folder
+- ✨ Folder selection in New Prompt
+- ✨ Restore version confirmation
+
+**Improvements**
+- 🎨 Fixed dark mode toggle visibility
+- 🎨 Added feedback for settings toggles
+- 🎨 Improved language switching
+- 🔧 Implemented launch at startup
 
 ### v0.1.1 (2025-11-29)
 **New Features**
-- ✨ Folder create/edit/delete
+- ✨ Folder CRUD
 - ✨ Tag filtering
 - ✨ Check for updates
 - ✨ Windows custom title bar
 
-### v0.1.0 (2025-11-29)
-- 🎉 Initial release
+**Improvements**
+- 🎨 Flat UI design
+- 🎨 Removed card shadows and scaling
+- 🔧 WebDAV config interface
 
-## 🤝 Contributing
+### v0.1.0 (2025-11-29)
+- 🎉 First release
+- ✨ Prompt CRUD
+- ✨ Folders & Tags
+- ✨ Favorites
+- ✨ Version History
+- ✨ Import/Export
+- ✨ Themes
+- ✨ Multi-language support
+
+## 🤝 Contribution
 
 Contributions are welcome! Please follow these steps:
 
@@ -346,21 +396,22 @@ This project is licensed under the [AGPL-3.0 License](./LICENSE).
 
 ## 💬 Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/legeling/PromptHub/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
+- **Issues**: [GitHub Issues](https://github.com/legeling/PromptHub/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
 
-## 🙏 Acknowledgments
+## 🙏 Acknowledgements
 
-- [Electron](https://www.electronjs.org/) - Cross-platform desktop framework
-- [React](https://react.dev/) - UI framework
-- [TailwindCSS](https://tailwindcss.com/) - CSS framework
-- [Zustand](https://zustand-demo.pmnd.rs/) - State management
-- [Lucide](https://lucide.dev/) - Icon library
+- [Electron](https://www.electronjs.org/)
+- [React](https://react.dev/)
+- [TailwindCSS](https://tailwindcss.com/)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [Lucide](https://lucide.dev/)
+- All the amazing [contributors](https://github.com/legeling/PromptHub/graphs/contributors) who helped improve PromptHub!
 
 ---
 
 <div align="center">
-  <p><strong>If you find this project helpful, please give it a ⭐!</strong></p>
+  <p><strong>If this project helps you, please give it a ⭐!</strong></p>
   
   <a href="https://www.buymeacoffee.com/legeling" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />

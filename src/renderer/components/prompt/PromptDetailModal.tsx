@@ -1,9 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { StarIcon, HashIcon, ClockIcon, CopyIcon, CheckIcon, SparklesIcon, EditIcon } from 'lucide-react';
+import { StarIcon, HashIcon, ClockIcon, CopyIcon, CheckIcon, SparklesIcon, EditIcon, MaximizeIcon, MinimizeIcon } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import type { Prompt } from '../../../shared/types';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import { defaultSchema } from 'hast-util-sanitize';
 
 interface PromptDetailModalProps {
   isOpen: boolean;
@@ -25,6 +30,58 @@ export function PromptDetailModal({
   const [copiedUser, setCopiedUser] = useState(false);
   const [copiedAi, setCopiedAi] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const sanitizeSchema: any = useMemo(() => {
+    const schema = { ...defaultSchema, attributes: { ...defaultSchema.attributes } };
+    schema.attributes.code = [...(schema.attributes.code || []), ['className']];
+    schema.attributes.span = [...(schema.attributes.span || []), ['className']];
+    schema.attributes.pre = [...(schema.attributes.pre || []), ['className']];
+    return schema;
+  }, []);
+
+  const rehypePlugins = useMemo(
+    () => [
+      [rehypeHighlight, { ignoreMissing: true }] as any,
+      [rehypeSanitize, sanitizeSchema] as any,
+    ],
+    [sanitizeSchema],
+  );
+
+  const markdownComponents = useMemo(() => ({
+    h1: (props: any) => <h1 className="text-xl font-bold mb-3 text-foreground" {...props} />,
+    h2: (props: any) => <h2 className="text-lg font-semibold mb-2 mt-4 text-foreground" {...props} />,
+    h3: (props: any) => <h3 className="text-base font-semibold mb-2 mt-3 text-foreground" {...props} />,
+    p: (props: any) => <p className="mb-2 leading-relaxed text-foreground/90" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+    li: (props: any) => <li className="leading-relaxed" {...props} />,
+    code: (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[12px]" {...props} />,
+    pre: (props: any) => (
+      <pre className="p-3 rounded-lg bg-muted overflow-x-auto text-[12px] leading-relaxed" {...props} />
+    ),
+    blockquote: (props: any) => (
+      <blockquote className="border-l-4 border-border pl-3 text-muted-foreground italic mb-3" {...props} />
+    ),
+    a: (props: any) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
+  }), []);
+
+  const renderPromptContent = (content?: string) => {
+    if (!content) {
+      return <span className="text-muted-foreground text-sm">-</span>;
+    }
+    return (
+      <div className="p-4 rounded-lg bg-muted/30 border border-border text-sm leading-relaxed markdown-content space-y-2 break-words">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={rehypePlugins}
+          components={markdownComponents}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  };
 
   if (!prompt) return null;
 
@@ -76,26 +133,40 @@ export function PromptDetailModal({
     }
   };
 
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setIsFullscreen((v) => !v)}
+        className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        title={isFullscreen ? t('common.exitFullscreen', '退出全屏') : t('common.fullscreen', '全屏')}
+      >
+        {isFullscreen ? <MinimizeIcon className="w-4 h-4" /> : <MaximizeIcon className="w-4 h-4" />}
+      </button>
+      {onEdit && (
+        <button
+          onClick={() => {
+            onEdit(prompt);
+            onClose();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+        >
+          <EditIcon className="w-4 h-4" />
+          <span>{t('prompt.edit', '编辑')}</span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        setIsFullscreen(false);
+        onClose();
+      }}
       title={prompt.title}
-      size="2xl"
-      headerActions={
-        onEdit && (
-          <button
-            onClick={() => {
-              onEdit(prompt);
-              onClose();
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
-          >
-            <EditIcon className="w-4 h-4" />
-            <span>{t('prompt.edit', '编辑')}</span>
-          </button>
-        )
-      }
+      size={isFullscreen ? 'fullscreen' : 'full'}
+      headerActions={headerActions}
     >
       <div className="space-y-6">
         {/* 基本信息 */}
@@ -192,9 +263,7 @@ export function PromptDetailModal({
                 {copiedSystem ? t('prompt.copied') : t('prompt.copy')}
               </button>
             </div>
-            <div className="bg-muted/30 rounded-lg p-4 max-h-48 overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap font-mono">{prompt.systemPrompt}</pre>
-            </div>
+            {renderPromptContent(prompt.systemPrompt)}
           </div>
         )}
 
@@ -210,9 +279,7 @@ export function PromptDetailModal({
               {copiedUser ? t('prompt.copied') : t('prompt.copy')}
             </button>
           </div>
-          <div className="bg-muted/30 rounded-lg p-4 max-h-64 overflow-y-auto">
-            <pre className="text-sm whitespace-pre-wrap font-mono">{prompt.userPrompt}</pre>
-          </div>
+          {renderPromptContent(prompt.userPrompt)}
         </div>
 
         {/* AI 响应 */}
@@ -231,9 +298,7 @@ export function PromptDetailModal({
                 {copiedAi ? t('prompt.copied') : t('prompt.copyResponse')}
               </button>
             </div>
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 max-h-64 overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap">{prompt.lastAiResponse}</pre>
-            </div>
+            {renderPromptContent(prompt.lastAiResponse)}
           </div>
         )}
       </div>

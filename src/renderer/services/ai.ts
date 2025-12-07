@@ -83,6 +83,7 @@ export async function chatCompletion(
   }
 ): Promise<string> {
   const { provider, apiKey, apiUrl, model } = config;
+  const providerId = provider?.toLowerCase() || '';
   
   if (!apiKey) {
     throw new Error('请先配置 API Key');
@@ -123,6 +124,15 @@ export async function chatCompletion(
     max_tokens: options?.maxTokens ?? 2048,
     stream: false,
   };
+
+  // Qwen(通义) 非流式调用要求 enable_thinking=false，否则报错
+  const isQwen =
+    providerId.includes('qwen') ||
+    providerId.includes('dashscope') ||
+    model.toLowerCase().includes('qwen');
+  if (!body.stream && isQwen) {
+    (body as any).enable_thinking = false;
+  }
 
   try {
     const response = await fetch(endpoint, {

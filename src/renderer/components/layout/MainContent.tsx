@@ -11,6 +11,10 @@ import { chatCompletion, buildMessagesFromPrompt, multiModelCompare, AITestResul
 import { useTranslation } from 'react-i18next';
 import type { Prompt, PromptVersion } from '../../../shared/types';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import { defaultSchema } from 'hast-util-sanitize';
 
 // Prompt 卡片组件（紧凑版本）
 function PromptCard({
@@ -81,6 +85,9 @@ export function MainContent() {
   const [isCompareVariableModalOpen, setIsCompareVariableModalOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; prompt: Prompt } | null>(null);
+  const renderMarkdownPref = useSettingsStore((state) => state.renderMarkdown);
+  const setRenderMarkdownPref = useSettingsStore((state) => state.setRenderMarkdown);
+  const [renderMarkdownEnabled, setRenderMarkdownEnabled] = useState(renderMarkdownPref);
   const { showToast } = useToast();
 
   // 按 prompt ID 保存测试状态和结果（持久化）
@@ -158,6 +165,89 @@ export function MainContent() {
   const aiModel = useSettingsStore((state) => state.aiModel);
   const aiModels = useSettingsStore((state) => state.aiModels);
   const showCopyNotification = useSettingsStore((state) => state.showCopyNotification);
+
+  useEffect(() => {
+    setRenderMarkdownEnabled(renderMarkdownPref);
+  }, [renderMarkdownPref]);
+
+  const sanitizeSchema: any = useMemo(() => {
+    const schema = { ...defaultSchema, attributes: { ...defaultSchema.attributes } };
+    schema.attributes.code = [...(schema.attributes.code || []), ['className']];
+    schema.attributes.span = [...(schema.attributes.span || []), ['className']];
+    schema.attributes.pre = [...(schema.attributes.pre || []), ['className']];
+    return schema;
+  }, []);
+
+  const rehypePlugins = useMemo(
+    () => [
+      [rehypeHighlight, { ignoreMissing: true }] as any,
+      [rehypeSanitize, sanitizeSchema] as any,
+    ],
+    [sanitizeSchema],
+  );
+
+  const markdownComponents = useMemo(() => ({
+    h1: (props: any) => <h1 className="text-2xl font-bold mb-4 text-foreground" {...props} />,
+    h2: (props: any) => <h2 className="text-xl font-semibold mb-3 mt-5 text-foreground" {...props} />,
+    h3: (props: any) => <h3 className="text-lg font-semibold mb-3 mt-4 text-foreground" {...props} />,
+    h4: (props: any) => <h4 className="text-base font-semibold mb-2 mt-3 text-foreground" {...props} />,
+    p: (props: any) => <p className="mb-3 leading-relaxed text-foreground/90" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
+    li: (props: any) => <li className="leading-relaxed" {...props} />,
+    code: (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[13px]" {...props} />,
+    pre: (props: any) => (
+      <pre className="p-3 rounded-lg bg-muted overflow-x-auto text-[13px] leading-relaxed" {...props} />
+    ),
+    blockquote: (props: any) => (
+      <blockquote className="border-l-4 border-border pl-3 text-muted-foreground italic mb-3" {...props} />
+    ),
+    hr: () => <hr className="my-4 border-border" />,
+    table: (props: any) => <table className="table-auto border-collapse w-full text-sm mb-3" {...props} />,
+    th: (props: any) => (
+      <th className="border border-border px-2 py-1 bg-muted text-left font-medium" {...props} />
+    ),
+    td: (props: any) => <td className="border border-border px-2 py-1" {...props} />,
+    a: (props: any) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
+    strong: (props: any) => <strong className="font-semibold text-foreground" {...props} />,
+    em: (props: any) => <em className="italic text-foreground/90" {...props} />,
+  }), []);
+
+  const renderPromptContent = (content?: string) => {
+    if (!content) {
+      return (
+        <div className="p-4 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+          {t('prompt.noContent')}
+        </div>
+      );
+    }
+
+    if (!renderMarkdownEnabled) {
+      return (
+        <div className="p-4 rounded-xl bg-card border border-border font-mono text-[14px] leading-relaxed whitespace-pre-wrap break-words">
+          {content}
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-relaxed markdown-content space-y-3 break-words">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={rehypePlugins}
+          components={markdownComponents}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  };
+
+  const toggleRenderMarkdown = () => {
+    const next = !renderMarkdownEnabled;
+    setRenderMarkdownEnabled(next);
+    setRenderMarkdownPref(next);
+  };
 
   const handleRestoreVersion = async (version: PromptVersion) => {
     if (selectedPrompt) {
@@ -650,7 +740,7 @@ export function MainContent() {
         {selectedPrompt ? (
           <>
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto px-6 py-4">
+            <div className="max-w-5xl mx-auto px-6 py-4">
             {/* 标题区域 */}
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
@@ -729,27 +819,30 @@ export function MainContent() {
             {/* System Prompt */}
             {selectedPrompt.systemPrompt && (
               <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     System Prompt
                   </span>
                 </div>
-                <div className="p-4 rounded-xl bg-card border border-border prose max-w-none">
-                  <ReactMarkdown>{selectedPrompt.systemPrompt}</ReactMarkdown>
-                </div>
+                {renderPromptContent(selectedPrompt.systemPrompt)}
               </div>
             )}
 
             {/* User Prompt */}
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   User Prompt
                 </span>
+                <button
+                  type="button"
+                  onClick={toggleRenderMarkdown}
+                  className="text-[12px] px-3 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  {renderMarkdownEnabled ? t('prompt.showPlain', '显示原文') : t('prompt.showMarkdown', 'Markdown')}
+                </button>
               </div>
-              <div className="p-4 rounded-xl bg-card border border-border prose max-w-none">
-                <ReactMarkdown>{selectedPrompt.userPrompt}</ReactMarkdown>
-              </div>
+              {renderPromptContent(selectedPrompt.userPrompt)}
             </div>
 
             {/* 多模型对比区域 */}
@@ -871,7 +964,7 @@ export function MainContent() {
           </div>
           {/* 操作按钮 - 固定底部 */}
           <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
-            <div className="max-w-3xl mx-auto flex items-center gap-3 flex-wrap">
+            <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
               <button
                 onClick={async () => {
                   // 检查是否有变量

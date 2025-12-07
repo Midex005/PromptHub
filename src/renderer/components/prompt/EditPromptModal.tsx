@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Modal, Button, Input, Textarea } from '../ui';
 import { Select } from '../ui/Select';
 import { HashIcon, XIcon, ImageIcon, Maximize2Icon, Minimize2Icon } from 'lucide-react';
@@ -6,6 +6,11 @@ import { usePromptStore } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useTranslation } from 'react-i18next';
 import type { Prompt } from '../../../shared/types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
+import rehypeHighlight from 'rehype-highlight';
+import { defaultSchema } from 'hast-util-sanitize';
 
 interface EditPromptModalProps {
   isOpen: boolean;
@@ -29,9 +34,46 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
 
   const [images, setImages] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [userTab, setUserTab] = useState<'edit' | 'preview'>('edit');
+  const [systemTab, setSystemTab] = useState<'edit' | 'preview'>('edit');
+
+  const sanitizeSchema: any = useMemo(() => {
+    const schema = { ...defaultSchema, attributes: { ...defaultSchema.attributes } };
+    schema.attributes.code = [...(schema.attributes.code || []), ['className']];
+    schema.attributes.span = [...(schema.attributes.span || []), ['className']];
+    schema.attributes.pre = [...(schema.attributes.pre || []), ['className']];
+    return schema;
+  }, []);
+
+  const rehypePlugins = useMemo(
+    () => [
+      [rehypeHighlight, { ignoreMissing: true }] as any,
+      [rehypeSanitize, sanitizeSchema] as any,
+    ],
+    [sanitizeSchema],
+  );
+
+  const markdownComponents = useMemo(() => ({
+    h1: (props: any) => <h1 className="text-2xl font-bold mb-4 text-foreground" {...props} />,
+    h2: (props: any) => <h2 className="text-xl font-semibold mb-3 mt-5 text-foreground" {...props} />,
+    h3: (props: any) => <h3 className="text-lg font-semibold mb-3 mt-4 text-foreground" {...props} />,
+    p: (props: any) => <p className="mb-3 leading-relaxed text-foreground/90" {...props} />,
+    ul: (props: any) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
+    ol: (props: any) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
+    li: (props: any) => <li className="leading-relaxed" {...props} />,
+    code: (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[13px]" {...props} />,
+    pre: (props: any) => (
+      <pre className="p-3 rounded-lg bg-muted overflow-x-auto text-[13px] leading-relaxed" {...props} />
+    ),
+    blockquote: (props: any) => (
+      <blockquote className="border-l-4 border-border pl-3 text-muted-foreground italic mb-3" {...props} />
+    ),
+    hr: () => <hr className="my-4 border-border" />,
+    a: (props: any) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
+  }), []);
 
   // 获取所有已存在的标签
-  const existingTags = [...new Set(prompts.flatMap((p) => p.tags))];
+  const existingTags = [...new Set(prompts.flatMap((p) => p.tags))].sort((a, b) => a.localeCompare(b));
 
   // 当 prompt 变化时更新表单
   useEffect(() => {
@@ -149,7 +191,7 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
       isOpen={isOpen}
       onClose={onClose}
       title={t('prompt.editPrompt')}
-      size={isFullscreen ? 'fullscreen' : 'xl'}
+      size={isFullscreen ? 'full' : 'xl'}
       headerActions={
         <>
           <button
@@ -307,21 +349,106 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
         </div>
 
         {/* System Prompt */}
-        <Textarea
-          label={t('prompt.systemPromptOptional')}
-          placeholder={t('prompt.systemPromptPlaceholder')}
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-foreground">{t('prompt.systemPromptOptional')}</label>
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+              <button
+                onClick={() => setSystemTab('edit')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  systemTab === 'edit'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('prompt.edit', '编辑')}
+              </button>
+              <button
+                onClick={() => setSystemTab('preview')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  systemTab === 'preview'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('prompt.preview', '预览')}
+              </button>
+            </div>
+          </div>
+          {systemTab === 'edit' ? (
+            <Textarea
+              placeholder={t('prompt.systemPromptPlaceholder')}
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="min-h-[180px]"
+            />
+          ) : (
+            <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-[1.7] markdown-content break-words space-y-3 min-h-[180px]">
+              {systemPrompt ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={rehypePlugins}
+                  components={markdownComponents}
+                >
+                  {systemPrompt}
+                </ReactMarkdown>
+              ) : (
+                <div className="text-muted-foreground text-sm">{t('prompt.noContent', '暂无内容')}</div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* User Prompt */}
-        <Textarea
-          label={t('prompt.userPromptLabel')}
-          placeholder={t('prompt.userPromptPlaceholder')}
-          value={userPrompt}
-          onChange={(e) => setUserPrompt(e.target.value)}
-          className="min-h-[200px]"
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-foreground">{t('prompt.userPromptLabel')}</label>
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+              <button
+                onClick={() => setUserTab('edit')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  userTab === 'edit'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('prompt.edit', '编辑')}
+              </button>
+              <button
+                onClick={() => setUserTab('preview')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  userTab === 'preview'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t('prompt.preview', '预览')}
+              </button>
+            </div>
+          </div>
+          {userTab === 'edit' ? (
+            <Textarea
+              placeholder={t('prompt.userPromptPlaceholder')}
+              value={userPrompt}
+              onChange={(e) => setUserPrompt(e.target.value)}
+              className="min-h-[260px]"
+            />
+          ) : (
+            <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-[1.7] markdown-content break-words space-y-3 min-h-[260px]">
+              {userPrompt ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={rehypePlugins}
+                  components={markdownComponents}
+                >
+                  {userPrompt}
+                </ReactMarkdown>
+              ) : (
+                <div className="text-muted-foreground text-sm">{t('prompt.noContent', '暂无内容')}</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );
