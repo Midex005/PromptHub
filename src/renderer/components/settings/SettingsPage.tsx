@@ -20,6 +20,8 @@ import {
   RefreshCwIcon,
   BrainIcon,
   KeyIcon,
+  EyeIcon,
+  EyeOffIcon,
   PlayIcon,
   Loader2Icon,
   ZapIcon,
@@ -92,6 +94,39 @@ const AI_PROVIDERS = [
 type ImageSize = '256x256' | '512x512' | '1024x1024' | '1024x1792' | '1792x1024';
 type ImageQuality = 'standard' | 'hd';
 type ImageStyle = 'vivid' | 'natural';
+
+// 可复用的密码输入组件
+function PasswordInput({ 
+  value, 
+  onChange, 
+  placeholder, 
+  className = '' 
+}: { 
+  value: string; 
+  onChange: (value: string) => void; 
+  placeholder?: string; 
+  className?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`w-full h-10 px-3 pr-10 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60 ${className}`}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {show ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [activeSection, setActiveSection] = useState('general');
@@ -170,6 +205,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   
   // 生图测试结果弹窗
   const [imageTestModalResult, setImageTestModalResult] = useState<ImageTestResult | null>(null);
+
+  // WebDAV 操作状态
+  const [webdavTesting, setWebdavTesting] = useState(false);
+  const [webdavUploading, setWebdavUploading] = useState(false);
+  const [webdavDownloading, setWebdavDownloading] = useState(false);
 
   // 分离对话模型和生图模型
   const chatModels = settings.aiModels.filter(m => m.type === 'chat' || !m.type);
@@ -1058,19 +1098,15 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     <div className="text-sm font-medium">
                       {t('settings.setMaster', '设置主密码（至少 4 位）')}
                     </div>
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={newMasterPwd}
-                      onChange={(e) => setNewMasterPwd(e.target.value)}
+                      onChange={setNewMasterPwd}
                       placeholder={t('settings.masterPlaceholder', '输入主密码')}
-                      className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
                     />
-                    <input
-                      type="password"
+                    <PasswordInput
                       value={newMasterPwdConfirm}
-                      onChange={(e) => setNewMasterPwdConfirm(e.target.value)}
+                      onChange={setNewMasterPwdConfirm}
                       placeholder={t('settings.masterConfirmPlaceholder', '确认主密码')}
-                      className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
                     />
                     <button
                       onClick={handleSetMasterPassword}
@@ -1095,26 +1131,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     </div>
                     {showChangePwd && (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={oldPwd}
-                          onChange={(e) => setOldPwd(e.target.value)}
+                          onChange={setOldPwd}
                           placeholder={t('settings.oldPwdPlaceholder', '输入当前主密码')}
-                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
                         />
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={newPwd}
-                          onChange={(e) => setNewPwd(e.target.value)}
+                          onChange={setNewPwd}
                           placeholder={t('settings.newPwdPlaceholder', '输入新主密码（至少 4 位）')}
-                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
                         />
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={newPwdConfirm}
-                          onChange={(e) => setNewPwdConfirm(e.target.value)}
+                          onChange={setNewPwdConfirm}
                           placeholder={t('settings.newPwdConfirmPlaceholder', '确认新主密码')}
-                          className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60"
                         />
                         <button
                           onClick={handleChangeMasterPassword}
@@ -1212,12 +1242,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">{t('settings.webdavPassword')}</label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         placeholder={t('settings.webdavPassword')}
                         value={settings.webdavPassword}
-                        onChange={(e) => settings.setWebdavPassword(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                        onChange={settings.setWebdavPassword}
+                        className="h-9"
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2">
@@ -1226,16 +1255,22 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                           if (!settings.webdavUrl || !settings.webdavUsername || !settings.webdavPassword) {
                             return;
                           }
-                          const result = await testConnection({
-                            url: settings.webdavUrl,
-                            username: settings.webdavUsername,
-                            password: settings.webdavPassword,
-                          });
-                          showToast(result.success ? t('toast.connectionSuccess') : t('toast.connectionFailed'), result.success ? 'success' : 'error');
+                          setWebdavTesting(true);
+                          try {
+                            const result = await testConnection({
+                              url: settings.webdavUrl,
+                              username: settings.webdavUsername,
+                              password: settings.webdavPassword,
+                            });
+                            showToast(result.success ? t('toast.connectionSuccess') : t('toast.connectionFailed'), result.success ? 'success' : 'error');
+                          } finally {
+                            setWebdavTesting(false);
+                          }
                         }}
-                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2"
+                        disabled={webdavTesting}
+                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                       >
-                        <RefreshCwIcon className="w-4 h-4" />
+                        <RefreshCwIcon className={`w-4 h-4 ${webdavTesting ? 'animate-spin' : ''}`} />
                         {t('settings.testConnection')}
                       </button>
                       <button
@@ -1243,14 +1278,27 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                           if (!settings.webdavUrl || !settings.webdavUsername || !settings.webdavPassword) {
                             return;
                           }
-                          const result = await uploadToWebDAV({
-                            url: settings.webdavUrl,
-                            username: settings.webdavUsername,
-                            password: settings.webdavPassword,
-                          });
-                          showToast(result.success ? t('toast.uploadSuccess') : t('toast.uploadFailed'), result.success ? 'success' : 'error');
+                          setWebdavUploading(true);
+                          try {
+                            const result = await uploadToWebDAV(
+                              {
+                                url: settings.webdavUrl,
+                                username: settings.webdavUsername,
+                                password: settings.webdavPassword,
+                              },
+                              {
+                                includeImages: settings.webdavIncludeImages,
+                                incrementalSync: settings.webdavIncrementalSync,
+                                encryptionPassword: settings.webdavEncryptionEnabled && settings.webdavEncryptionPassword ? settings.webdavEncryptionPassword : undefined,
+                              }
+                            );
+                            showToast(result.success ? result.message : result.message, result.success ? 'success' : 'error');
+                          } finally {
+                            setWebdavUploading(false);
+                          }
                         }}
-                        className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
+                        disabled={webdavUploading}
+                        className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
                       >
                         <UploadIcon className="w-4 h-4" />
                         {t('settings.upload')}
@@ -1260,19 +1308,31 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                           if (!settings.webdavUrl || !settings.webdavUsername || !settings.webdavPassword) {
                             return;
                           }
-                          const result = await downloadFromWebDAV({
-                            url: settings.webdavUrl,
-                            username: settings.webdavUsername,
-                            password: settings.webdavPassword,
-                          });
-                          if (result.success) {
-                            showToast(t('toast.downloadSuccess'), 'success');
-                            setTimeout(() => window.location.reload(), 1000);
-                          } else {
-                            showToast(t('toast.downloadFailed'), 'error');
+                          setWebdavDownloading(true);
+                          try {
+                            const result = await downloadFromWebDAV(
+                              {
+                                url: settings.webdavUrl,
+                                username: settings.webdavUsername,
+                                password: settings.webdavPassword,
+                              },
+                              {
+                                incrementalSync: settings.webdavIncrementalSync,
+                                encryptionPassword: settings.webdavEncryptionEnabled && settings.webdavEncryptionPassword ? settings.webdavEncryptionPassword : undefined,
+                              }
+                            );
+                            if (result.success) {
+                              showToast(result.message, 'success');
+                              setTimeout(() => window.location.reload(), 1000);
+                            } else {
+                              showToast(result.message, 'error');
+                            }
+                          } finally {
+                            setWebdavDownloading(false);
                           }
                         }}
-                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2"
+                        disabled={webdavDownloading}
+                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                       >
                         <DownloadIcon className="w-4 h-4" />
                         {t('settings.download')}
@@ -1346,6 +1406,60 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                         onChange={settings.setWebdavSyncOnSave}
                       />
                     </div>
+                    
+                    {/* 包含图片 */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavIncludeImages', '包含图片')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {t('settings.webdavIncludeImagesDesc')}
+                        </p>
+                      </div>
+                      <ToggleSwitch 
+                        checked={settings.webdavIncludeImages}
+                        onChange={settings.setWebdavIncludeImages}
+                      />
+                    </div>
+                    
+                    {/* 增量同步 */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavIncrementalSync', '增量同步')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {t('settings.webdavIncrementalSyncDesc')}
+                        </p>
+                      </div>
+                      <ToggleSwitch 
+                        checked={settings.webdavIncrementalSync}
+                        onChange={settings.setWebdavIncrementalSync}
+                      />
+                    </div>
+                    
+                    {/* 加密备份（实验性） */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <div className="flex-1 mr-4">
+                        <p className="text-sm font-medium">{t('settings.webdavEncryption', '加密备份（实验性）')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 text-amber-500">
+                          {t('settings.webdavEncryptionDesc')}
+                        </p>
+                      </div>
+                      <ToggleSwitch 
+                        checked={settings.webdavEncryptionEnabled}
+                        onChange={settings.setWebdavEncryptionEnabled}
+                      />
+                    </div>
+                    
+                    {/* 加密密码输入框 */}
+                    {settings.webdavEncryptionEnabled && (
+                      <div className="pt-2">
+                        <PasswordInput
+                          placeholder={t('settings.webdavEncryptionPasswordPlaceholder', '输入加密密码（可选）')}
+                          value={settings.webdavEncryptionPassword}
+                          onChange={settings.setWebdavEncryptionPassword}
+                          className="h-9"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1633,12 +1747,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiKey')}</label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         placeholder={t('settings.apiKeyPlaceholder')}
                         value={newModel.apiKey}
-                        onChange={(e) => setNewModel({ ...newModel, apiKey: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        onChange={(v) => setNewModel({ ...newModel, apiKey: v })}
+                        className="h-9"
                       />
                     </div>
                     <div>
@@ -2037,12 +2150,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiKey')}</label>
-                      <input
-                        type="password"
+                      <PasswordInput
                         placeholder={t('settings.apiKeyPlaceholder')}
                         value={newModel.apiKey}
-                        onChange={(e) => setNewModel({ ...newModel, apiKey: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        onChange={(v) => setNewModel({ ...newModel, apiKey: v })}
+                        className="h-9"
                       />
                     </div>
                     <div>
@@ -2365,13 +2477,10 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
             
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">{t('settings.enterMasterPassword') || '请输入主密码确认'}</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={clearPwd}
-                onChange={(e) => setClearPwd(e.target.value)}
+                onChange={setClearPwd}
                 placeholder={t('settings.masterPasswordPlaceholder') || '输入主密码'}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                onKeyDown={(e) => e.key === 'Enter' && handleConfirmClear()}
               />
             </div>
             

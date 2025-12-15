@@ -169,6 +169,10 @@ interface SettingsState {
   webdavSyncOnStartupDelay: number;  // 启动后延迟秒数（0-60）
   webdavAutoSyncInterval: number;  // 自动同步间隔（分钟，0=关闭）
   webdavSyncOnSave: boolean;  // 保存时同步（实验性）
+  webdavIncludeImages: boolean;  // 是否包含图片
+  webdavIncrementalSync: boolean;  // 是否使用增量同步
+  webdavEncryptionEnabled: boolean;  // 是否启用加密（实验性）
+  webdavEncryptionPassword: string;  // 加密密码
   
   // 更新设置
   autoCheckUpdate: boolean;
@@ -209,6 +213,10 @@ interface SettingsState {
   setWebdavSyncOnStartupDelay: (delay: number) => void;
   setWebdavAutoSyncInterval: (interval: number) => void;
   setWebdavSyncOnSave: (enabled: boolean) => void;
+  setWebdavIncludeImages: (enabled: boolean) => void;
+  setWebdavIncrementalSync: (enabled: boolean) => void;
+  setWebdavEncryptionEnabled: (enabled: boolean) => void;
+  setWebdavEncryptionPassword: (password: string) => void;
   setAutoCheckUpdate: (enabled: boolean) => void;
   setAiProvider: (provider: string) => void;
   setAiApiKey: (key: string) => void;
@@ -260,6 +268,10 @@ export const useSettingsStore = create<SettingsState>()(
       webdavSyncOnStartupDelay: 10,
       webdavAutoSyncInterval: 0,
       webdavSyncOnSave: false,
+      webdavIncludeImages: true,
+      webdavIncrementalSync: true,
+      webdavEncryptionEnabled: false,
+      webdavEncryptionPassword: '',
       autoCheckUpdate: true,
       aiProvider: 'openai',
       aiApiKey: '',
@@ -362,6 +374,10 @@ export const useSettingsStore = create<SettingsState>()(
       setWebdavSyncOnStartupDelay: (delay) => setTouched({ webdavSyncOnStartupDelay: Math.max(0, Math.min(60, delay)) }),
       setWebdavAutoSyncInterval: (interval) => setTouched({ webdavAutoSyncInterval: Math.max(0, interval) }),
       setWebdavSyncOnSave: (enabled) => setTouched({ webdavSyncOnSave: enabled }),
+      setWebdavIncludeImages: (enabled) => setTouched({ webdavIncludeImages: enabled }),
+      setWebdavIncrementalSync: (enabled) => setTouched({ webdavIncrementalSync: enabled }),
+      setWebdavEncryptionEnabled: (enabled) => setTouched({ webdavEncryptionEnabled: enabled }),
+      setWebdavEncryptionPassword: (password) => setTouched({ webdavEncryptionPassword: password }),
       setAutoCheckUpdate: (enabled) => setTouched({ autoCheckUpdate: enabled }),
       setAiProvider: (provider) => setTouched({ aiProvider: provider }),
       setAiApiKey: (key) => setTouched({ aiApiKey: key }),

@@ -138,16 +138,37 @@ export function MainContent() {
     if (selectedId) updatePromptState(selectedId, { isComparingModels: comparing });
   };
 
-  const setAiResponse = (response: string | null) => {
-    if (selectedId) updatePromptState(selectedId, { aiResponse: response });
+  const setAiResponse = (response: string | null | ((prev: string | null) => string | null)) => {
+    if (selectedId) {
+      if (typeof response === 'function') {
+        const currentValue = promptTestStates[selectedId]?.aiResponse || null;
+        updatePromptState(selectedId, { aiResponse: response(currentValue) });
+      } else {
+        updatePromptState(selectedId, { aiResponse: response });
+      }
+    }
   };
 
-  const setAiThinking = (thinking: string | null) => {
-    if (selectedId) updatePromptState(selectedId, { aiThinking: thinking });
+  const setAiThinking = (thinking: string | null | ((prev: string | null) => string | null)) => {
+    if (selectedId) {
+      if (typeof thinking === 'function') {
+        const currentValue = promptTestStates[selectedId]?.aiThinking || null;
+        updatePromptState(selectedId, { aiThinking: thinking(currentValue) });
+      } else {
+        updatePromptState(selectedId, { aiThinking: thinking });
+      }
+    }
   };
 
-  const setCompareResults = (results: AITestResult[] | null) => {
-    if (selectedId) updatePromptState(selectedId, { compareResults: results });
+  const setCompareResults = (results: AITestResult[] | null | ((prev: AITestResult[] | null) => AITestResult[] | null)) => {
+    if (selectedId) {
+      if (typeof results === 'function') {
+        const currentValue = promptTestStates[selectedId]?.compareResults || null;
+        updatePromptState(selectedId, { compareResults: results(currentValue) });
+      } else {
+        updatePromptState(selectedId, { compareResults: results });
+      }
+    }
   };
 
   const setCompareError = (error: string | null) => {
@@ -565,7 +586,7 @@ export function MainContent() {
 
   const menuItems: ContextMenuItem[] = contextMenu ? [
     {
-      label: t('prompt.viewDetails', '查看详情'),
+      label: t('prompt.viewDetail'),
       icon: <CheckIcon className="w-4 h-4" />, // CheckIcon placeholder, logic implies View Detail
       onClick: () => handleViewDetail(contextMenu.prompt),
     },

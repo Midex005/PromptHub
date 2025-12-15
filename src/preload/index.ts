@@ -135,6 +135,17 @@ contextBridge.exposeInMainWorld('electron', {
   saveImageBase64: (fileName: string, base64: string) => ipcRenderer.invoke('image:saveBase64', fileName, base64),
   imageExists: (fileName: string) => ipcRenderer.invoke('image:exists', fileName),
   clearImages: () => ipcRenderer.invoke('image:clear'),
+  // WebDAV（通过主进程绕过 CORS）
+  webdav: {
+    testConnection: (config: { url: string; username: string; password: string }) =>
+      ipcRenderer.invoke('webdav:testConnection', config),
+    ensureDirectory: (url: string, config: { url: string; username: string; password: string }) =>
+      ipcRenderer.invoke('webdav:ensureDirectory', url, config),
+    upload: (fileUrl: string, config: { url: string; username: string; password: string }, data: string) =>
+      ipcRenderer.invoke('webdav:upload', fileUrl, config, data),
+    download: (fileUrl: string, config: { url: string; username: string; password: string }) =>
+      ipcRenderer.invoke('webdav:download', fileUrl, config),
+  },
 });
 
 // 类型声明
@@ -175,6 +186,17 @@ declare global {
       saveImageBase64?: (fileName: string, base64: string) => Promise<boolean>;
       imageExists?: (fileName: string) => Promise<boolean>;
       clearImages?: () => Promise<boolean>;
+      // WebDAV（通过主进程绕过 CORS）
+      webdav?: {
+        testConnection: (config: { url: string; username: string; password: string }) =>
+          Promise<{ success: boolean; message: string }>;
+        ensureDirectory: (url: string, config: { url: string; username: string; password: string }) =>
+          Promise<{ success: boolean }>;
+        upload: (fileUrl: string, config: { url: string; username: string; password: string }, data: string) =>
+          Promise<{ success: boolean; error?: string }>;
+        download: (fileUrl: string, config: { url: string; username: string; password: string }) =>
+          Promise<{ success: boolean; data?: string; notFound?: boolean; error?: string }>;
+      };
     };
   }
 }

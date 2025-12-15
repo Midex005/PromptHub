@@ -79,37 +79,7 @@ export function AiTestModal({
     return [...new Set([...sysVars, ...userVars])];
   }, [prompt, preferEnglish]);
 
-  // 重置状态
-  useEffect(() => {
-    if (isOpen && prompt) {
-      setAiResponse(null);
-      setThinkingContent(null);
-      setCompareResults(null);
-      setIsSingleLoading(false);
-      setIsCompareLoading(false);
-      // 初始化变量值
-      const initialValues: Record<string, string> = {};
-      allVariables.forEach((v) => {
-        initialValues[v] = '';
-      });
-      setVariableValues(initialValues);
-    }
-  }, [isOpen, prompt?.id]);
-
-  if (!prompt) return null;
-
-  // 替换变量
-  const replaceVariables = (text: string): string => {
-    return text.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-      return variableValues[varName] || match;
-    });
-  };
-
-  const baseSystemPrompt = preferEnglish ? (prompt.systemPromptEn || prompt.systemPrompt || '') : (prompt.systemPrompt || '');
-  const baseUserPrompt = preferEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt;
-  const systemPrompt = filledSystemPrompt ?? replaceVariables(baseSystemPrompt);
-  const userPrompt = filledUserPrompt ?? replaceVariables(baseUserPrompt);
-
+  // 构建单模型配置 - 必须在所有条件返回之前调用
   const buildSingleConfig = useCallback(() => {
     if (defaultChatModel) {
       return {
@@ -132,6 +102,47 @@ export function AiTestModal({
 
   const singleConfigForUi = useMemo(() => buildSingleConfig(), [buildSingleConfig]);
   const canRunSingleTest = !!(singleConfigForUi.apiKey && singleConfigForUi.apiUrl && singleConfigForUi.model);
+
+  // 替换变量
+  const replaceVariables = useCallback((text: string): string => {
+    return text.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+      return variableValues[varName] || match;
+    });
+  }, [variableValues]);
+
+  // 计算实际使用的 prompt 内容
+  const baseSystemPrompt = useMemo(() => {
+    if (!prompt) return '';
+    return preferEnglish ? (prompt.systemPromptEn || prompt.systemPrompt || '') : (prompt.systemPrompt || '');
+  }, [prompt, preferEnglish]);
+  
+  const baseUserPrompt = useMemo(() => {
+    if (!prompt) return '';
+    return preferEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt;
+  }, [prompt, preferEnglish]);
+  
+  const systemPrompt = useMemo(() => filledSystemPrompt ?? replaceVariables(baseSystemPrompt), [filledSystemPrompt, replaceVariables, baseSystemPrompt]);
+  const userPrompt = useMemo(() => filledUserPrompt ?? replaceVariables(baseUserPrompt), [filledUserPrompt, replaceVariables, baseUserPrompt]);
+
+  // 重置状态
+  useEffect(() => {
+    if (isOpen && prompt) {
+      setAiResponse(null);
+      setThinkingContent(null);
+      setCompareResults(null);
+      setIsSingleLoading(false);
+      setIsCompareLoading(false);
+      // 初始化变量值
+      const initialValues: Record<string, string> = {};
+      allVariables.forEach((v) => {
+        initialValues[v] = '';
+      });
+      setVariableValues(initialValues);
+    }
+  }, [isOpen, prompt?.id, allVariables]);
+
+  // 如果没有 prompt，返回 null（所有 hooks 已在上面调用完毕）
+  if (!prompt) return null;
 
   // 单模型测试
   const runSingleTest = async () => {

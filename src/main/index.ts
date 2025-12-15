@@ -5,6 +5,7 @@ import { registerAllIPC } from './ipc';
 import { createMenu } from './menu';
 import { registerShortcuts } from './shortcuts';
 import { initUpdater, registerUpdaterIPC } from './updater';
+import { registerWebDAVIPC } from './webdav';
 
 // 禁用 GPU 加速（可选，某些系统上可能需要）
 // app.disableHardwareAcceleration();
@@ -391,6 +392,9 @@ app.whenReady().then(async () => {
 
   // 注册更新器 IPC
   registerUpdaterIPC();
+
+  // 注册 WebDAV IPC（绕过 CORS）
+  registerWebDAVIPC();
 
   // 创建窗口
   await createWindow();

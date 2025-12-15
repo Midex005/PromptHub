@@ -141,11 +141,18 @@ function App() {
         console.log(`🔄 Will sync with WebDAV in ${delay / 1000}s...`);
         setTimeout(async () => {
           try {
-            const result = await autoSync({
-              url: settings.webdavUrl,
-              username: settings.webdavUsername,
-              password: settings.webdavPassword,
-            });
+            const result = await autoSync(
+              {
+                url: settings.webdavUrl,
+                username: settings.webdavUsername,
+                password: settings.webdavPassword,
+              },
+              {
+                includeImages: settings.webdavIncludeImages,
+                incrementalSync: settings.webdavIncrementalSync,
+                encryptionPassword: settings.webdavEncryptionEnabled && settings.webdavEncryptionPassword ? settings.webdavEncryptionPassword : undefined,
+              }
+            );
             if (result.success) {
               console.log('✅ Startup sync completed:', result.message);
               // 同步后重新加载数据
@@ -171,11 +178,18 @@ function App() {
       console.log(`🔄 Auto sync interval: ${settings.webdavAutoSyncInterval} minutes`);
       intervalId = setInterval(async () => {
         try {
-          const result = await autoSync({
-            url: settings.webdavUrl,
-            username: settings.webdavUsername,
-            password: settings.webdavPassword,
-          });
+          const result = await autoSync(
+            {
+              url: settings.webdavUrl,
+              username: settings.webdavUsername,
+              password: settings.webdavPassword,
+            },
+            {
+              includeImages: settings.webdavIncludeImages,
+              incrementalSync: settings.webdavIncrementalSync,
+              encryptionPassword: settings.webdavEncryptionEnabled && settings.webdavEncryptionPassword ? settings.webdavEncryptionPassword : undefined,
+            }
+          );
           if (result.success) {
             console.log('✅ Interval sync completed:', result.message);
             await fetchPrompts();
