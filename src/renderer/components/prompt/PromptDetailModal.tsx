@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { StarIcon, HashIcon, ClockIcon, CopyIcon, CheckIcon, SparklesIcon, EditIcon, MaximizeIcon, MinimizeIcon, GlobeIcon } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
+import { LocalImage } from '../ui/LocalImage';
 import type { Prompt } from '../../../shared/types';
 import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -237,10 +238,11 @@ export function PromptDetailModal({
             <div className="flex flex-wrap gap-4">
               {prompt.images.map((img, index) => (
                 <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
-                  <img
-                    src={`local-image://${img}`}
+                  <LocalImage
+                    src={img}
                     alt={`image-${index}`}
                     className="max-w-[200px] max-h-[200px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    fallbackClassName="w-[200px] h-[150px]"
                     onClick={() => setPreviewImage(img)}
                   />
                 </div>

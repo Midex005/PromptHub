@@ -1,5 +1,5 @@
 
-import { useRef, memo } from 'react';
+import { useRef, memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Prompt } from '../../../shared/types';
 import { ImageIcon, FolderIcon, HashIcon, MoreHorizontalIcon, StarIcon, EditIcon, TrashIcon, CopyIcon, PlayIcon, HistoryIcon } from 'lucide-react';
@@ -29,7 +29,8 @@ const GalleryCard = memo(({
     onToggleFavorite: (e: React.MouseEvent) => void;
     folderName?: string;
 }) => {
-    const imageSrc = prompt.images && prompt.images.length > 0
+    const [imageError, setImageError] = useState(false);
+    const imageSrc = prompt.images && prompt.images.length > 0 && !imageError
         ? `local-image://${prompt.images[0]}`
         : null;
 
@@ -46,6 +47,7 @@ const GalleryCard = memo(({
                         alt={prompt.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         loading="lazy"
+                        onError={() => setImageError(true)}
                     />
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30">

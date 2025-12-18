@@ -389,7 +389,7 @@ If PromptHub is helpful to your work, feel free to buy the author a coffee!
         <b>微信支付 / WeChat Pay</b>
       </td>
       <td align="center">
-        <img src="./docs/imgs/donate/alipay.jpg" width="200" alt="Alipay"/>
+        <img src="./docs/imgs/donate/alipay.png" width="200" alt="Alipay"/>
         <br/>
         <b>支付宝 / Alipay</b>
       </td>

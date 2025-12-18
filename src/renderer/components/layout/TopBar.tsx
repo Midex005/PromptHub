@@ -1,4 +1,5 @@
-import { SearchIcon, PlusIcon, SettingsIcon, SunIcon, MoonIcon } from 'lucide-react';
+import { SearchIcon, PlusIcon, SettingsIcon, SunIcon, MoonIcon, DownloadIcon } from 'lucide-react';
+import { UpdateStatus } from '../UpdateDialog';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useFolderStore } from '../../stores/folder.store';
@@ -8,9 +9,11 @@ import { useTranslation } from 'react-i18next';
 
 interface TopBarProps {
   onOpenSettings: () => void;
+  updateAvailable?: UpdateStatus | null;
+  onShowUpdateDialog?: () => void;
 }
 
-export function TopBar({ onOpenSettings }: TopBarProps) {
+export function TopBar({ onOpenSettings, updateAvailable, onShowUpdateDialog }: TopBarProps) {
   const { t } = useTranslation();
   const searchQuery = usePromptStore((state) => state.searchQuery);
   const setSearchQuery = usePromptStore((state) => state.setSearchQuery);
@@ -94,6 +97,19 @@ export function TopBar({ onOpenSettings }: TopBarProps) {
 
         {/* 右侧操作按钮 - 只有按钮本身不可拖动 */}
         <div className="flex items-center gap-1 ml-4">
+          {/* 更新提示 */}
+          {updateAvailable && updateAvailable.status === 'available' && (
+            <button
+              onClick={onShowUpdateDialog}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-medium hover:bg-green-500/20 transition-colors animate-pulse"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+              title={t('settings.updateAvailable')}
+            >
+              <DownloadIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('settings.newVersion', { version: updateAvailable.info?.version })}</span>
+            </button>
+          )}
+
           {/* 新建按钮 */}
           <button
             onClick={() => setIsCreateModalOpen(true)}

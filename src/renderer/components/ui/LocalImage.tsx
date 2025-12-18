@@ -1,0 +1,47 @@
+import { useState } from 'react';
+import { ImageIcon } from 'lucide-react';
+
+interface LocalImageProps {
+  src: string;
+  alt?: string;
+  className?: string;
+  fallbackClassName?: string;
+  onClick?: () => void;
+}
+
+/**
+ * 本地图片组件，自动处理加载失败的情况
+ * 使用 local-image:// 协议加载本地图片
+ */
+export function LocalImage({ 
+  src, 
+  alt = 'image', 
+  className = '', 
+  fallbackClassName = '',
+  onClick 
+}: LocalImageProps) {
+  const [error, setError] = useState(false);
+
+  if (error || !src) {
+    return (
+      <div 
+        className={`flex items-center justify-center bg-muted/30 text-muted-foreground/30 ${fallbackClassName || className}`}
+        onClick={onClick}
+      >
+        <ImageIcon className="w-8 h-8 opacity-50" />
+      </div>
+    );
+  }
+
+  const imageSrc = src.startsWith('local-image://') ? src : `local-image://${src}`;
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      onError={() => setError(true)}
+    />
+  );
+}

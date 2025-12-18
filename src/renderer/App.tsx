@@ -32,13 +32,18 @@ function App() {
   // Close dialog state (Windows)
   const [showCloseDialog, setShowCloseDialog] = useState(false);
 
+  // 更新状态（用于顶部栏显示更新提示）
+  const [updateAvailable, setUpdateAvailable] = useState<UpdateStatus | null>(null);
+
   useEffect(() => {
     // Listen for update status
     const handleStatus = (status: UpdateStatus) => {
-      // If update available, show dialog
+      // If update available, save status for TopBar indicator (don't auto-show dialog)
       if (status.status === 'available') {
+        setUpdateAvailable(status);
         setInitialUpdateStatus(status);
-        setShowUpdateDialog(true);
+        // 不再自动弹窗，用户点击顶部栏提示后才显示
+        // setShowUpdateDialog(true);
       }
     };
 
@@ -251,7 +256,11 @@ function App() {
           {/* 主内容区 */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* 顶部栏 */}
-            <TopBar onOpenSettings={() => setCurrentPage('settings')} />
+            <TopBar 
+              onOpenSettings={() => setCurrentPage('settings')} 
+              updateAvailable={updateAvailable}
+              onShowUpdateDialog={() => setShowUpdateDialog(true)}
+            />
             
             {/* 页面内容 */}
             {currentPage === 'home' ? (

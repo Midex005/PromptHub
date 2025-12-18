@@ -90,6 +90,10 @@
   "publish": {
     "provider": "github",
     "owner": "legeling",
-    "repo": "PromptHub"
+    "repo": "PromptHub",
+    "releaseType": "release"
+  },
+  "releaseInfo": {
+    "releaseNotesFile": "CHANGELOG.md"
   }
 }

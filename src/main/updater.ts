@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, app } from 'electron';
+import { BrowserWindow, ipcMain, app, shell } from 'electron';
 import type { UpdateInfo as ElectronUpdateInfo } from 'electron-updater';
 import { autoUpdater } from 'electron-updater';
 
@@ -52,6 +52,9 @@ function toSimpleInfo(info: ElectronUpdateInfo): SimpleUpdateInfo {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let lastPercent = 0; // 跟踪上次进度，防止进度回退
+
+const isMac = process.platform === 'darwin';
 
 export interface UpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -107,6 +110,13 @@ export function initUpdater(win: BrowserWindow) {
 
   // 下载进度
   autoUpdater.on('download-progress', (progress: ProgressInfo) => {
+    // 防止进度回退（electron-updater 下载多个文件时会重置进度）
+    if (progress.percent < lastPercent && lastPercent < 99) {
+      // 进度回退时，保持上次进度
+      console.info(`Download progress (ignored regression): ${progress.percent.toFixed(2)}% -> keeping ${lastPercent.toFixed(2)}%`);
+      return;
+    }
+    lastPercent = progress.percent;
     console.info(`Download progress: ${progress.percent.toFixed(2)}%`);
     sendStatusToWindow({
       status: 'downloading',
@@ -159,6 +169,7 @@ export function registerUpdaterIPC() {
       return { success: false, error: 'Download disabled in development mode' };
     }
     try {
+      lastPercent = 0; // 重置进度跟踪
       await autoUpdater.downloadUpdate();
       return { success: true };
     } catch (error) {
@@ -170,7 +181,27 @@ export function registerUpdaterIPC() {
   // 安装更新并重启
   ipcMain.handle('updater:install', async () => {
     if (!isDev) {
-      autoUpdater.quitAndInstall(false, true);
+      if (isMac) {
+        // macOS: 打开下载目录让用户手动安装
+        // 因为没有代码签名，自动安装会失败
+        const downloadDir = app.getPath('downloads');
+        shell.openPath(downloadDir);
+        return { success: true, manual: true };
+      } else {
+        // Windows/Linux: 自动安装
+        autoUpdater.quitAndInstall(false, true);
+        return { success: true, manual: false };
+      }
     }
+  });
+
+  // 获取平台信息
+  ipcMain.handle('updater:platform', () => {
+    return process.platform;
+  });
+
+  // 打开 GitHub Releases 页面
+  ipcMain.handle('updater:openReleases', () => {
+    shell.openExternal('https://github.com/legeling/PromptHub/releases');
   });
 }

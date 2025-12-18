@@ -6,6 +6,7 @@ import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, Tras
 import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptListView, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView } from '../prompt';
 import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
+import { LocalImage } from '../ui/LocalImage';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 import { chatCompletion, buildMessagesFromPrompt, multiModelCompare, AITestResult, StreamCallbacks } from '../../services/ai';
@@ -832,10 +833,11 @@ export function MainContent() {
                   <div className="flex flex-wrap gap-3">
                     {selectedPrompt.images.map((img, index) => (
                       <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
-                        <img
-                          src={`local-image://${img}`}
+                        <LocalImage
+                          src={img}
                           alt={`image-${index}`}
                           className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                          fallbackClassName="w-[160px] h-[120px]"
                           onClick={() => setPreviewImage(img)}
                         />
                       </div>

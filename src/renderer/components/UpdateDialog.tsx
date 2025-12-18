@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DownloadIcon, CheckCircleIcon, XIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
+import { DownloadIcon, CheckCircleIcon, XIcon, Loader2Icon, RefreshCwIcon, FolderOpenIcon, ExternalLinkIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -35,6 +35,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const { t } = useTranslation();
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(initialStatus || null);
   const [currentVersion, setCurrentVersion] = useState<string>('');
+  const [platform, setPlatform] = useState<string>('');
 
   useEffect(() => {
     if (initialStatus) {
@@ -43,8 +44,9 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   }, [initialStatus]);
 
   useEffect(() => {
-    // 获取当前版本
+    // 获取当前版本和平台
     window.electron?.updater?.getVersion().then(setCurrentVersion);
+    window.electron?.updater?.getPlatform?.().then(setPlatform);
 
     // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
@@ -216,6 +218,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         );
 
       case 'downloaded':
+        const isMac = platform === 'darwin';
         return (
           <div className="py-4">
             <div className="flex items-center gap-3 mb-4">
@@ -225,16 +228,30 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
               <div>
                 <h3 className="font-semibold text-lg">{t('settings.downloadComplete')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('settings.downloadCompleteDesc')}
+                  {isMac ? '' : t('settings.downloadCompleteDesc')}
                 </p>
               </div>
             </div>
+            {isMac && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
+                  {t('settings.macManualInstall')}
+                </p>
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleInstall}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
               >
-                {t('settings.installNow')}
+                {isMac ? (
+                  <>
+                    <FolderOpenIcon className="w-4 h-4" />
+                    {t('settings.openDownloadFolder')}
+                  </>
+                ) : (
+                  t('settings.installNow')
+                )}
               </button>
               <button
                 onClick={onClose}
@@ -253,12 +270,22 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
               <XIcon className="w-6 h-6 text-red-500" />
             </div>
             <h3 className="font-semibold text-lg mb-1 text-red-500">{t('common.error')}</h3>
-            <p className="text-sm text-muted-foreground break-all whitespace-pre-wrap max-h-40 overflow-y-auto">
+            <p className="text-sm text-muted-foreground break-all whitespace-pre-wrap max-h-32 overflow-y-auto mb-4">
               {updateStatus.error}
             </p>
+            <div className="p-3 rounded-lg bg-muted/50 mb-4">
+              <p className="text-sm text-muted-foreground mb-2">{t('settings.manualDownloadHint')}</p>
+              <button
+                onClick={() => window.electron?.updater?.openReleases()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                <ExternalLinkIcon className="w-4 h-4" />
+                {t('settings.manualDownload')}
+              </button>
+            </div>
             <button
               onClick={handleCheckUpdate}
-              className="mt-4 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+              className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
             >
               {t('settings.checkUpdate')}
             </button>

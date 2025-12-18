@@ -11,3 +11,4 @@ export { ImagePreviewModal } from './ImagePreviewModal';
 export { CloseDialog } from './CloseDialog';
 export { getCategoryIcon } from './ModelIcons';
 export { Checkbox } from './Checkbox';
+export { LocalImage } from './LocalImage';

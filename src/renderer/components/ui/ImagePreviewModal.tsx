@@ -1,5 +1,5 @@
-import { XIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { XIcon, ImageIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ImagePreviewModalProps {
@@ -9,6 +9,13 @@ interface ImagePreviewModalProps {
 }
 
 export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewModalProps) {
+    const [imageError, setImageError] = useState(false);
+
+    useEffect(() => {
+        // 重置错误状态当图片源改变时
+        setImageError(false);
+    }, [imageSrc]);
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -40,11 +47,19 @@ export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewMod
                 className="relative max-w-[90vw] max-h-[90vh] outline-none"
                 onClick={(e) => e.stopPropagation()}
             >
-                <img
-                    src={`local-image://${imageSrc}`}
-                    alt="Preview"
-                    className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                />
+                {imageError ? (
+                    <div className="flex flex-col items-center justify-center p-12 bg-muted/20 rounded-lg text-muted-foreground">
+                        <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
+                        <p className="text-sm">图片加载失败</p>
+                    </div>
+                ) : (
+                    <img
+                        src={`local-image://${imageSrc}`}
+                        alt="Preview"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onError={() => setImageError(true)}
+                    />
+                )}
             </div>
 
             {/* Click outside to close */}
