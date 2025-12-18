@@ -15,6 +15,7 @@ export interface Prompt {
   folderId?: string;
   images?: string[];
   isFavorite: boolean;
+  isPinned: boolean;        // 置顶
   version: number;
   currentVersion: number;
   usageCount: number;
@@ -72,6 +73,7 @@ export interface UpdatePromptDTO {
   folderId?: string;
   images?: string[];
   isFavorite?: boolean;
+  isPinned?: boolean;
   usageCount?: number;
   lastAiResponse?: string;
 }

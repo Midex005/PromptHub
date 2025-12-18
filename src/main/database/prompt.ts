@@ -111,6 +111,10 @@ export class PromptDB {
       updates.push('is_favorite = ?');
       values.push(data.isFavorite ? 1 : 0);
     }
+    if (data.isPinned !== undefined) {
+      updates.push('is_pinned = ?');
+      values.push(data.isPinned ? 1 : 0);
+    }
 
     values.push(id);
 
@@ -289,6 +293,7 @@ export class PromptDB {
       folderId: row.folder_id,
       images: JSON.parse(row.images || '[]'),
       isFavorite: row.is_favorite === 1,
+      isPinned: row.is_pinned === 1,
       version: row.current_version,
       currentVersion: row.current_version,
       usageCount: row.usage_count,

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS prompts (
   folder_id TEXT,
   images TEXT,
   is_favorite INTEGER DEFAULT 0,
+  is_pinned INTEGER DEFAULT 0,
   current_version INTEGER DEFAULT 1,
   usage_count INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL,

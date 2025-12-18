@@ -57,6 +57,18 @@ export function initDatabase(): Database.Database {
     console.error('Migration (folders) failed:', error);
   }
 
+  // 迁移：检查 prompts 表是否有 is_pinned 字段
+  try {
+    const tableInfo = db.pragma('table_info(prompts)') as any[];
+    const hasIsPinned = tableInfo.some(col => col.name === 'is_pinned');
+    if (!hasIsPinned) {
+      console.log('Migrating: Adding is_pinned column to prompts table');
+      db.prepare('ALTER TABLE prompts ADD COLUMN is_pinned INTEGER DEFAULT 0').run();
+    }
+  } catch (error) {
+    console.error('Migration (is_pinned) failed:', error);
+  }
+
   console.log(`Database initialized at: ${dbPath}`);
   return db;
 }

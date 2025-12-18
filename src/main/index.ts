@@ -36,6 +36,26 @@ protocol.registerSchemesAsPrivileged([
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// 单实例锁定（防止多开）
+// Single instance lock (prevent multiple instances)
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // 如果获取不到锁，说明已有实例在运行，直接退出
+  app.quit();
+} else {
+  // 当第二个实例启动时，聚焦到已有窗口
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 async function createWindow() {
   const isMac = process.platform === 'darwin';
   const isWin = process.platform === 'win32';

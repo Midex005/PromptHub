@@ -8,6 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.9] - 2025-12-18
+
+### 新功能 / Added
+- 📌 **Prompt 置顶功能**：支持将重要 Prompt 置顶显示，置顶项始终排在列表最前面
+  - **Prompt Pinning**: Pin important prompts to the top of the list for quick access
+- ✨ **切换动画**：Prompt 列表和详情区域添加平滑过渡动画，提升视觉体验
+  - **Transition Animations**: Added smooth animations when switching prompts and views
+
+### 优化 / Changed
+- 🔒 **Windows 单实例模式**：防止多开应用窗口，从托盘恢复时聚焦已有窗口
+  - **Windows Single Instance**: Prevents multiple app windows; focuses existing window when restoring from tray
+- 🎨 **设置页面按钮间距**：优化设置菜单按钮间距，视觉更舒适
+  - **Settings Button Spacing**: Improved spacing between settings menu buttons
+- 🖼️ **关于页面图标**：移除图标阴影，更简洁
+  - **About Page Icon**: Removed shadow for cleaner appearance
+- 📝 **排序文案简化**：将"最新优先"简化为"最新"，更自然
+  - **Sort Labels**: Simplified "Newest First" to "Newest" for cleaner UI
+
+---
+
+## [0.2.8] - 2025-12-18
+
+### 新功能 / Added
+- 🔔 **顶栏更新提醒入口**：在搜索框右侧以轻量提示展示可用更新，点击后才打开更新对话框
+  - **Top-bar Update Indicator**: Shows a subtle "update available" pill next to the search bar and opens the dialog on demand
+
+### 优化 / Changed
+- 🍎 **macOS 升级逻辑调整**：下载完成后自动打开下载目录，引导用户手动安装并提供操作步骤
+  - **macOS Update Flow**: Opens the Downloads folder after downloading so users can manually install unsigned builds
+- 🌐 **更新对话框补充手动下载入口**：自动更新失败时直接给出 GitHub Releases 按钮，方便用户自行下载
+  - **Manual Download Button**: Update dialog now links to GitHub Releases whenever auto-update fails
+
+### 修复 / Fixed
+- 🖼️ **本地图片占位与错误处理**：新增 `LocalImage` 组件并应用于详情/主内容，避免因文件缺失导致 ERR_FILE_NOT_FOUND
+  - **Local Image Fallback**: Added `LocalImage` component with graceful degradation to prevent ERR_FILE_NOT_FOUND when images are missing
+
+---
+
 ## [0.2.7] - 2025-12-16
 
 ### 新功能 / Added

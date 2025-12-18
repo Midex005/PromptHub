@@ -33,6 +33,7 @@ interface PromptState {
   toggleFilterTag: (tag: string) => void;
   clearFilterTags: () => void;
   toggleFavorite: (id: string) => Promise<void>;
+  togglePinned: (id: string) => Promise<void>;
   // 排序和视图
   setSortBy: (sortBy: SortBy) => void;
   setSortOrder: (sortOrder: SortOrder) => void;
@@ -77,6 +78,7 @@ export const usePromptStore = create<PromptState>()(
           variables: data.variables || [],
           tags: data.tags || [],
           isFavorite: false,
+          isPinned: false,
           usageCount: 0,
           currentVersion: 1,
         });
@@ -132,6 +134,16 @@ export const usePromptStore = create<PromptState>()(
         const prompt = get().prompts.find((p) => p.id === id);
         if (prompt) {
           const updated = await db.updatePrompt(id, { isFavorite: !prompt.isFavorite });
+          set((state) => ({
+            prompts: state.prompts.map((p) => (p.id === id ? updated : p)),
+          }));
+        }
+      },
+
+      togglePinned: async (id) => {
+        const prompt = get().prompts.find((p) => p.id === id);
+        if (prompt) {
+          const updated = await db.updatePrompt(id, { isPinned: !prompt.isPinned });
           set((state) => ({
             prompts: state.prompts.map((p) => (p.id === id ? updated : p)),
           }));

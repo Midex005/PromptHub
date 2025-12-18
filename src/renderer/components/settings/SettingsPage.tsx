@@ -2561,7 +2561,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           <div className="space-y-6">
             {/* 应用信息卡片 */}
             <div className="text-center py-6">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl overflow-hidden shadow-lg">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-2xl overflow-hidden">
                 <img src={appIconUrl} alt="PromptHub" className="w-full h-full object-cover" />
               </div>
               <h2 className="text-lg font-semibold">PromptHub</h2>
@@ -2673,7 +2673,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         </div>
 
         {/* 菜单列表 */}
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {SETTINGS_MENU.map((item) => (
             <button
               key={item.id}

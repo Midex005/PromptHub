@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon } from 'lucide-react';
+import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon, PinIcon } from 'lucide-react';
 import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptListView, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView } from '../prompt';
 import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
@@ -36,7 +36,7 @@ function PromptCard({
       onContextMenu={onContextMenu}
       className={`
         w-full text-left px-3 py-2.5 rounded-lg cursor-pointer
-        transition-colors duration-150
+        transition-all duration-200 animate-in fade-in slide-in-from-left-2
         ${isSelected
           ? 'bg-primary text-white'
           : 'bg-card hover:bg-accent'
@@ -44,7 +44,12 @@ function PromptCard({
       `}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-medium truncate text-sm">{prompt.title}</h3>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {prompt.isPinned && (
+            <PinIcon className={`w-3 h-3 flex-shrink-0 ${isSelected ? 'text-white' : 'text-primary'}`} />
+          )}
+          <h3 className="font-medium truncate text-sm">{prompt.title}</h3>
+        </div>
         {prompt.isFavorite && (
           <StarIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'fill-white text-white' : 'fill-yellow-400 text-yellow-400'
             }`} />
@@ -66,6 +71,7 @@ export function MainContent() {
   const selectedId = usePromptStore((state) => state.selectedId);
   const selectPrompt = usePromptStore((state) => state.selectPrompt);
   const toggleFavorite = usePromptStore((state) => state.toggleFavorite);
+  const togglePinned = usePromptStore((state) => state.togglePinned);
   const deletePrompt = usePromptStore((state) => state.deletePrompt);
   const updatePrompt = usePromptStore((state) => state.updatePrompt);
   const searchQuery = usePromptStore((state) => state.searchQuery);
@@ -464,10 +470,14 @@ export function MainContent() {
     return result;
   }, [prompts, selectedFolderId, searchQuery, filterTags, folders]);
 
-  // 排序
+  // 排序（置顶的始终在最前面）
   const sortedPrompts = useMemo(() => {
     const sorted = [...filteredPrompts];
     sorted.sort((a, b) => {
+      // 置顶的排在前面
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
       let comparison = 0;
       switch (sortBy) {
         case 'updatedAt':
@@ -605,6 +615,11 @@ export function MainContent() {
       label: contextMenu.prompt.isFavorite ? (t('prompt.removeFromFavorites') || '取消收藏') : (t('prompt.addToFavorites') || '收藏'),
       icon: <StarIcon className={`w-4 h-4 ${contextMenu.prompt.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />,
       onClick: () => toggleFavorite(contextMenu.prompt.id),
+    },
+    {
+      label: contextMenu.prompt.isPinned ? t('prompt.unpin') : t('prompt.pin'),
+      icon: <PinIcon className={`w-4 h-4 ${contextMenu.prompt.isPinned ? 'fill-primary text-primary' : ''}`} />,
+      onClick: () => togglePinned(contextMenu.prompt.id),
     },
     {
       label: t('prompt.aiTest'),
@@ -764,7 +779,7 @@ export function MainContent() {
         {/* Prompt 详情 - iOS 风格 */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {selectedPrompt ? (
-            <>
+            <div key={selectedPrompt.id} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-3 duration-200">
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-5xl mx-auto px-6 py-4">
               {/* 标题区域 */}
@@ -1138,7 +1153,7 @@ export function MainContent() {
                 </button>
               </div>
             </div>
-            </>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <div className="w-16 h-16 rounded-2xl bg-accent/50 flex items-center justify-center mb-4">
