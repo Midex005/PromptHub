@@ -18,11 +18,11 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import { defaultSchema } from 'hast-util-sanitize';
 
- function escapeRegExp(str: string) {
-   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
- }
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
- function getHighlightTerms(searchQuery: string): string[] {
+function getHighlightTerms(searchQuery: string): string[] {
   const queryLower = (searchQuery || '').trim().toLowerCase().slice(0, 128);
   if (!queryLower) return [];
 
@@ -38,33 +38,33 @@ import { defaultSchema } from 'hast-util-sanitize';
     .filter(Boolean)
     .slice(0, 20)
     .sort((a, b) => b.length - a.length);
- }
+}
 
- function renderHighlightedText(text: string, terms: string[], highlightClassName: string) {
+function renderHighlightedText(text: string, terms: string[], highlightClassName: string) {
   if (!text || terms.length === 0) return text;
 
-   const pattern = terms.map(escapeRegExp).join('|');
-   if (!pattern) return text;
+  const pattern = terms.map(escapeRegExp).join('|');
+  if (!pattern) return text;
 
-   const regex = new RegExp(`(${pattern})`, 'gi');
-   const parts = text.split(regex);
+  const regex = new RegExp(`(${pattern})`, 'gi');
+  const parts = text.split(regex);
 
-   if (parts.length <= 1) return text;
+  if (parts.length <= 1) return text;
 
-   return parts.map((part, idx) => {
-     if (!part) return null;
-     if (idx % 2 === 1) {
-       return (
-         <span key={idx} className={highlightClassName}>
-           {part}
-         </span>
-       );
-     }
-     return <span key={idx}>{part}</span>;
-   });
- }
+  return parts.map((part, idx) => {
+    if (!part) return null;
+    if (idx % 2 === 1) {
+      return (
+        <span key={idx} className={highlightClassName}>
+          {part}
+        </span>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
 
- function renderHighlightedChildren(children: any, terms: string[], highlightClassName: string, skipTypes: any[]) {
+function renderHighlightedChildren(children: any, terms: string[], highlightClassName: string, skipTypes: any[]) {
   return Children.map(children, (child) => {
     if (typeof child === 'string') {
       return renderHighlightedText(child, terms, highlightClassName);
@@ -448,12 +448,14 @@ export function MainContent() {
         if (useThinking) setAiThinking('');
       }
 
-      const result = await chatCompletion(singleChatConfig as any, messages, useStream ? {
-        streamCallbacks: {
+      const result = await chatCompletion(singleChatConfig as any, messages, {
+        stream: useStream,
+        enableThinking: useThinking,
+        streamCallbacks: useStream ? {
           onContent: (chunk) => setAiResponse((prev) => (prev ?? '') + chunk),
           onThinking: (chunk) => setAiThinking((prev) => (prev ?? '') + chunk),
-        },
-      } : undefined);
+        } : undefined,
+      });
       setAiResponse(result.content);
       setAiThinking(result.thinkingContent || null);
     } catch (error) {
@@ -483,7 +485,7 @@ export function MainContent() {
 
     setIsComparingModels(true);
     setCompareError(null);
-    
+
     try {
       // Streaming support: render placeholder results early so users can see streaming progress
       // 支持流式：提前渲染占位结果，让用户能看到"正在流式输出"的差异
@@ -582,7 +584,7 @@ export function MainContent() {
         const titleLower = p.title.toLowerCase();
         const descLower = (p.description || '').toLowerCase();
         const userPromptLower = p.userPrompt.toLowerCase();
-        
+
         // Exact title match
         if (titleLower === queryLower) score += 100;
         // Title includes query
@@ -592,7 +594,7 @@ export function MainContent() {
 
         // Description includes query
         if (descLower.includes(queryLower)) score += 20;
-        
+
         // All keywords match anywhere
         const searchableText = [
           p.title,
@@ -602,7 +604,7 @@ export function MainContent() {
           p.systemPrompt || '',
           p.systemPromptEn || '',
         ].join(' ').toLowerCase();
-        
+
         if (keywords.every(k => searchableText.includes(k))) {
           score += 10;
         }
@@ -610,9 +612,9 @@ export function MainContent() {
         // Final score check
         return { prompt: p, score };
       })
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.prompt);
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.prompt);
     }
 
     // Tag filtering (multi-select: must contain all selected tags)
@@ -635,7 +637,7 @@ export function MainContent() {
       // 置顶的排在前面
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      
+
       let comparison = 0;
       switch (sortBy) {
         case 'updatedAt':
@@ -859,12 +861,11 @@ export function MainContent() {
     <main className="flex-1 relative overflow-hidden bg-background">
       {/* List view mode */}
       {/* 列表视图模式 */}
-      <div 
-        className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${
-          viewMode === 'list' 
-            ? 'opacity-100 z-10 pointer-events-auto' 
+      <div
+        className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${viewMode === 'list'
+            ? 'opacity-100 z-10 pointer-events-auto'
             : 'opacity-0 z-0 pointer-events-none'
-        }`}
+          }`}
       >
         {/* Top: sort + view switch */}
         {/* 顶部：排序 + 视图切换 */}
@@ -895,12 +896,11 @@ export function MainContent() {
 
       {/* Gallery view */}
       {/* Gallery 视图 */}
-      <div 
-        className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${
-          viewMode === 'gallery' 
-            ? 'opacity-100 z-10 pointer-events-auto' 
+      <div
+        className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${viewMode === 'gallery'
+            ? 'opacity-100 z-10 pointer-events-auto'
             : 'opacity-0 z-0 pointer-events-none'
-        }`}
+          }`}
       >
         <PromptListHeader count={sortedPrompts.length} />
         <PromptGalleryView
@@ -920,12 +920,11 @@ export function MainContent() {
 
       {/* Card view mode: two-column layout */}
       {/* 卡片视图模式：左右分栏 */}
-      <div 
-        className={`absolute inset-0 flex overflow-hidden bg-background transition-opacity duration-200 ease-in-out ${
-          viewMode === 'card' 
-            ? 'opacity-100 z-10 pointer-events-auto' 
+      <div
+        className={`absolute inset-0 flex overflow-hidden bg-background transition-opacity duration-200 ease-in-out ${viewMode === 'card'
+            ? 'opacity-100 z-10 pointer-events-auto'
             : 'opacity-0 z-0 pointer-events-none'
-        }`}
+          }`}
       >
         {/* Prompt list */}
         {/* Prompt 列表 */}
@@ -967,396 +966,396 @@ export function MainContent() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {selectedPrompt ? (
             <div key={selectedPrompt.id} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-3 duration-200">
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-5xl mx-auto px-6 py-4">
-              {/* Title section */}
-              {/* 标题区域 */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
-                  {selectedPrompt.description && (
-                    <p className="text-sm text-muted-foreground">{selectedPrompt.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => toggleFavorite(selectedPrompt.id)}
-                    className={`
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-5xl mx-auto px-6 py-4">
+                  {/* Title section */}
+                  {/* 标题区域 */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
+                      {selectedPrompt.description && (
+                        <p className="text-sm text-muted-foreground">{selectedPrompt.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleFavorite(selectedPrompt.id)}
+                        className={`
                       p-2.5 rounded-xl transition-all duration-200
                       ${selectedPrompt.isFavorite
-                        ? 'text-yellow-500 bg-yellow-500/10'
-                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                      }
+                            ? 'text-yellow-500 bg-yellow-500/10'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                          }
                       active:scale-95
                     `}
-                  >
-                    <StarIcon className={`w-5 h-5 ${selectedPrompt.isFavorite ? 'fill-current' : ''}`} />
-                  </button>
-                  <button
-                    onClick={() => setEditingPrompt(selectedPrompt)}
-                    className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
-                  >
-                    <EditIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Metadata */}
-              {/* 元信息 */}
-              <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
-                <span className="flex items-center gap-1">
-                  <ClockIcon className="w-3.5 h-3.5" />
-                  {new Date(selectedPrompt.updatedAt).toLocaleString()}
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
-                  v{selectedPrompt.version}
-                </span>
-              </div>
-
-              {/* Images */}
-              {/* 图片 */}
-              {selectedPrompt.images && selectedPrompt.images.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex flex-wrap gap-3">
-                    {selectedPrompt.images.map((img, index) => (
-                      <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
-                        <LocalImage
-                          src={img}
-                          alt={`image-${index}`}
-                          className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-                          fallbackClassName="w-[160px] h-[120px]"
-                          onClick={() => setPreviewImage(img)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tags */}
-              {/* 标签 */}
-              {selectedPrompt.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {selectedPrompt.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-accent text-accent-foreground"
-                    >
-                      <HashIcon className="w-3 h-3" />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Language toggle button */}
-              {/* 语言切换按钮 */}
-              {(selectedPrompt.systemPromptEn || selectedPrompt.userPromptEn) && (
-                <div className="flex justify-end mb-4">
-                  <button
-                    onClick={() => setShowEnglish(!showEnglish)}
-                    className={
-                      `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ` +
-                      (showEnglish
-                        ? 'bg-primary text-white'
-                        : 'bg-accent text-muted-foreground hover:text-foreground')
-                    }
-                    title={showEnglish ? t('prompt.showLocalized', '显示当前语言') : t('prompt.showEnglish')}
-                    type="button"
-                  >
-                    <GlobeIcon className="w-3.5 h-3.5" />
-                    {showEnglish ? 'EN' : uiLangTag}
-                  </button>
-                </div>
-              )}
-
-              {/* System Prompt */}
-              {(showEnglish ? selectedPrompt.systemPromptEn : selectedPrompt.systemPrompt) && (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      System Prompt
-                      {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
-                    </span>
-                  </div>
-                  {renderPromptContent(showEnglish ? (selectedPrompt.systemPromptEn || '') : (selectedPrompt.systemPrompt || ''))}
-                </div>
-              )}
-
-              {/* User Prompt */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    User Prompt
-                    {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={toggleRenderMarkdown}
-                    className="text-[12px] px-3 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  >
-                    {renderMarkdownEnabled ? t('prompt.showPlain', '显示原文') : t('prompt.showMarkdown', 'Markdown')}
-                  </button>
-                </div>
-                {renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)}
-              </div>
-
-              {/* Multi-model comparison */}
-              {/* 多模型对比区域 */}
-              {aiModels.length > 0 && (
-                <div className="mb-4 p-4 rounded-xl bg-card border border-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <GitCompareIcon className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">{t('settings.multiModelCompare')}</span>
-                      <span className="text-xs text-muted-foreground">{t('prompt.selectModelsHint')}</span>
+                      >
+                        <StarIcon className={`w-5 h-5 ${selectedPrompt.isFavorite ? 'fill-current' : ''}`} />
+                      </button>
+                      <button
+                        onClick={() => setEditingPrompt(selectedPrompt)}
+                        className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
+                      >
+                        <EditIcon className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Model selection list */}
-                  {/* 模型选择列表 */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {aiModels.map((model) => {
-                      const isSelected = selectedModelIds.includes(model.id);
-                      // Get provider display name
-                      // 获取供应商简称
-                      const providerName = model.name || model.provider;
-                      const displayName = `${providerName} | ${model.model}`;
-                      return (
-                        <button
-                          key={model.id}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedModelIds(selectedModelIds.filter((id) => id !== model.id));
-                            } else {
-                              setSelectedModelIds([...selectedModelIds, model.id]);
-                            }
-                          }}
-                          className={`
-                            px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                            ${isSelected
-                              ? 'bg-primary text-white'
-                              : 'bg-muted hover:bg-accent text-foreground'
-                            }
-                          `}
-                          title={displayName}
-                        >
-                          {model.model}
-                          {model.isDefault && (
-                            <span className="ml-1 opacity-60">★</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                  {/* Metadata */}
+                  {/* 元信息 */}
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
+                    <span className="flex items-center gap-1">
+                      <ClockIcon className="w-3.5 h-3.5" />
+                      {new Date(selectedPrompt.updatedAt).toLocaleString()}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-accent text-accent-foreground text-xs font-medium">
+                      v{selectedPrompt.version}
+                    </span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3">
-                    {selectedModelIds.length > 0 && (
-                      <button
-                        onClick={() => setSelectedModelIds([])}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        {t('prompt.clearSelection')}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (selectedModelIds.length < 2) {
-                          showToast(t('prompt.selectAtLeast2'), 'error');
-                          return;
-                        }
-                        if (!selectedPrompt) return;
-
-                        // Check variables (create a new regex per string to avoid global flag state)
-                        // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
-                        const hasVariables = 
-                          /\{\{([^}]+)\}\}/.test(selectedPrompt.userPrompt) ||
-                          (selectedPrompt.systemPrompt && /\{\{([^}]+)\}\}/.test(selectedPrompt.systemPrompt));
-
-                        if (hasVariables) {
-                          setIsCompareVariableModalOpen(true);
-                        } else {
-                          runModelCompare(selectedPrompt.systemPrompt, selectedPrompt.userPrompt);
-                        }
-                      }}
-                      disabled={isComparingModels || selectedModelIds.length < 2}
-                      className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                    >
-                      {isComparingModels ? (
-                        <LoaderIcon className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <GitCompareIcon className="w-3 h-3" />
-                      )}
-                      <span>{isComparingModels ? t('prompt.comparing') : t('prompt.compareModels', { count: selectedModelIds.length })}</span>
-                    </button>
-                  </div>
-
-                  {compareError && (
-                    <p className="mt-3 text-xs text-red-500">{compareError}</p>
+                  {/* Images */}
+                  {/* 图片 */}
+                  {selectedPrompt.images && selectedPrompt.images.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-3">
+                        {selectedPrompt.images.map((img, index) => (
+                          <div key={index} className="rounded-lg overflow-hidden border border-border shadow-sm">
+                            <LocalImage
+                              src={img}
+                              alt={`image-${index}`}
+                              className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              fallbackClassName="w-[160px] h-[120px]"
+                              onClick={() => setPreviewImage(img)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
-                  {compareResults && compareResults.length > 0 && (
-                    <div className="mt-4 grid md:grid-cols-2 gap-3">
-                      {compareResults.map((res) => (
-                        <div
-                          key={`${res.provider}-${res.model}`}
-                          className={`p-3 rounded-lg border text-xs space-y-2 ${res.success ? 'border-emerald-400/50 bg-emerald-500/5' : 'border-red-400/50 bg-red-500/5'
-                            }`}
+                  {/* Tags */}
+                  {/* 标签 */}
+                  {selectedPrompt.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {selectedPrompt.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-accent text-accent-foreground"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium truncate">
-                              {res.model}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {res.latency}ms
-                            </div>
-                          </div>
-                          {res.success && res.thinkingContent && (
-                            <div className="bg-muted/20 border border-border/60 rounded-md p-2 max-h-24 overflow-y-auto">
-                              <div className="text-[10px] font-medium text-muted-foreground mb-1">
-                                {t('settings.thinkingContent', '思考过程')}
-                              </div>
-                              <div className="text-[10px] leading-relaxed whitespace-pre-wrap">
-                                {res.thinkingContent}
-                              </div>
-                            </div>
-                          )}
-                          <div className="text-[11px] leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
-                            {res.success ? (res.response || '(空)') : (res.error || '未知错误')}
-                          </div>
-                        </div>
+                          <HashIcon className="w-3 h-3" />
+                          {tag}
+                        </span>
                       ))}
                     </div>
                   )}
-                </div>
-              )}
-              
-              {/* AI response panel */}
-              {/* AI 测试响应区域 */}
-              {(isTestingAI || aiResponse) && (
-                <div className="mb-4 p-4 rounded-xl bg-card border border-border">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <SparklesIcon className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">{t('prompt.aiResponse', 'AI 响应')}</span>
-                      <span className="text-xs text-muted-foreground">({aiModel})</span>
-                    </div>
-                    {aiResponse && (
+
+                  {/* Language toggle button */}
+                  {/* 语言切换按钮 */}
+                  {(selectedPrompt.systemPromptEn || selectedPrompt.userPromptEn) && (
+                    <div className="flex justify-end mb-4">
                       <button
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(aiResponse);
-                          showToast(t('toast.copied'), 'success');
-                        }}
-                        className="p-1.5 rounded hover:bg-muted transition-colors"
-                        title={t('prompt.copy')}
+                        onClick={() => setShowEnglish(!showEnglish)}
+                        className={
+                          `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ` +
+                          (showEnglish
+                            ? 'bg-primary text-white'
+                            : 'bg-accent text-muted-foreground hover:text-foreground')
+                        }
+                        title={showEnglish ? t('prompt.showLocalized', '显示当前语言') : t('prompt.showEnglish')}
+                        type="button"
                       >
-                        <CopyIcon className="w-4 h-4 text-muted-foreground" />
+                        <GlobeIcon className="w-3.5 h-3.5" />
+                        {showEnglish ? 'EN' : uiLangTag}
                       </button>
-                    )}
-                  </div>
-                  {isTestingAI ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <LoaderIcon className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">{t('prompt.testing', '测试中...')}</span>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {aiThinking !== null && (
-                        <div className="bg-muted/30 border border-border rounded-lg p-3 max-h-40 overflow-y-auto">
-                          <div className="text-xs font-medium text-muted-foreground mb-1">
-                            {t('settings.thinkingContent', '思考过程')}
-                          </div>
-                          <div className="text-xs leading-relaxed whitespace-pre-wrap">
-                            {aiThinking || t('common.loading', '处理中...')}
+                  )}
+
+                  {/* System Prompt */}
+                  {(showEnglish ? selectedPrompt.systemPromptEn : selectedPrompt.systemPrompt) && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                          System Prompt
+                          {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
+                        </span>
+                      </div>
+                      {renderPromptContent(showEnglish ? (selectedPrompt.systemPromptEn || '') : (selectedPrompt.systemPrompt || ''))}
+                    </div>
+                  )}
+
+                  {/* User Prompt */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        User Prompt
+                        {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={toggleRenderMarkdown}
+                        className="text-[12px] px-3 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        {renderMarkdownEnabled ? t('prompt.showPlain', '显示原文') : t('prompt.showMarkdown', 'Markdown')}
+                      </button>
+                    </div>
+                    {renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)}
+                  </div>
+
+                  {/* Multi-model comparison */}
+                  {/* 多模型对比区域 */}
+                  {aiModels.length > 0 && (
+                    <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <GitCompareIcon className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">{t('settings.multiModelCompare')}</span>
+                          <span className="text-xs text-muted-foreground">{t('prompt.selectModelsHint')}</span>
+                        </div>
+                      </div>
+
+                      {/* Model selection list */}
+                      {/* 模型选择列表 */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {aiModels.map((model) => {
+                          const isSelected = selectedModelIds.includes(model.id);
+                          // Get provider display name
+                          // 获取供应商简称
+                          const providerName = model.name || model.provider;
+                          const displayName = `${providerName} | ${model.model}`;
+                          return (
+                            <button
+                              key={model.id}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedModelIds(selectedModelIds.filter((id) => id !== model.id));
+                                } else {
+                                  setSelectedModelIds([...selectedModelIds, model.id]);
+                                }
+                              }}
+                              className={`
+                            px-3 py-1.5 rounded-lg text-xs font-medium transition-all
+                            ${isSelected
+                                  ? 'bg-primary text-white'
+                                  : 'bg-muted hover:bg-accent text-foreground'
+                                }
+                          `}
+                              title={displayName}
+                            >
+                              {model.model}
+                              {model.isDefault && (
+                                <span className="ml-1 opacity-60">★</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3">
+                        {selectedModelIds.length > 0 && (
+                          <button
+                            onClick={() => setSelectedModelIds([])}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            {t('prompt.clearSelection')}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (selectedModelIds.length < 2) {
+                              showToast(t('prompt.selectAtLeast2'), 'error');
+                              return;
+                            }
+                            if (!selectedPrompt) return;
+
+                            // Check variables (create a new regex per string to avoid global flag state)
+                            // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
+                            const hasVariables =
+                              /\{\{([^}]+)\}\}/.test(selectedPrompt.userPrompt) ||
+                              (selectedPrompt.systemPrompt && /\{\{([^}]+)\}\}/.test(selectedPrompt.systemPrompt));
+
+                            if (hasVariables) {
+                              setIsCompareVariableModalOpen(true);
+                            } else {
+                              runModelCompare(selectedPrompt.systemPrompt, selectedPrompt.userPrompt);
+                            }
+                          }}
+                          disabled={isComparingModels || selectedModelIds.length < 2}
+                          className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                        >
+                          {isComparingModels ? (
+                            <LoaderIcon className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <GitCompareIcon className="w-3 h-3" />
+                          )}
+                          <span>{isComparingModels ? t('prompt.comparing') : t('prompt.compareModels', { count: selectedModelIds.length })}</span>
+                        </button>
+                      </div>
+
+                      {compareError && (
+                        <p className="mt-3 text-xs text-red-500">{compareError}</p>
+                      )}
+
+                      {compareResults && compareResults.length > 0 && (
+                        <div className="mt-4 grid md:grid-cols-2 gap-3">
+                          {compareResults.map((res) => (
+                            <div
+                              key={`${res.provider}-${res.model}`}
+                              className={`p-3 rounded-lg border text-xs space-y-2 ${res.success ? 'border-emerald-400/50 bg-emerald-500/5' : 'border-red-400/50 bg-red-500/5'
+                                }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium truncate">
+                                  {res.model}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  {res.latency}ms
+                                </div>
+                              </div>
+                              {res.success && res.thinkingContent && (
+                                <div className="bg-muted/20 border border-border/60 rounded-md p-2 max-h-24 overflow-y-auto">
+                                  <div className="text-[10px] font-medium text-muted-foreground mb-1">
+                                    {t('settings.thinkingContent', '思考过程')}
+                                  </div>
+                                  <div className="text-[10px] leading-relaxed whitespace-pre-wrap">
+                                    {res.thinkingContent}
+                                  </div>
+                                </div>
+                              )}
+                              <div className="text-[11px] leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                {res.success ? (res.response || '(空)') : (res.error || '未知错误')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI response panel */}
+                  {/* AI 测试响应区域 */}
+                  {(isTestingAI || aiResponse) && (
+                    <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <SparklesIcon className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">{t('prompt.aiResponse', 'AI 响应')}</span>
+                          <span className="text-xs text-muted-foreground">({aiModel})</span>
+                        </div>
+                        {aiResponse && (
+                          <button
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(aiResponse);
+                              showToast(t('toast.copied'), 'success');
+                            }}
+                            className="p-1.5 rounded hover:bg-muted transition-colors"
+                            title={t('prompt.copy')}
+                          >
+                            <CopyIcon className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                      {isTestingAI ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <LoaderIcon className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">{t('prompt.testing', '测试中...')}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {aiThinking !== null && (
+                            <div className="bg-muted/30 border border-border rounded-lg p-3 max-h-40 overflow-y-auto">
+                              <div className="text-xs font-medium text-muted-foreground mb-1">
+                                {t('settings.thinkingContent', '思考过程')}
+                              </div>
+                              <div className="text-xs leading-relaxed whitespace-pre-wrap">
+                                {aiThinking || t('common.loading', '处理中...')}
+                              </div>
+                            </div>
+                          )}
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                            {aiResponse}
                           </div>
                         </div>
                       )}
-                      <div className="text-sm leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
-                        {aiResponse}
-                      </div>
                     </div>
                   )}
                 </div>
-              )}
               </div>
-            </div>
-            {/* Action buttons - sticky bottom */}
-            {/* 操作按钮 - 固定底部 */}
-            <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
-              <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={async () => {
-                    // Select content based on language mode
-                    // 根据语言模式选择内容
-                    const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
-                    const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
-                    
-                    // Check variables (create a new regex per string to avoid global flag state)
-                    // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
-                    const hasVariables = 
-                      /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
-                      (currentSystemPrompt && /\{\{([^}]+)\}\}/.test(currentSystemPrompt));
+              {/* Action buttons - sticky bottom */}
+              {/* 操作按钮 - 固定底部 */}
+              <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
+                <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={async () => {
+                      // Select content based on language mode
+                      // 根据语言模式选择内容
+                      const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
+                      const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
 
-                    if (hasVariables) {
-                      setIsVariableModalOpen(true);
-                    } else {
-                      await navigator.clipboard.writeText(currentUserPrompt);
-                      await incrementUsageCount(selectedPrompt.id);
-                      setCopied(true);
-                      showToast(t('toast.copied'), 'success', showCopyNotification);
-                      setTimeout(() => setCopied(false), 2000);
-                    }
-                  }}
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  {copied ? <CheckIcon className="w-4 h-4" /> : <CopyIcon className="w-4 h-4" />}
-                  <span>{copied ? t('prompt.copied') : t('prompt.copy')}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    if (!canRunSingleAiTest) {
-                      showToast(t('toast.configAI'), 'error');
-                      return;
-                    }
-                    // Select content based on language mode
-                    // 根据语言模式选择内容
-                    const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
-                    const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
-                    
-                    // Check variables (create a new regex per string to avoid global flag state)
-                    // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
-                    const hasVariables = 
-                      /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
-                      (currentSystemPrompt && /\{\{([^}]+)\}\}/.test(currentSystemPrompt));
+                      // Check variables (create a new regex per string to avoid global flag state)
+                      // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
+                      const hasVariables =
+                        /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
+                        (currentSystemPrompt && /\{\{([^}]+)\}\}/.test(currentSystemPrompt));
 
-                    if (hasVariables) {
-                      setIsAiTestVariableModalOpen(true);
-                    } else {
-                      runAiTest(currentSystemPrompt, currentUserPrompt);
-                    }
-                  }}
-                  disabled={isTestingAI}
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary/90 text-white text-sm font-medium hover:bg-primary disabled:opacity-50 transition-colors"
-                >
-                  {isTestingAI ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
-                  <span>{isTestingAI ? t('prompt.testing') : t('prompt.aiTest')}</span>
-                </button>
-                <button
-                  onClick={() => handleVersionHistory(selectedPrompt)}
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg bg-card border border-border text-sm font-medium hover:bg-accent transition-colors"
-                >
-                  <HistoryIcon className="w-4 h-4" />
-                  <span>{t('prompt.history')}</span>
-                </button>
-                <button
-                  onClick={() => handleDeletePrompt(selectedPrompt)}
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                  <span>{t('prompt.delete')}</span>
-                </button>
+                      if (hasVariables) {
+                        setIsVariableModalOpen(true);
+                      } else {
+                        await navigator.clipboard.writeText(currentUserPrompt);
+                        await incrementUsageCount(selectedPrompt.id);
+                        setCopied(true);
+                        showToast(t('toast.copied'), 'success', showCopyNotification);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    {copied ? <CheckIcon className="w-4 h-4" /> : <CopyIcon className="w-4 h-4" />}
+                    <span>{copied ? t('prompt.copied') : t('prompt.copy')}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!canRunSingleAiTest) {
+                        showToast(t('toast.configAI'), 'error');
+                        return;
+                      }
+                      // Select content based on language mode
+                      // 根据语言模式选择内容
+                      const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
+                      const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
+
+                      // Check variables (create a new regex per string to avoid global flag state)
+                      // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
+                      const hasVariables =
+                        /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
+                        (currentSystemPrompt && /\{\{([^}]+)\}\}/.test(currentSystemPrompt));
+
+                      if (hasVariables) {
+                        setIsAiTestVariableModalOpen(true);
+                      } else {
+                        runAiTest(currentSystemPrompt, currentUserPrompt);
+                      }
+                    }}
+                    disabled={isTestingAI}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary/90 text-white text-sm font-medium hover:bg-primary disabled:opacity-50 transition-colors"
+                  >
+                    {isTestingAI ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
+                    <span>{isTestingAI ? t('prompt.testing') : t('prompt.aiTest')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleVersionHistory(selectedPrompt)}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-card border border-border text-sm font-medium hover:bg-accent transition-colors"
+                  >
+                    <HistoryIcon className="w-4 h-4" />
+                    <span>{t('prompt.history')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeletePrompt(selectedPrompt)}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    <span>{t('prompt.delete')}</span>
+                  </button>
+                </div>
               </div>
-            </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -1371,7 +1370,7 @@ export function MainContent() {
 
       {/* Shared modals */}
       {/* 共享弹窗 */}
-      
+
       {/* Edit modal */}
       {/* 编辑弹窗 */}
       {editingPrompt && (

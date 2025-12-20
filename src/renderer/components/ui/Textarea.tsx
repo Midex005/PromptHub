@@ -60,11 +60,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           {showLineNumbers && (
             <div
               ref={lineNumbersRef}
-              className="flex-shrink-0 py-3 px-2 text-right text-xs text-muted-foreground select-none overflow-hidden font-mono leading-relaxed bg-muted/30"
-              style={{ minWidth: '3rem' }}
+              className="flex-shrink-0 py-3 px-2 text-right text-sm text-muted-foreground select-none overflow-hidden font-mono bg-muted/30"
+              style={{ minWidth: '3rem', lineHeight: '1.625' }}
             >
               {Array.from({ length: lineCount }, (_, i) => (
-                <div key={i + 1} className="h-[1.625rem]">
+                <div key={i + 1}>
                   {i + 1}
                 </div>
               ))}
@@ -81,9 +81,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
               'text-sm placeholder:text-muted-foreground',
               'focus:outline-none',
               'resize-none',
-              'font-mono leading-relaxed',
+              'font-mono',
               className
             )}
+            style={{ lineHeight: '1.625' }}
             {...props}
           />
         </div>

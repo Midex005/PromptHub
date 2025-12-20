@@ -148,24 +148,46 @@ export async function chatCompletion(
 ): Promise<ChatCompletionResult> {
   const { provider, apiKey, apiUrl, model, chatParams } = config;
   const providerId = provider?.toLowerCase() || '';
-  
+
   if (!apiKey) {
     throw new Error('请先配置 API Key');
   }
-  
+
   if (!apiUrl) {
     throw new Error('请先配置 API 地址');
   }
-  
+
   if (!model) {
     throw new Error('请先选择模型');
     // Please select a model first
   }
 
   // 构建请求 URL / Build request URL
-  let endpoint = apiUrl;
-  if (!endpoint.endsWith('/chat/completions')) {
-    endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+  // 使用与 getApiEndpointPreview 一致的补全逻辑
+  // Use the same completion logic as getApiEndpointPreview
+  let endpoint = apiUrl.trim();
+
+  // 如果以 # 结尾，移除 # 并不做任何自动补全
+  // If ends with #, remove # and don't auto-complete
+  if (endpoint.endsWith('#')) {
+    endpoint = endpoint.slice(0, -1);
+    if (!endpoint.endsWith('/chat/completions')) {
+      endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+    }
+  } else {
+    // 移除尾部斜杠
+    endpoint = endpoint.replace(/\/$/, '');
+
+    // 如果已经包含 /chat/completions，保持原样
+    if (endpoint.endsWith('/chat/completions')) {
+      // 保持原样
+    } else if (endpoint.match(/\/v\d+$/)) {
+      // 如果已经有版本路径如 /v1，直接追加 /chat/completions
+      endpoint = endpoint + '/chat/completions';
+    } else {
+      // 否则自动补全 /v1/chat/completions
+      endpoint = endpoint + '/v1/chat/completions';
+    }
   }
 
   // 构建请求头 / Build request headers
@@ -265,7 +287,7 @@ export async function chatCompletion(
 
     // 非流式响应 / Non-streaming response
     const data: ChatCompletionResponse = await response.json();
-    
+
     if (!data.choices || data.choices.length === 0) {
       throw new Error('AI 返回结果为空');
       // AI returned empty result
@@ -322,14 +344,14 @@ async function handleStreamResponse(
         try {
           const json = JSON.parse(trimmed.slice(6));
           const delta = json.choices?.[0]?.delta;
-          
+
           if (delta) {
             // 处理思考内容 / Handle thinking content
             if (delta.reasoning_content) {
               thinkingContent += delta.reasoning_content;
               streamCallbacks?.onThinking?.(delta.reasoning_content);
             }
-            
+
             // 处理正常内容 / Handle normal content
             if (delta.content) {
               fullContent += delta.content;
@@ -378,19 +400,22 @@ export async function testAIConnection(
 ): Promise<AITestResult> {
   const startTime = Date.now();
   const prompt = testPrompt || 'Hello! Please respond with a brief greeting.';
-  
+
   // 使用配置中的参数，但限制 maxTokens 用于测试
+  // Use config parameters, but limit maxTokens for testing
   const useStream = config.chatParams?.stream ?? false;
-  
+  const useThinking = config.chatParams?.enableThinking ?? false;
+
   try {
     const result = await chatCompletion(config, [
       { role: 'user', content: prompt }
-    ], { 
+    ], {
       maxTokens: 2048,
       stream: useStream,
+      enableThinking: useThinking,
       streamCallbacks,
     });
-    
+
     return {
       id: config.id,
       success: true,
@@ -446,11 +471,11 @@ export async function generateImage(
   }
 ): Promise<ImageGenerationResponse> {
   const { apiKey, apiUrl, model, provider } = config;
-  
+
   if (!apiKey) {
     throw new Error('请先配置 API Key');
   }
-  
+
   if (!apiUrl) {
     throw new Error('请先配置 API 地址');
   }
@@ -458,27 +483,27 @@ export async function generateImage(
   // 根据供应商选择不同的 API 调用方式
   // Choose different API calling methods based on provider
   const providerLower = (provider || '').toLowerCase();
-  
+
   // FLUX (Black Forest Labs)
   if (providerLower === 'flux' || apiUrl.includes('bfl.ai')) {
     return await generateImageFlux(apiKey, apiUrl, model, prompt, options);
   }
-  
+
   // Ideogram
   if (providerLower === 'ideogram' || apiUrl.includes('ideogram.ai')) {
     return await generateImageIdeogram(apiKey, apiUrl, model, prompt, options);
   }
-  
+
   // Recraft
   if (providerLower === 'recraft' || apiUrl.includes('recraft.ai')) {
     return await generateImageRecraft(apiKey, apiUrl, model, prompt, options);
   }
-  
+
   // Replicate
   if (providerLower === 'replicate' || apiUrl.includes('replicate.com')) {
     return await generateImageReplicate(apiKey, model, prompt, options);
   }
-  
+
   // Stability AI
   if (providerLower === 'stability' || apiUrl.includes('stability.ai')) {
     return await generateImageStability(apiKey, apiUrl, model, prompt, options);
@@ -503,7 +528,7 @@ async function generateImageOpenAI(
   }
 ): Promise<ImageGenerationResponse> {
   let endpoint = apiUrl.replace(/\/$/, '');
-  
+
   if (endpoint.includes('/images/generations')) {
     // 保持原样 / Keep as is
   } else if (endpoint.endsWith('/chat/completions')) {
@@ -524,7 +549,7 @@ async function generateImageOpenAI(
     model: model || 'dall-e-3',
     n: options?.n ?? 1,
   };
-  
+
   if (options?.size) body.size = options.size;
   if (options?.quality) body.quality = options.quality;
   if (options?.style) body.style = options.style;
@@ -561,14 +586,14 @@ async function generateImageFlux(
   options?: { aspect_ratio?: string; n?: number }
 ): Promise<ImageGenerationResponse> {
   const endpoint = apiUrl.replace(/\/$/, '') + '/images/generations';
-  
+
   const body: Record<string, any> = {
     prompt,
     model: model || 'flux-pro-1.1',
     width: 1024,
     height: 1024,
   };
-  
+
   // FLUX 使用 aspect_ratio
   // FLUX uses aspect_ratio
   if (options?.aspect_ratio) {
@@ -610,7 +635,7 @@ async function generateImageIdeogram(
   options?: { aspect_ratio?: string; n?: number }
 ): Promise<ImageGenerationResponse> {
   const endpoint = apiUrl.replace(/\/$/, '') + '/generate';
-  
+
   const body: Record<string, any> = {
     image_request: {
       prompt,
@@ -651,13 +676,13 @@ async function generateImageRecraft(
   options?: { size?: string; n?: number }
 ): Promise<ImageGenerationResponse> {
   const endpoint = apiUrl.replace(/\/$/, '') + '/images/generations';
-  
+
   const body: Record<string, any> = {
     prompt,
     model: model || 'recraftv3',
     n: options?.n ?? 1,
   };
-  
+
   if (options?.size) body.size = options.size;
 
   const response = await fetch(endpoint, {
@@ -692,7 +717,7 @@ async function generateImageReplicate(
   // Replicate 使用 predictions API
   // Replicate uses predictions API
   const endpoint = 'https://api.replicate.com/v1/predictions';
-  
+
   const body: Record<string, any> = {
     version: model, // Replicate 使用 model version / Replicate uses model version
     input: {
@@ -700,7 +725,7 @@ async function generateImageReplicate(
       num_outputs: options?.n ?? 1,
     },
   };
-  
+
   if (options?.aspect_ratio) {
     body.input.aspect_ratio = options.aspect_ratio;
   }
@@ -721,7 +746,7 @@ async function generateImageReplicate(
   }
 
   const prediction = await response.json();
-  
+
   // Replicate 是异步的，需要轮询结果
   // Replicate is asynchronous, need to poll for results
   let result = prediction;
@@ -732,7 +757,7 @@ async function generateImageReplicate(
     });
     result = await pollResponse.json();
   }
-  
+
   if (result.status === 'failed') {
     throw new Error(`Replicate 图像生成失败: ${result.error}`);
     // Replicate image generation failed
@@ -754,13 +779,13 @@ async function generateImageStability(
   options?: { size?: string; n?: number }
 ): Promise<ImageGenerationResponse> {
   const endpoint = apiUrl.replace(/\/$/, '') + '/generation/' + (model || 'stable-diffusion-xl-1024-v1-0') + '/text-to-image';
-  
+
   const body: Record<string, any> = {
     text_prompts: [{ text: prompt, weight: 1 }],
     samples: options?.n ?? 1,
     steps: 30,
   };
-  
+
   if (options?.size) {
     const [width, height] = options.size.split('x').map(Number);
     if (width && height) {
@@ -806,14 +831,14 @@ export async function testImageGeneration(
 ): Promise<ImageTestResult> {
   const startTime = Date.now();
   const prompt = testPrompt || 'A cute cat sitting on a windowsill';
-  
+
   try {
     // 测试时不传递 size 等参数，让 API 使用默认值
     // Don't pass size and other parameters during testing, let API use default values
     const result = await generateImage(config, prompt, { n: 1 });
-    
+
     const imageData = result.data[0];
-    
+
     return {
       success: true,
       imageUrl: imageData.url,
@@ -858,18 +883,25 @@ export async function multiModelCompare(
   }
 ): Promise<MultiModelCompareResult> {
   const startTime = Date.now();
-  
+
   const promises = configs.map(async (config) => {
     const resultStartTime = Date.now();
     const streamCallbacks = options?.streamCallbacksMap?.get(config.id || config.model);
-    
+
     try {
+      // 显式传递 stream 和 enableThinking 参数
+      // Explicitly pass stream and enableThinking parameters
+      const useStream = config.chatParams?.stream ?? false;
+      const useThinking = config.chatParams?.enableThinking ?? false;
+
       const result = await chatCompletion(config, messages, {
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
+        stream: useStream,
+        enableThinking: useThinking,
         streamCallbacks,
       });
-      
+
       return {
         id: config.id,
         success: true,
@@ -890,9 +922,9 @@ export async function multiModelCompare(
       } as AITestResult;
     }
   });
-  
+
   const results = await Promise.all(promises);
-  
+
   return {
     messages,
     results,
@@ -910,7 +942,7 @@ export function buildMessagesFromPrompt(
   variables?: Record<string, string>
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
-  
+
   // Replace variables
   // 替换变量
   let processedUserPrompt = userPrompt;
@@ -922,7 +954,7 @@ export function buildMessagesFromPrompt(
       );
     }
   }
-  
+
   if (systemPrompt) {
     let processedSystemPrompt = systemPrompt;
     if (variables) {
@@ -935,9 +967,9 @@ export function buildMessagesFromPrompt(
     }
     messages.push({ role: 'system', content: processedSystemPrompt });
   }
-  
+
   messages.push({ role: 'user', content: processedUserPrompt });
-  
+
   return messages;
 }
 
@@ -968,7 +1000,7 @@ export interface FetchModelsResult {
  */
 export function getBaseUrl(apiUrl: string): string {
   if (!apiUrl) return '';
-  
+
   let url = apiUrl.trim();
 
   // Handle # suffix: if ends with #, treat as explicit and remove # for display
@@ -980,7 +1012,7 @@ export function getBaseUrl(apiUrl: string): string {
   if (url.endsWith('/')) {
     url = url.slice(0, -1);
   }
-  
+
   // Remove common endpoint suffixes
   // 移除常见的端点后缀
   const suffixes = ['/chat/completions', '/completions', '/models', '/embeddings', '/images/generations'];
@@ -990,7 +1022,7 @@ export function getBaseUrl(apiUrl: string): string {
       break;
     }
   }
-  
+
   return url;
 }
 
@@ -1006,7 +1038,7 @@ export function getBaseUrl(apiUrl: string): string {
  */
 export function getApiEndpointPreview(apiUrl: string): string {
   if (!apiUrl) return '';
-  
+
   // If ends with #, just return the part before # without any auto-fill
   // 如果以 # 结尾，直接返回 # 之前的部分，不进行任何自动填充
   if (apiUrl.trim().endsWith('#')) {
@@ -1014,7 +1046,7 @@ export function getApiEndpointPreview(apiUrl: string): string {
   }
 
   const baseUrl = getBaseUrl(apiUrl);
-  
+
   // Gemini API uses different endpoint format
   // Gemini（Google Generative Language API）并非 OpenAI 的 images/generations 规范
   if (baseUrl.includes('generativelanguage.googleapis.com')) {
@@ -1024,13 +1056,13 @@ export function getApiEndpointPreview(apiUrl: string): string {
     }
     return baseUrl + '/v1beta/models';
   }
-  
+
   // Check if version path is already included
   // 检查是否已经包含版本路径
   if (baseUrl.endsWith('/v1') || baseUrl.match(/\/v\d+$/)) {
     return baseUrl + '/chat/completions';
   }
-  
+
   // Auto-complete /v1
   // 自动补全 /v1
   return baseUrl + '/v1/chat/completions';
@@ -1060,9 +1092,9 @@ export function getImageApiEndpointPreview(apiUrl: string): string {
     }
     return baseUrl + '/v1beta/models';
   }
-  
+
   let endpoint = apiUrl.replace(/\/$/, '');
-  
+
   // If already contains images/generations, use directly
   // 如果已经包含 images/generations，直接使用
   if (endpoint.includes('/images/generations')) {
@@ -1122,16 +1154,16 @@ export async function fetchAvailableModels(
 
     if (!response.ok) {
       const errorText = await response.text();
-      return { 
-        success: false, 
-        models: [], 
+      return {
+        success: false,
+        models: [],
         error: `获取模型列表失败: ${response.status} - ${errorText.substring(0, 100)}`
         // Failed to get model list 
       };
     }
 
     const data = await response.json();
-    
+
     // OpenAI 格式的响应
     // OpenAI format response
     if (data.data && Array.isArray(data.data)) {
@@ -1144,7 +1176,7 @@ export async function fetchAvailableModels(
           created: m.created,
         }))
         .sort((a: ModelInfo, b: ModelInfo) => a.id.localeCompare(b.id));
-      
+
       return { success: true, models };
     }
 
@@ -1163,9 +1195,9 @@ export async function fetchAvailableModels(
     return { success: false, models: [], error: '无法解析模型列表响应' };
     // Cannot parse model list response
   } catch (error) {
-    return { 
-      success: false, 
-      models: [], 
+    return {
+      success: false,
+      models: [],
       error: error instanceof Error ? error.message : '获取模型列表失败'
       // Failed to get model list 
     };

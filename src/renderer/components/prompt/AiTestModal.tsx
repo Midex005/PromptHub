@@ -142,12 +142,12 @@ export function AiTestModal({
     if (!prompt) return '';
     return preferEnglish ? (prompt.systemPromptEn || prompt.systemPrompt || '') : (prompt.systemPrompt || '');
   }, [prompt, preferEnglish]);
-  
+
   const baseUserPrompt = useMemo(() => {
     if (!prompt) return '';
     return preferEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt;
   }, [prompt, preferEnglish]);
-  
+
   const systemPrompt = useMemo(() => filledSystemPrompt ?? replaceVariables(baseSystemPrompt), [filledSystemPrompt, replaceVariables, baseSystemPrompt]);
   const userPrompt = useMemo(() => filledUserPrompt ?? replaceVariables(baseUserPrompt), [filledUserPrompt, replaceVariables, baseUserPrompt]);
 
@@ -181,12 +181,12 @@ export function AiTestModal({
     setIsSingleLoading(true);
     setAiResponse(null);
     setThinkingContent(null);
-    
+
     // 增加使用次数
     if (onUsageIncrement) {
       onUsageIncrement(prompt.id);
     }
-    
+
     try {
       const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
       const useStream = !!config.chatParams?.stream;
@@ -198,18 +198,21 @@ export function AiTestModal({
       }
 
       const result = await chatCompletion(
-        // 注意：config 中的 chatParams 会决定是否走流式输出以及是否启用思考模式
+        // 注意：显式传递 stream 和 enableThinking 参数
+        // Note: Explicitly pass stream and enableThinking parameters
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         config as any,
         messages,
-        useStream
-          ? {
-              streamCallbacks: {
-                onContent: (chunk) => setAiResponse((prev) => (prev ?? '') + chunk),
-                onThinking: (chunk) => setThinkingContent((prev) => (prev ?? '') + chunk),
-              },
+        {
+          stream: useStream,
+          enableThinking: useThinking,
+          streamCallbacks: useStream
+            ? {
+              onContent: (chunk) => setAiResponse((prev) => (prev ?? '') + chunk),
+              onThinking: (chunk) => setThinkingContent((prev) => (prev ?? '') + chunk),
             }
-          : undefined
+            : undefined,
+        }
       );
       setAiResponse(result.content);
       setThinkingContent(result.thinkingContent || null);
@@ -227,15 +230,15 @@ export function AiTestModal({
   // 多模型对比
   const runCompare = async () => {
     if (selectedModelIds.length < 2) return;
-    
+
     setIsCompareLoading(true);
     setCompareResults(null);
-    
+
     // 增加使用次数
     if (onUsageIncrement) {
       onUsageIncrement(prompt.id);
     }
-    
+
     const selectedConfigs = aiModels
       .filter((m) => selectedModelIds.includes(m.id))
       .map((m) => ({
@@ -342,7 +345,7 @@ export function AiTestModal({
       };
 
       const result = await generateImage(config, userPrompt, { n: 1 });
-      
+
       const urls: string[] = [];
       for (const item of result.data) {
         if (item.url) {
@@ -352,7 +355,7 @@ export function AiTestModal({
           urls.push(`data:image/png;base64,${item.b64_json}`);
         }
       }
-      
+
       setGeneratedImages(urls);
       if (urls.length > 0) {
         showToast(t('settings.imageGenSuccess', '图片生成成功'), 'success');
@@ -367,7 +370,7 @@ export function AiTestModal({
   // 将生成的图片添加到 Prompt
   const handleAddImageToPrompt = async (imageUrl: string) => {
     if (!onAddImage) return;
-    
+
     try {
       // 如果是外部 URL，需要先下载到本地
       if (imageUrl.startsWith('http')) {
@@ -419,33 +422,30 @@ export function AiTestModal({
         <div className="flex items-center gap-2 border-b border-border pb-4 flex-wrap">
           <button
             onClick={() => setMode('single')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'single'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'single'
                 ? 'bg-primary text-white'
                 : 'bg-muted text-muted-foreground hover:bg-accent'
-            }`}
+              }`}
           >
             <PlayIcon className="w-4 h-4" />
             {t('prompt.aiTest')}
           </button>
           <button
             onClick={() => setMode('compare')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'compare'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'compare'
                 ? 'bg-primary text-white'
                 : 'bg-muted text-muted-foreground hover:bg-accent'
-            }`}
+              }`}
           >
             <GitCompareIcon className="w-4 h-4" />
             {t('settings.multiModelCompare')}
           </button>
           <button
             onClick={() => setMode('image')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'image'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image'
                 ? 'bg-primary text-white'
                 : 'bg-muted text-muted-foreground hover:bg-accent'
-            }`}
+              }`}
           >
             <ImageIcon className="w-4 h-4" />
             {t('settings.testImage')}
@@ -546,11 +546,10 @@ export function AiTestModal({
                   <button
                     key={model.id}
                     onClick={() => toggleModelSelection(model.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      selectedModelIds.includes(model.id)
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedModelIds.includes(model.id)
                         ? 'bg-primary text-white'
                         : 'bg-muted text-muted-foreground hover:bg-accent'
-                    }`}
+                      }`}
                   >
                     {model.name || model.model}
                   </button>
@@ -582,9 +581,8 @@ export function AiTestModal({
                 {compareResults.map((res, idx) => (
                   <div
                     key={idx}
-                    className={`p-3 rounded-lg border ${
-                      res.success ? 'border-border bg-card' : 'border-destructive/50 bg-destructive/5'
-                    }`}
+                    className={`p-3 rounded-lg border ${res.success ? 'border-border bg-card' : 'border-destructive/50 bg-destructive/5'
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium truncate">{res.model}</span>
