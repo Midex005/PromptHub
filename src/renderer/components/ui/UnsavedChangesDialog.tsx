@@ -44,14 +44,17 @@ export function UnsavedChangesDialog({
 
   const content = (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      {/* Backdrop */}
       {/* 背景遮罩 */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
+      {/* Dialog */}
       {/* 对话框 */}
       <div className="relative bg-card rounded-xl shadow-2xl border border-border w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+        {/* Icon */}
         {/* 图标 */}
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
@@ -59,16 +62,19 @@ export function UnsavedChangesDialog({
           </div>
         </div>
 
+        {/* Title */}
         {/* 标题 */}
         <h3 className="text-lg font-semibold text-center mb-2">
           {t('prompt.unsavedChanges', '未保存的更改')}
         </h3>
 
+        {/* Message */}
         {/* 消息 */}
         <div className="text-sm text-muted-foreground text-center mb-6">
           {t('prompt.unsavedChangesMessage', '您有未保存的更改，是否要保存？')}
         </div>
 
+        {/* Buttons */}
         {/* 按钮 */}
         <div className="flex gap-3">
           <button

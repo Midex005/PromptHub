@@ -15,6 +15,7 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
   const [rememberChoice, setRememberChoice] = useState(false);
   const settings = useSettingsStore();
 
+  // Reset checkbox state each time dialog opens to avoid residual state
   // 每次打开都重置勾选状态，避免上次残留
   useEffect(() => {
     if (isOpen) {
@@ -23,12 +24,15 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
   }, [isOpen]);
 
   const handleCancel = () => {
+    // Important: User only closed the dialog (didn't choose minimize/exit)
+    // Need to notify main process to reset pendingCloseAction, otherwise next close click won't show dialog again
     // 重要：用户只是关闭了弹窗（没有选择最小化/退出）
     // 需要通知主进程重置 pendingCloseAction，否则下次点关闭将不会再次弹窗
     window.electron?.sendCloseDialogCancel?.();
     onClose();
   };
 
+  // ESC to close
   // ESC 关闭
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -69,6 +73,7 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
+      {/* Background mask */}
       {/* 背景遮罩 */}
       <div
         className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md"
@@ -76,8 +81,10 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
+      {/* Dialog content */}
       {/* 对话框内容 */}
       <div className="relative bg-card shadow-2xl border border-border rounded-2xl overflow-hidden w-full max-w-sm">
+        {/* Title bar */}
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">
@@ -91,12 +98,14 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
           </button>
         </div>
 
+        {/* Content area */}
         {/* 内容区 */}
         <div className="p-6 space-y-4">
           <p className="text-muted-foreground text-sm">
             {t('closeDialog.message')}
           </p>
 
+          {/* Option buttons */}
           {/* 选项按钮 */}
           <div className="space-y-3">
             <button
@@ -124,6 +133,7 @@ export function CloseDialog({ isOpen, onClose }: CloseDialogProps) {
             </button>
           </div>
 
+          {/* Remember choice */}
           {/* 记住选择 */}
           <div className="flex items-center">
             <Checkbox

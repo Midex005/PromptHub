@@ -10,7 +10,9 @@ interface LocalImageProps {
 }
 
 /**
+ * Local image component, automatically handles loading failure cases
  * 本地图片组件，自动处理加载失败的情况
+ * Uses local-image:// protocol to load local images
  * 使用 local-image:// 协议加载本地图片
  */
 export function LocalImage({ 

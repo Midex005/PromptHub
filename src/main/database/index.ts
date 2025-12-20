@@ -6,6 +6,7 @@ import { SCHEMA } from './schema';
 let db: Database.Database | null = null;
 
 /**
+ * Get database file path
  * 获取数据库文件路径
  */
 function getDbPath(): string {
@@ -14,6 +15,7 @@ function getDbPath(): string {
 }
 
 /**
+ * Initialize database
  * 初始化数据库
  */
 export function initDatabase(): Database.Database {
@@ -22,12 +24,15 @@ export function initDatabase(): Database.Database {
   const dbPath = getDbPath();
   db = new Database(dbPath);
 
+  // Enable foreign key constraints
   // 启用外键约束
   db.pragma('foreign_keys = ON');
 
+  // Create table schema
   // 创建表结构
   db.exec(SCHEMA);
 
+  // Migration: check if prompts table has images column
   // 迁移：检查 prompts 表是否有 images 字段
   try {
     const tableInfo = db.pragma('table_info(prompts)') as any[];
@@ -40,6 +45,7 @@ export function initDatabase(): Database.Database {
     console.error('Migration failed:', error);
   }
 
+  // Migration: check if folders table has is_private and updated_at columns
   // 迁移：检查 folders 表是否有 is_private 和 updated_at 字段
   try {
     const folderInfo = db.pragma('table_info(folders)') as any[];
@@ -57,6 +63,7 @@ export function initDatabase(): Database.Database {
     console.error('Migration (folders) failed:', error);
   }
 
+  // Migration: check if prompts table has is_pinned column
   // 迁移：检查 prompts 表是否有 is_pinned 字段
   try {
     const tableInfo = db.pragma('table_info(prompts)') as any[];
@@ -74,6 +81,7 @@ export function initDatabase(): Database.Database {
 }
 
 /**
+ * Get database instance
  * 获取数据库实例
  */
 export function getDatabase(): Database.Database {
@@ -84,6 +92,7 @@ export function getDatabase(): Database.Database {
 }
 
 /**
+ * Close database connection
  * 关闭数据库连接
  */
 export function closeDatabase(): void {

@@ -44,24 +44,27 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   }, [initialStatus]);
 
   useEffect(() => {
+    // Get current version and platform
     // 获取当前版本和平台
     window.electron?.updater?.getVersion().then(setCurrentVersion);
     window.electron?.updater?.getPlatform?.().then(setPlatform);
 
+    // Listen for update status
     // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
       setUpdateStatus(status);
     };
 
-    window.electron?.updater?.onStatus(handleStatus);
+    const offUpdaterStatus = window.electron?.updater?.onStatus(handleStatus);
 
     // --- DEV MODE: Simulate update status for testing UI ---
     // 开发模式：模拟更新状态以测试 UI
+    const devTimers: Array<ReturnType<typeof setTimeout>> = [];
     if (process.env.NODE_ENV === 'development') {
-      // Uncomment one of the following to test different states:
-      // 取消注释以下任一项来测试不同状态：
+      // Uncomment one of the following to test different states
+      // 取消注释以下任一项来测试不同状态
       
-      setTimeout(() => {
+      devTimers.push(setTimeout(() => {
         setUpdateStatus({
           status: 'available',
           info: {
@@ -70,26 +73,35 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
             releaseDate: new Date().toISOString(),
           },
         });
-      }, 1500);
+      }, 1500));
       
-      setTimeout(() => {
+      devTimers.push(setTimeout(() => {
         setUpdateStatus({ status: 'not-available', info: { version: '0.2.5' } });
-      }, 1500);
+      }, 1500));
       
-      setTimeout(() => {
+      devTimers.push(setTimeout(() => {
         setUpdateStatus({ status: 'downloading', progress: { percent: 45, bytesPerSecond: 1024000, total: 50000000, transferred: 22500000 } });
-      }, 1500);
+      }, 1500));
     }
     // --- END DEV MODE ---
 
     return () => {
-      window.electron?.updater?.offStatus();
+      // Precise cleanup: remove only this dialog's listener, avoid affecting App-level listeners
+      // 精确清理：只移除本弹窗的监听，避免影响 App 层监听
+      if (typeof offUpdaterStatus === 'function') {
+        offUpdaterStatus();
+      } else {
+        window.electron?.updater?.offStatus?.();
+      }
+      devTimers.forEach((t) => clearTimeout(t));
     };
   }, []);
 
+  // When dialog opens, always force a fresh update check (no cache)
   // 当对话框打开时，总是强制检查更新（不使用缓存）
   useEffect(() => {
     if (isOpen) {
+      // Force check every time the dialog opens
       // 每次打开都强制检查更新
       handleCheckUpdate();
     }
@@ -98,10 +110,12 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const handleCheckUpdate = async () => {
     setUpdateStatus({ status: 'checking' });
     const result = await window.electron?.updater?.check();
+    // If update check returns an error (e.g. in dev), set error status
     // 如果检查更新返回错误（例如开发环境），设置错误状态
     if (result && !result.success) {
       setUpdateStatus({ status: 'error', error: result.error || '检查更新失败' });
     }
+    // Note: success cases are handled via onStatus callback
     // 注意：成功的情况会通过 onStatus 回调处理
   };
 

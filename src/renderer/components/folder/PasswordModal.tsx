@@ -24,7 +24,7 @@ export function PasswordModal({ isOpen, onClose, onSubmit, title }: PasswordModa
     const handleSubmit = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!password.trim()) {
-            setError(t('folder.passwordRequired', '请输入密码'));
+            setError(t('folder.passwordRequired', 'Please enter password / 请输入密码'));
             return;
         }
         onSubmit(password);
@@ -34,13 +34,13 @@ export function PasswordModal({ isOpen, onClose, onSubmit, title }: PasswordModa
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={title || t('folder.enterPassword', '输入密码')}
+            title={title || t('folder.enterPassword', 'Enter password / 输入密码')}
             size="sm"
         >
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
                     type="password"
-                    placeholder={t('folder.passwordPlaceholder', '请输入文件夹密码')}
+                    placeholder={t('folder.passwordPlaceholder', 'Please enter folder password / 请输入文件夹密码')}
                     value={password}
                     onChange={(e) => {
                         setPassword(e.target.value);

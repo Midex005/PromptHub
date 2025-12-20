@@ -45,6 +45,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
   const folders = useFolderStore((state) => state.folders);
   const prompts = usePromptStore((state) => state.prompts);
 
+  // When modal opens, set default folder
   // 当弹窗打开时，设置默认文件夹
   useEffect(() => {
     if (isOpen && defaultFolderId) {
@@ -52,6 +53,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
     }
   }, [isOpen, defaultFolderId]);
 
+  // Get all existing tags
   // 获取所有已存在的标签
   const existingTags = [...new Set(prompts.flatMap((p) => p.tags))];
 
@@ -70,6 +72,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
       folderId: folderId || undefined,
     });
 
+    // Reset form
     // 重置表单
     setTitle('');
     setDescription('');
@@ -128,6 +131,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
     showToast(t('prompt.downloadingImage', '正在下载图片...'), 'info');
     
     try {
+      // Add timeout handling
       // 添加超时处理
       const timeoutPromise = new Promise<null>((_, reject) => {
         setTimeout(() => reject(new Error('timeout')), 30000);
@@ -154,6 +158,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
     }
   };
 
+  // Listen for paste events
   // 监听粘贴事件
   useEffect(() => {
     if (!isOpen) return;
@@ -209,6 +214,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
       }
     >
       <div className="space-y-5">
+        {/* Title */}
         {/* 标题 */}
         <Input
           label={t('prompt.titleLabel')}
@@ -217,6 +223,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           onChange={(e) => setTitle(e.target.value)}
         />
 
+        {/* Description */}
         {/* 描述 */}
         <Input
           label={t('prompt.descriptionOptional')}
@@ -225,6 +232,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           onChange={(e) => setDescription(e.target.value)}
         />
 
+        {/* Folder selection */}
         {/* 文件夹选择 */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-foreground">
@@ -249,6 +257,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           <label className="block text-sm font-medium text-foreground">
             {t('prompt.tagsOptional')}
           </label>
+          {/* Selected tags */}
           {/* 已选标签 */}
           <div className="flex flex-wrap gap-2 mb-2">
             {tags.map((tag) => (
@@ -267,6 +276,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
               </span>
             ))}
           </div>
+          {/* Existing tags selection */}
           {/* 已有标签选择 */}
           {existingTags.length > 0 && (
             <div className="mb-2">
@@ -286,6 +296,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
               </div>
             </div>
           )}
+          {/* Create new tag */}
           {/* 新建标签 */}
           <div className="flex gap-2">
             <input
@@ -302,6 +313,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           </div>
         </div>
 
+        {/* Image upload */}
         {/* 图片上传 */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
@@ -401,6 +413,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           )}
         </div>
 
+        {/* English version toggle */}
         {/* 英文版本切换 */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30 border border-border">
           <div className="flex items-center gap-2">
@@ -478,6 +491,7 @@ export function CreatePromptModal({ isOpen, onClose, onCreate, defaultFolderId }
           </div>
         )}
 
+        {/* Variable tips */}
         {/* 变量提示 */}
         <div className="p-4 rounded-xl bg-accent/50 text-sm">
           <p className="font-medium text-accent-foreground mb-1">💡 {t('prompt.variableTip')}</p>

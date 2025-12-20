@@ -1,6 +1,7 @@
 /**
- * IndexedDB 数据库服务
+ * IndexedDB Database Service
  * 使用 IndexedDB 存储数据，支持备份、恢复和迁移
+ * Store data using IndexedDB, support backup, restore and migration
  */
 
 import type { Prompt, PromptVersion, Folder } from '../../shared/types';
@@ -10,10 +11,12 @@ import i18n from '../i18n';
 const DB_NAME = 'PromptHubDB';
 const DB_VERSION = 1;
 
+// Preset data - 3 folders: AI Programming, Role Playing, Drawing Prompts
 // 预制数据 - 3个文件夹：AI编程、角色扮演、绘图提示词
-// @deprecated 使用 seedData.ts 中的多语言数据
+// @deprecated Use multilingual data from seedData.ts
 const SEED_PROMPTS: Prompt[] = [
   // ========== AI 编程规则 ==========
+  // ========== AI Programming Rules ==========
   {
     id: 'seed-1',
     title: 'Cursor Rules 专家',
@@ -66,6 +69,7 @@ const SEED_PROMPTS: Prompt[] = [
     updatedAt: new Date().toISOString(),
   },
   // ========== 角色扮演 ==========
+  // ========== Role Playing ==========
   {
     id: 'seed-4',
     title: '资深产品经理',
@@ -118,6 +122,7 @@ const SEED_PROMPTS: Prompt[] = [
     updatedAt: new Date().toISOString(),
   },
   // ========== 绘图提示词 ==========
+  // ========== Drawing Prompts ==========
   {
     id: 'seed-7',
     title: 'Midjourney 提示词生成',
@@ -177,9 +182,11 @@ const SEED_FOLDERS: Folder[] = [
   { id: 'folder-image', name: '绘图提示词', icon: '🎨', order: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
+// Generate UUID using browser native API
 // 使用浏览器原生 API 生成 UUID
 const generateId = () => crypto.randomUUID();
 
+// Database storage names
 // 数据库存储名称
 const STORES = {
   PROMPTS: 'prompts',
@@ -192,9 +199,11 @@ let db: IDBDatabase | null = null;
 
 /**
  * 初始化数据库
+ * Initialize database
  */
 export async function initDatabase(): Promise<IDBDatabase> {
   // 如果已有连接，先关闭
+  // If there's an existing connection, close it first
   if (db) {
     try {
       db.close();
@@ -206,6 +215,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
   
   return new Promise((resolve, reject) => {
     // 添加超时机制，防止无限等待
+    // Add timeout mechanism to prevent infinite waiting
     const timeout = setTimeout(() => {
       console.error('Database open timeout after 10s');
       reject(new Error('Database open timeout'));
@@ -221,6 +231,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
     request.onblocked = () => {
       console.warn('Database open blocked - another connection is open');
       // 不立即 reject，等待 onsuccess 或超时
+      // Don't reject immediately, wait for onsuccess or timeout
     };
 
     request.onsuccess = () => {
@@ -228,6 +239,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
       db = request.result;
       
       // 监听版本变化事件，当其他标签页升级数据库时关闭连接
+      // Listen for version change events, close connection when other tabs upgrade database
       db.onversionchange = () => {
         console.log('Database version change detected, closing connection');
         db?.close();
@@ -241,6 +253,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
       const database = (event.target as IDBOpenDBRequest).result;
 
       // 创建 prompts 存储
+      // Create prompts store
       if (!database.objectStoreNames.contains(STORES.PROMPTS)) {
         const promptStore = database.createObjectStore(STORES.PROMPTS, { keyPath: 'id' });
         promptStore.createIndex('folderId', 'folderId', { unique: false });
@@ -249,6 +262,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
       }
 
       // 创建 versions 存储
+      // Create versions store
       if (!database.objectStoreNames.contains(STORES.VERSIONS)) {
         const versionStore = database.createObjectStore(STORES.VERSIONS, { keyPath: 'id' });
         versionStore.createIndex('promptId', 'promptId', { unique: false });
@@ -256,12 +270,14 @@ export async function initDatabase(): Promise<IDBDatabase> {
       }
 
       // 创建 folders 存储
+      // Create folders store
       if (!database.objectStoreNames.contains(STORES.FOLDERS)) {
         const folderStore = database.createObjectStore(STORES.FOLDERS, { keyPath: 'id' });
         folderStore.createIndex('parentId', 'parentId', { unique: false });
       }
 
       // 创建 settings 存储
+      // Create settings store
       if (!database.objectStoreNames.contains(STORES.SETTINGS)) {
         database.createObjectStore(STORES.SETTINGS, { keyPath: 'key' });
       }
@@ -271,6 +287,7 @@ export async function initDatabase(): Promise<IDBDatabase> {
 
 /**
  * 获取数据库实例
+ * Get database instance
  */
 export async function getDatabase(): Promise<IDBDatabase> {
   if (db) return db;
@@ -279,15 +296,18 @@ export async function getDatabase(): Promise<IDBDatabase> {
 
 /**
  * 删除并重建数据库（用于开发调试）
+ * Delete and recreate database (for development debugging)
  */
 export async function resetDatabase(): Promise<void> {
   // 关闭现有连接
+  // Close existing connection
   if (db) {
     db.close();
     db = null;
   }
 
   // 删除数据库
+  // Delete database
   return new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(DB_NAME);
     request.onsuccess = () => {
@@ -303,11 +323,13 @@ export async function resetDatabase(): Promise<void> {
 
 /**
  * 填充种子数据（首次启动时调用）
+ * Fill seed data (called on first startup)
  */
 export async function seedDatabase(): Promise<void> {
   const database = await getDatabase();
 
   // 检查是否已有数据
+  // Check if there's already data
   const promptCount = await new Promise<number>((resolve) => {
     const transaction = database.transaction(STORES.PROMPTS, 'readonly');
     const store = transaction.objectStore(STORES.PROMPTS);
@@ -323,12 +345,15 @@ export async function seedDatabase(): Promise<void> {
   });
 
   // 如果没有数据，填充种子数据
+  // If no data, fill with seed data
   if (promptCount === 0) {
     // 获取当前语言
+    // Get current language
     const currentLanguage = i18n.language || 'en';
     console.log('Seeding database with initial data for language:', currentLanguage);
     
     // 获取对应语言的种子数据
+    // Get seed data for corresponding language
     const seedPrompts = getSeedPrompts(currentLanguage);
     const seedFolders = getSeedFolders(currentLanguage);
     
@@ -337,12 +362,14 @@ export async function seedDatabase(): Promise<void> {
     const folderStore = transaction.objectStore(STORES.FOLDERS);
 
     // 添加预制 Prompts
+    // Add preset Prompts
     for (const prompt of seedPrompts) {
       console.log('Adding prompt:', prompt.title);
       promptStore.add(prompt);
     }
 
     // 添加预制文件夹
+    // Add preset folders
     for (const folder of seedFolders) {
       console.log('Adding folder:', folder.name);
       folderStore.add(folder);
@@ -364,6 +391,7 @@ export async function seedDatabase(): Promise<void> {
 }
 
 // ==================== Prompt 操作 ====================
+// ==================== Prompt Operations ====================
 
 export async function getAllPrompts(): Promise<Prompt[]> {
   const database = await getDatabase();
@@ -416,6 +444,7 @@ export async function updatePrompt(id: string, data: Partial<Prompt>, incrementV
   if (!existing) throw new Error('Prompt not found');
 
   // 只有内容变化才增加版本号
+  // Only increment version number when content changes
   const hasContentChange = data.systemPrompt !== undefined || data.userPrompt !== undefined;
   const shouldIncrementVersion = incrementVersion && hasContentChange;
 
@@ -450,6 +479,7 @@ export async function deletePrompt(id: string): Promise<void> {
 }
 
 // ==================== Version 操作 ====================
+// ==================== Version Operations ====================
 
 export async function getPromptVersions(promptId: string): Promise<PromptVersion[]> {
   const database = await getDatabase();
@@ -494,6 +524,7 @@ export async function createPromptVersion(
 }
 
 // ==================== Folder 操作 ====================
+// ==================== Folder Operations ====================
 
 export async function getAllFolders(): Promise<Folder[]> {
   const database = await getDatabase();
@@ -504,6 +535,7 @@ export async function getAllFolders(): Promise<Folder[]> {
 
     request.onsuccess = () => {
       // 按 order 字段排序
+      // Sort by order field
       const folders = request.result.sort((a, b) => (a.order || 0) - (b.order || 0));
       resolve(folders);
     };
@@ -575,6 +607,7 @@ export async function updateFolderOrders(updates: { id: string; order: number }[
   const database = await getDatabase();
   
   // 逐个更新文件夹顺序
+  // Update folder order one by one
   for (const { id, order } of updates) {
     await new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(STORES.FOLDERS, 'readwrite');
@@ -599,6 +632,7 @@ export async function updateFolderOrders(updates: { id: string; order: number }[
 }
 
 // ==================== 备份与恢复 ====================
+// ==================== Backup & Restore ====================
 
 export interface DatabaseBackup {
   version: number;
@@ -607,6 +641,8 @@ export interface DatabaseBackup {
   folders: Folder[];
   versions: PromptVersion[];
   images?: { [fileName: string]: string }; // fileName -> base64
+  // System settings snapshot (optional, for cross-device consistency)
+  // 系统设置快照（可选，用于跨设备一致）
   aiConfig?: {
     aiModels?: any[];
     aiProvider?: string;
@@ -636,12 +672,14 @@ const SETTINGS_STORAGE_KEY = 'prompthub-settings';
 
 /**
  * 收集所有需要备份的图片
+ * Collect all images that need to be backed up
  */
 async function collectImages(prompts: Prompt[]): Promise<{ [fileName: string]: string }> {
   const images: { [fileName: string]: string } = {};
   const imageFileNames = new Set<string>();
 
   // 收集所有 prompt 中引用的图片
+  // Collect all images referenced in prompts
   for (const prompt of prompts) {
     if (prompt.images && Array.isArray(prompt.images)) {
       for (const img of prompt.images) {
@@ -651,6 +689,7 @@ async function collectImages(prompts: Prompt[]): Promise<{ [fileName: string]: s
   }
 
   // 读取图片为 Base64
+  // Read images as Base64
   for (const fileName of imageFileNames) {
     try {
       const base64 = await window.electron?.readImageBase64?.(fileName);
@@ -667,12 +706,15 @@ async function collectImages(prompts: Prompt[]): Promise<{ [fileName: string]: s
 
 /**
  * 获取 AI 配置（从 localStorage）
+ * Get AI configuration (from localStorage)
  */
 function getAiConfig(): DatabaseBackup['aiConfig'] {
   try {
     // 当前版本的 settings store 持久化 key
+    // Current version settings store persistence key
     const primary = localStorage.getItem('prompthub-settings');
     // 旧版兼容（历史 key）
+    // Old version compatibility (legacy key)
     const legacy = localStorage.getItem('settings-storage');
     const raw = primary || legacy;
     if (!raw) return undefined;
@@ -695,6 +737,7 @@ function getAiConfig(): DatabaseBackup['aiConfig'] {
 
 /**
  * 恢复 AI 配置（到 localStorage）
+ * Restore AI configuration (to localStorage)
  */
 function restoreAiConfig(aiConfig: DatabaseBackup['aiConfig']): void {
   if (!aiConfig) return;
@@ -745,6 +788,7 @@ function restoreSettingsSnapshot(snapshot: { state: any } | undefined): void {
 
 async function gzipText(text: string): Promise<Blob> {
   // Electron/Chromium 支持 CompressionStream
+  // Electron/Chromium supports CompressionStream
   const cs = new CompressionStream('gzip');
   const stream = new Blob([text], { type: 'application/json' }).stream().pipeThrough(cs);
   return await new Response(stream).blob();
@@ -758,6 +802,7 @@ async function gunzipToText(blob: Blob): Promise<string> {
 
 /**
  * 导出数据库为 JSON（包含图片和 AI 配置）
+ * Export database as JSON (including images and AI configuration)
  */
 export async function exportDatabase(): Promise<DatabaseBackup> {
   const [prompts, folders] = await Promise.all([
@@ -766,6 +811,7 @@ export async function exportDatabase(): Promise<DatabaseBackup> {
   ]);
 
   // 获取所有版本
+  // Get all versions
   const database = await getDatabase();
   const versions = await new Promise<PromptVersion[]>((resolve, reject) => {
     const transaction = database.transaction(STORES.VERSIONS, 'readonly');
@@ -776,11 +822,14 @@ export async function exportDatabase(): Promise<DatabaseBackup> {
   });
 
   // 收集图片
+  // Collect images
   const images = await collectImages(prompts);
   
   // 获取 AI 配置
+  // Get AI configuration
   const aiConfig = getAiConfig();
   // 获取系统设置快照
+  // Get system settings snapshot
   const settingsSnapshot = getSettingsSnapshot();
 
   return {
@@ -798,14 +847,17 @@ export async function exportDatabase(): Promise<DatabaseBackup> {
 
 /**
  * 从 JSON 导入数据库（包含图片和 AI 配置）
+ * Import database from JSON (including images and AI configuration)
  */
 export async function importDatabase(backup: DatabaseBackup): Promise<void> {
   const database = await getDatabase();
 
   // 清空现有数据
+  // Clear existing data
   await clearDatabase();
 
   // 导入数据
+  // Import data
   const transaction = database.transaction(
     [STORES.PROMPTS, STORES.FOLDERS, STORES.VERSIONS],
     'readwrite'
@@ -833,6 +885,7 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
   });
   
   // 恢复图片
+  // Restore images
   if (backup.images) {
     let imagesRestored = 0;
     for (const [fileName, base64] of Object.entries(backup.images)) {
@@ -847,11 +900,13 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
   }
   
   // 恢复 AI 配置
+  // Restore AI configuration
   if (backup.aiConfig) {
     restoreAiConfig(backup.aiConfig);
   }
 
   // 恢复系统设置
+  // Restore system settings
   if (backup.settings) {
     restoreSettingsSnapshot(backup.settings);
   }
@@ -859,11 +914,13 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
 
 /**
  * 清空数据库
+ * Clear database
  */
 export async function clearDatabase(): Promise<void> {
   const database = await getDatabase();
 
   // 获取所有存在的 store 名称
+  // Get all existing store names
   const storeNames = Array.from(database.objectStoreNames);
   const storesToClear = [STORES.PROMPTS, STORES.FOLDERS, STORES.VERSIONS].filter(
     store => storeNames.includes(store)
@@ -886,6 +943,7 @@ export async function clearDatabase(): Promise<void> {
   });
   
   // 清除图片文件
+  // Clear image files
   try {
     await window.electron?.clearImages?.();
     console.log('Images cleared');
@@ -896,16 +954,19 @@ export async function clearDatabase(): Promise<void> {
 
 /**
  * 获取数据库存储位置信息
+ * Get database storage location information
  */
 export function getDatabaseInfo(): { name: string; description: string } {
   return {
     name: DB_NAME,
     description: '数据存储在浏览器 IndexedDB 中，位于用户数据目录下',
+    // Data is stored in browser IndexedDB, located in user data directory
   };
 }
 
 /**
  * 下载备份文件
+ * Download backup file
  */
 export async function downloadBackup(): Promise<void> {
   const backup = await exportDatabase();
@@ -924,6 +985,7 @@ export async function downloadBackup(): Promise<void> {
 
 /**
  * 下载压缩的全量备份（.phub.gz）
+ * Download compressed full backup (.phub.gz)
  */
 export async function downloadCompressedBackup(): Promise<void> {
   const backup = await exportDatabase();

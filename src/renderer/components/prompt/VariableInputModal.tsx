@@ -17,6 +17,7 @@ interface VariableInputModalProps {
   isAiTesting?: boolean;
 }
 
+// Parse variables: supports {{name}} and {{name:defaultValue}} formats
 // 解析变量：支持 {{name}} 和 {{name:默认值}} 格式
 interface ParsedVariable {
   fullMatch: string;
@@ -24,9 +25,11 @@ interface ParsedVariable {
   defaultValue?: string;
 }
 
+// Extract variable regex - supports default values
 // 提取变量的正则表达式 - 支持默认值
 const VARIABLE_REGEX = /\{\{([^}:]+)(?::([^}]*))?\}\}/g;
 
+// System variables
 // 系统变量
 const SYSTEM_VARIABLES: Record<string, () => string> = {
   'CURRENT_DATE': () => new Date().toLocaleDateString(),
@@ -35,9 +38,10 @@ const SYSTEM_VARIABLES: Record<string, () => string> = {
   'CURRENT_YEAR': () => new Date().getFullYear().toString(),
   'CURRENT_MONTH': () => (new Date().getMonth() + 1).toString().padStart(2, '0'),
   'CURRENT_DAY': () => new Date().getDate().toString().padStart(2, '0'),
-  'CURRENT_WEEKDAY': () => ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()],
+  'CURRENT_WEEKDAY': () => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()],
 };
 
+// Get variable history from localStorage
 // 从 localStorage 获取历史变量值
 function getVariableHistory(promptId: string): Record<string, string> {
   try {
@@ -48,6 +52,7 @@ function getVariableHistory(promptId: string): Record<string, string> {
   }
 }
 
+// Save variable values to history
 // 保存变量值到历史
 function saveVariableHistory(promptId: string, variables: Record<string, string>) {
   try {
@@ -72,6 +77,7 @@ export function VariableInputModal({
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
 
+  // Parse all variables (including default values)
   // 解析所有变量（包括默认值）
   const parsedVariables = useMemo(() => {
     const combined = `${systemPrompt || ''}\n${userPrompt}`;
@@ -93,6 +99,7 @@ export function VariableInputModal({
     return vars;
   }, [systemPrompt, userPrompt]);
 
+  // Initialize variable values (priority: history > default > empty)
   // 初始化变量值（优先级：历史值 > 默认值 > 空）
   useEffect(() => {
     if (isOpen) {
@@ -108,6 +115,7 @@ export function VariableInputModal({
     }
   }, [isOpen, parsedVariables, promptId]);
 
+  // Replace variables to generate final text
   // 替换变量生成最终文本
   const filledPrompt = useMemo(() => {
     let result = userPrompt;
@@ -123,22 +131,27 @@ export function VariableInputModal({
     return result;
   }, [systemPrompt, userPrompt, variables]);
 
+  // Check if all variables are filled
   // 检查是否所有变量都已填写
   const allFilled = parsedVariables.every((v) => variables[v.name]?.trim());
 
+  // Replace variables (including system variables)
   // 替换变量（包括系统变量）
   const replaceVariables = (text: string) => {
     let result = text;
     
+    // Replace system variables
     // 替换系统变量
     Object.entries(SYSTEM_VARIABLES).forEach(([name, getValue]) => {
       const regex = new RegExp(`\\{\\{\\s*${name}\\s*\\}\\}`, 'g');
       result = result.replace(regex, getValue());
     });
     
+    // Replace user variables (including default value format)
     // 替换用户变量（包括带默认值的格式）
     parsedVariables.forEach((v) => {
       const value = variables[v.name] || '';
+      // Match both {{name}} and {{name:defaultValue}} formats
       // 匹配 {{name}} 和 {{name:默认值}} 两种格式
       const regex = new RegExp(`\\{\\{\\s*${v.name}(?::[^}]*)?\\s*\\}\\}`, 'g');
       result = result.replace(regex, value || `{{${v.name}}}`);
@@ -148,9 +161,11 @@ export function VariableInputModal({
   };
 
   const handleCopy = () => {
+    // Save variable history
     // 保存变量历史
     saveVariableHistory(promptId, variables);
     
+    // Replace variables
     // 替换变量
     const result = replaceVariables(userPrompt);
     
@@ -161,9 +176,11 @@ export function VariableInputModal({
   };
 
   const handleAiTest = () => {
+    // Save variable history
     // 保存变量历史
     saveVariableHistory(promptId, variables);
     
+    // Replace variables
     // 替换变量
     const filledUserPrompt = replaceVariables(userPrompt);
     const filledSystemPrompt = systemPrompt ? replaceVariables(systemPrompt) : undefined;
@@ -171,6 +188,7 @@ export function VariableInputModal({
     onAiTest?.(filledSystemPrompt, filledUserPrompt);
   };
 
+  // If no variables, copy original text directly
   // 如果没有变量，直接复制原文
   if (parsedVariables.length === 0) {
     return null;
@@ -179,6 +197,7 @@ export function VariableInputModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('prompt.variableInput')} size="2xl">
       <div className="space-y-5">
+        {/* Variable input */}
         {/* 变量输入 */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -209,6 +228,7 @@ export function VariableInputModal({
                   value={variables[v.name] || ''}
                   onChange={(e) => {
                     setVariables({ ...variables, [v.name]: e.target.value });
+                    // Auto adjust height
                     // 自动调整高度
                     e.target.style.height = 'auto';
                     e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
@@ -218,6 +238,7 @@ export function VariableInputModal({
                   className="w-full min-h-[40px] px-4 py-2.5 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200 resize-none overflow-hidden"
                   style={{ height: 'auto' }}
                   onFocus={(e) => {
+                    // Initialize height
                     // 初始化高度
                     e.target.style.height = 'auto';
                     e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
@@ -228,6 +249,7 @@ export function VariableInputModal({
           </div>
         </div>
 
+        {/* Preview */}
         {/* 预览 */}
         <div className="space-y-2">
           <div className="text-sm font-medium text-foreground">{t('prompt.previewResult')}</div>
@@ -236,6 +258,7 @@ export function VariableInputModal({
           </div>
         </div>
 
+        {/* Action buttons */}
         {/* 操作按钮 */}
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="secondary" onClick={onClose}>

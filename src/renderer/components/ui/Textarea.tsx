@@ -14,6 +14,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const lineNumbersRef = useRef<HTMLDivElement>(null);
 
+    // Calculate line count
     // 计算行数
     useEffect(() => {
       const text = String(value || '');
@@ -21,6 +22,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       setLineCount(Math.max(lines, 1));
     }, [value]);
 
+    // Sync scroll
     // 同步滚动
     const handleScroll = () => {
       if (lineNumbersRef.current && textareaRef.current) {
@@ -28,6 +30,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       }
     };
 
+    // Merge refs
     // 合并 ref
     const setRefs = (element: HTMLTextAreaElement | null) => {
       textareaRef.current = element;
@@ -52,6 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           'transition-all duration-200',
           error && 'ring-2 ring-destructive/50'
         )}>
+          {/* Line numbers */}
           {/* 行号 */}
           {showLineNumbers && (
             <div

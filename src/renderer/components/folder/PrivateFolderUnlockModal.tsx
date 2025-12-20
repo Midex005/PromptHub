@@ -23,7 +23,7 @@ export function PrivateFolderUnlockModal({
 
   const handleUnlock = async () => {
     if (!password.trim()) {
-      showToast('请输入主密码', 'error');
+      showToast('Please enter master password / 请输入主密码', 'error');
       return;
     }
 
@@ -31,14 +31,14 @@ export function PrivateFolderUnlockModal({
     try {
       const result = await window.api?.security?.unlock(password);
       if (result?.success) {
-        showToast('解锁成功', 'success');
+        showToast('Unlocked / 解锁成功', 'success');
         setPassword('');
         onSuccess();
       } else {
-        showToast('主密码错误', 'error');
+        showToast('Incorrect master password / 主密码错误', 'error');
       }
     } catch (error) {
-      showToast('解锁失败', 'error');
+      showToast('Unlock failed / 解锁失败', 'error');
     } finally {
       setLoading(false);
     }
@@ -52,16 +52,19 @@ export function PrivateFolderUnlockModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
       {/* 背景遮罩 */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
+      {/* Modal content */}
       {/* 弹窗内容 */}
       <div className="relative bg-card rounded-xl w-full max-w-sm mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200">
+        {/* Title bar */}
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <LockIcon className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold">解锁私密文件夹</h2>
+            <h2 className="text-base font-semibold">Unlock private folder / 解锁私密文件夹</h2>
           </div>
           <button
             onClick={onClose}
@@ -71,9 +74,12 @@ export function PrivateFolderUnlockModal({
           </button>
         </div>
 
+        {/* Content */}
         {/* 内容 */}
         <div className="p-5 space-y-4">
           <p className="text-sm text-muted-foreground">
+            This folder "<span className="font-medium text-foreground">{folderName}</span>" is private. Please enter the master password to unlock.
+            <br />
             文件夹「<span className="font-medium text-foreground">{folderName}</span>」是私密文件夹，请输入主密码解锁查看。
           </p>
 
@@ -82,11 +88,12 @@ export function PrivateFolderUnlockModal({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="请输入主密码"
+            placeholder="Please enter master password / 请输入主密码"
             className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
             autoFocus
           />
 
+          {/* Action buttons */}
           {/* 操作按钮 */}
           <div className="flex gap-2 justify-end pt-2">
             <button
@@ -94,7 +101,7 @@ export function PrivateFolderUnlockModal({
               onClick={onClose}
               className="h-9 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors"
             >
-              取消
+              Cancel / 取消
             </button>
             <button
               type="button"
@@ -102,7 +109,7 @@ export function PrivateFolderUnlockModal({
               disabled={loading}
               className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {loading ? '解锁中...' : '解锁'}
+              {loading ? 'Unlocking... / 解锁中...' : 'Unlock / 解锁'}
             </button>
           </div>
         </div>

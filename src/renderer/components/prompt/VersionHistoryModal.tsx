@@ -12,6 +12,7 @@ interface VersionHistoryModalProps {
   onRestore: (version: PromptVersion) => void;
 }
 
+// Calculate LCS (Longest Common Subsequence) of two strings for diff
 // 计算两个字符串的 LCS (最长公共子序列) 用于 diff
 function computeLCS(a: string[], b: string[]): number[][] {
   const m = a.length;
@@ -37,6 +38,7 @@ interface DiffLine {
   newLineNum?: number;
 }
 
+// Generate git-style diff
 // 生成 git 风格的 diff
 function generateDiff(oldText: string, newText: string): DiffLine[] {
   const oldLines = (oldText || '').split('\n');
@@ -92,6 +94,7 @@ function generateDiff(oldText: string, newText: string): DiffLine[] {
   return diff;
 }
 
+// Git-style diff view
 // Git 风格差异视图
 function GitDiffView({ oldText, newText, label }: { oldText: string; newText: string; label: string }) {
   const diff = useMemo(() => generateDiff(oldText, newText), [oldText, newText]);
@@ -123,7 +126,7 @@ function GitDiffView({ oldText, newText, label }: { oldText: string; newText: st
       </div>
       
       {isUnchanged ? (
-        <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-lg">无变化</div>
+        <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-lg">No changes</div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden font-mono text-xs">
           <div className="max-h-64 overflow-y-auto">
@@ -138,6 +141,7 @@ function GitDiffView({ oldText, newText, label }: { oldText: string; newText: st
                       : 'bg-transparent text-foreground/80'
                 }`}
               >
+                {/* Line numbers */}
                 {/* 行号 */}
                 <div className="flex-shrink-0 w-16 flex text-muted-foreground/50 select-none border-r border-border/50">
                   <span className="w-8 text-right px-1 border-r border-border/30">
@@ -147,12 +151,14 @@ function GitDiffView({ oldText, newText, label }: { oldText: string; newText: st
                     {line.newLineNum || ''}
                   </span>
                 </div>
+                {/* Symbol */}
                 {/* 符号 */}
                 <div className={`flex-shrink-0 w-5 text-center font-bold ${
                   line.type === 'add' ? 'text-green-600' : line.type === 'remove' ? 'text-red-600' : ''
                 }`}>
                   {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
                 </div>
+                {/* Content */}
                 {/* 内容 */}
                 <div className="flex-1 px-2 py-0.5 whitespace-pre-wrap break-all">
                   {line.content || ' '}
@@ -187,6 +193,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
     try {
       const historyVersions = await getPromptVersions(prompt.id);
       
+      // Add current version to list (as latest version)
       // 将当前版本也加入列表（作为最新版本）
       const currentVersion: PromptVersion = {
         id: 'current',
@@ -195,12 +202,12 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.userPrompt,
         variables: prompt.variables || [],
-        note: '当前版本',
-        aiResponse: prompt.lastAiResponse, // 使用当前版本的 AI 响应
+        note: 'Current version',
+        aiResponse: prompt.lastAiResponse, // Use current version's AI response
         createdAt: prompt.updatedAt,
       };
       
-      // 合并当前版本和历史版本，按版本号降序排列
+      // Merge current version and history versions, sorted by version number descending
       const allVersions = [currentVersion, ...historyVersions.filter(v => v.version !== prompt.version)];
       
       setVersions(allVersions);
@@ -216,7 +223,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
 
   const handleRestore = () => {
     if (selectedVersion) {
-      if (confirm(`确定要恢复到 v${selectedVersion.version} 版本吗？当前内容将被覆盖。`)) {
+      if (confirm(`Are you sure you want to restore to v${selectedVersion.version}? Current content will be overwritten.`)) {
         onRestore(selectedVersion);
         onClose();
       }
@@ -239,6 +246,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
         </div>
       ) : (
         <div className="flex gap-4 min-h-[400px]">
+          {/* Version list */}
           {/* 版本列表 */}
           <div className="w-48 border-r border-border pr-4 space-y-1">
             <div className="text-xs text-muted-foreground mb-2 px-1">
@@ -278,6 +286,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
             ))}
           </div>
 
+          {/* Version content / Diff comparison */}
           {/* 版本内容 / 差异对比 */}
           <div className="flex-1 space-y-4">
             {showDiff && selectedVersion && compareVersion ? (
@@ -329,6 +338,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                     </div>
                   </div>
                 )}
+                {/* AI response */}
                 {/* AI 响应 */}
                 {selectedVersion.aiResponse && (
                   <div>
@@ -347,6 +357,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
         </div>
       )}
 
+      {/* Action buttons */}
       {/* 操作按钮 */}
       {versions.length > 0 && selectedVersion && (
         <div className="flex justify-between mt-6 pt-4 border-t border-border">

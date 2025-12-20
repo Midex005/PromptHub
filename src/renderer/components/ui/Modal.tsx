@@ -13,6 +13,7 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, headerActions, children, size = 'md' }: ModalProps) {
+  // Close on ESC
   // ESC 关闭
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -35,6 +36,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
+      {/* Backdrop */}
       {/* 背景遮罩 */}
       <div
         className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-md"
@@ -42,6 +44,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
+      {/* Modal content */}
       {/* 弹窗内容 */}
       <div
         className={clsx(
@@ -61,6 +64,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
         )}
         style={{ margin: size === 'fullscreen' ? 0 : 'auto' }}
       >
+        {/* Title bar */}
         {/* 标题栏 */}
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
@@ -77,6 +81,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
           </div>
         )}
 
+        {/* Content */}
         {/* 内容区 */}
         <div className="flex-1 overflow-y-auto p-6">
           {children}
@@ -85,6 +90,7 @@ export function Modal({ isOpen, onClose, title, headerActions, children, size = 
     </div>
   );
 
+  // Render via Portal into body to ensure it's on top
   // 使用 Portal 渲染到 body，确保在最顶层
   return createPortal(modalContent, document.body);
 }

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Modal, Button, Input, Textarea, UnsavedChangesDialog } from '../ui';
 import { Select } from '../ui/Select';
-import { HashIcon, XIcon, ImageIcon, Maximize2Icon, Minimize2Icon, PlusIcon, GlobeIcon } from 'lucide-react';
+import { HashIcon, XIcon, ImageIcon, Maximize2Icon, Minimize2Icon, PlusIcon, GlobeIcon, SparklesIcon, Loader2Icon } from 'lucide-react';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
+import { useSettingsStore } from '../../stores/settings.store';
+import { testAIConnection } from '../../services/ai';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../ui/Toast';
 import type { Prompt } from '../../../shared/types';
@@ -45,7 +47,13 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
   const [imageUrl, setImageUrl] = useState('');
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
+  const settings = useSettingsStore();
+  const defaultModel = settings.aiModels.find(m => m.isDefault);
+  const canTranslate = !!defaultModel;
+
+// Check for unsaved changes
   // 检查是否有未保存的更改
   const hasUnsavedChanges = useCallback(() => {
     if (!prompt) return false;
@@ -62,6 +70,7 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
     );
   }, [prompt, title, description, systemPrompt, systemPromptEn, userPrompt, userPromptEn, tags, images, folderId]);
 
+// Handle close request
   // 处理关闭请求
   const handleCloseRequest = useCallback(() => {
     if (hasUnsavedChanges()) {
@@ -71,12 +80,14 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
     }
   }, [hasUnsavedChanges, onClose]);
 
+// Handle save and close
   // 处理保存并关闭
   const handleSaveAndClose = async () => {
     await handleSubmit();
     setShowUnsavedDialog(false);
   };
 
+// Handle discard changes
   // 处理放弃更改
   const handleDiscardChanges = () => {
     setShowUnsavedDialog(false);
@@ -156,6 +167,73 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
       onClose();
     } catch (error) {
       console.error('Failed to update prompt:', error);
+    }
+  };
+
+  const handleTranslateToEnglish = async () => {
+    if (!canTranslate || !defaultModel) {
+      showToast(t('toast.configAI') || '请先配置 AI', 'error');
+      return;
+    }
+    if (!systemPrompt && !userPrompt) {
+      showToast(t('prompt.noContentToTranslate', '没有内容可翻译'), 'error');
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const instruction =
+        'You are a professional prompt translator. Translate the provided System Prompt and User Prompt into natural, accurate English.\n' +
+        '- Keep original meaning, tone, and intent.\n' +
+        '- Preserve ALL formatting, Markdown, lists, and code blocks.\n' +
+        '- Do NOT translate or alter placeholders like {{variable}}.\n' +
+        '- Do NOT add explanations.\n' +
+        'Return STRICT JSON ONLY: {"systemPromptEn":"...","userPromptEn":"..."}. If systemPrompt is empty, use empty string.';
+
+      const contentToTranslate = JSON.stringify({
+        systemPrompt: systemPrompt || '',
+        userPrompt: userPrompt || '',
+      });
+
+      const result = await testAIConnection(
+        {
+          provider: defaultModel.provider,
+          apiKey: defaultModel.apiKey,
+          apiUrl: defaultModel.apiUrl,
+          model: defaultModel.model,
+        },
+        `${instruction}\n\nContent to translate:\n${contentToTranslate}`
+      );
+
+      if (!result.success || !result.response) {
+        throw new Error(result.error || t('common.error') || '翻译失败');
+      }
+
+      const jsonMatch = result.response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error(t('common.error') || '翻译结果解析失败');
+      }
+
+      const jsonText = jsonMatch[0];
+      const parsed = JSON.parse(jsonText) as { systemPromptEn?: string; userPromptEn?: string };
+
+      if (typeof parsed.userPromptEn !== 'string') {
+        throw new Error(t('common.error') || '翻译结果解析失败');
+      }
+
+      if (parsed.systemPromptEn) {
+        setSystemPromptEn(parsed.systemPromptEn);
+      }
+      if (parsed.userPromptEn) {
+        setUserPromptEn(parsed.userPromptEn);
+      }
+
+      setShowEnglishVersion(true);
+      showToast(t('prompt.englishGenerated', '已生成英文版 Prompt'), 'success');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : (t('common.error') || '翻译失败'), 'error');
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -482,26 +560,45 @@ export function EditPromptModal({ isOpen, onClose, prompt }: EditPromptModalProp
               <div className="text-sm font-medium">{t('prompt.bilingualHint')}</div>
             </div>
           </div>
-          <button
-            onClick={() => setShowEnglishVersion(!showEnglishVersion)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              showEnglishVersion
-                ? 'bg-primary text-white'
-                : 'bg-muted hover:bg-accent text-foreground'
-            }`}
-          >
-            {showEnglishVersion ? (
-              <>
-                <XIcon className="w-3.5 h-3.5" />
-                {t('prompt.removeEnglishVersion')}
-              </>
-            ) : (
-              <>
-                <PlusIcon className="w-3.5 h-3.5" />
-                {t('prompt.addEnglishVersion')}
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleTranslateToEnglish}
+              disabled={isTranslating || !canTranslate}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                isTranslating || !canTranslate
+                  ? 'opacity-50 cursor-not-allowed bg-muted text-muted-foreground'
+                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+              }`}
+              title={t('prompt.translateToEnglish', '一键翻译生成英文版')}
+            >
+              {isTranslating ? (
+                <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <SparklesIcon className="w-3.5 h-3.5" />
+              )}
+              {t('prompt.translate', 'Translate')}
+            </button>
+            <button
+              onClick={() => setShowEnglishVersion(!showEnglishVersion)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                showEnglishVersion
+                  ? 'bg-primary text-white'
+                  : 'bg-muted hover:bg-accent text-foreground'
+              }`}
+            >
+              {showEnglishVersion ? (
+                <>
+                  <XIcon className="w-3.5 h-3.5" />
+                  {t('prompt.removeEnglishVersion')}
+                </>
+              ) : (
+                <>
+                  <PlusIcon className="w-3.5 h-3.5" />
+                  {t('prompt.addEnglishVersion')}
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* System Prompt */}

@@ -1,7 +1,7 @@
 import React from 'react';
 
-// AI 模型提供商图标组件
-// 优先使用本地 provider 品牌图标，无对应图标时使用首字母圆圈
+// AI model provider icon component
+// Prioritize using local provider brand icons, fallback to first letter circle when no matching icon
 
 import openaiPng from '../../assets/providers/openai.png';
 import anthropicPng from '../../assets/providers/anthropic.png';
@@ -21,6 +21,7 @@ interface IconProps {
   size?: number;
 }
 
+// Map category names to local provider icon resources
 // 按模型分类名称映射到本地 provider 图标资源
 const CATEGORY_ICON_SRC: Record<string, string> = {
   GPT: openaiPng,
@@ -35,11 +36,40 @@ const CATEGORY_ICON_SRC: Record<string, string> = {
   Yi: zeroOnePng,
   Baichuan: baichuanPng,
   Spark: tencentCloudTiPng,
+  Hunyuan: tencentCloudTiPng, // Map Hunyuan to Tencent icon
+  ERNIE: '', // Placeholder for ERNIE
 };
 
-// 根据分类名获取对应图标组件
+/**
+ * Get category icon
+ * 获取分类图标
+ */
 export function getCategoryIcon(category: string, size = 20): React.ReactNode {
-  // 1. 优先使用本地 provider 品牌图标
+  // 0. nanobananai 🍌 special icon
+  if (category === 'nanobananai 🍌') {
+    return (
+      <div 
+        style={{ 
+          width: size, 
+          height: size, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          fontSize: size * 0.75,
+          background: 'linear-gradient(135deg, #fefce8 0%, #fef08a 100%)',
+          borderRadius: 6,
+          border: '1px solid #fde047',
+          lineHeight: 1,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+        }}
+      >
+        🍌
+      </div>
+    );
+  }
+
+  // 1. Prioritize using local provider brand icons
+  // 优先使用本地 provider 品牌图标
   const src = CATEGORY_ICON_SRC[category];
 
   if (src) {
@@ -51,14 +81,14 @@ export function getCategoryIcon(category: string, size = 20): React.ReactNode {
         height={size}
         style={{ borderRadius: 6, objectFit: 'contain', display: 'block' }}
         onError={(e) => {
-          // 图标加载失败时隐藏 img，由首字母圆圈兜底
+          // If no matching icon, generate a colored circle with the first letter as fallback
           (e.currentTarget as HTMLImageElement).style.display = 'none';
         }}
       />
     );
   }
 
-  // 2. 找不到对应本地图标时，使用首字母圆圈徽标
+  // 2. Fallback: use first letter of category name when no local icon is found
   const letter = (category && category[0]) || '?';
   const fontSize = size * 0.55;
 

@@ -14,7 +14,7 @@
   [![GitHub Forks](https://img.shields.io/github/forks/legeling/PromptHub?style=for-the-badge&logo=github)](https://github.com/legeling/PromptHub/network/members)
   [![Downloads](https://img.shields.io/github/downloads/legeling/PromptHub/total?style=for-the-badge&logo=github&color=blue)](https://github.com/legeling/PromptHub/releases)
   
-  [![Version](https://img.shields.io/badge/version-v0.2.10-success?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
+  [![Version](https://img.shields.io/badge/version-v0.3.1-success?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
   [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](./LICENSE)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](https://github.com/legeling/PromptHub/pulls)
   
@@ -271,7 +271,7 @@ PromptHub/
 
 ## 路线图
 
-### v0.2.7 (当前)
+### v0.3.1 (当前)
 - [x] Prompt CRUD 管理
 - [x] 文件夹和标签系统
 - [x] 收藏功能
@@ -299,6 +299,8 @@ PromptHub/
 - [x] Markdown 全场景预览
 - [x] 主密码与安全设置（私密文件夹 WIP）
 - [x] Qwen/通义模型兼容性优化
+- [x] 搜索算法优化（基于权重评分）
+- [x] 预制模型地址校准
 
 ### 未来规划
 - [ ] Web 版本（Docker/Cloudflare 部署）
@@ -309,17 +311,14 @@ PromptHub/
 
 查看完整的更新日志：**[CHANGELOG.md](./CHANGELOG.md)**
 
-### 最新版本 v0.2.7 (2025-12-16)
-
-**新功能**
-- 全局快捷键：自定义快捷键唤起应用、新建 Prompt、搜索、打开设置
-- 快捷键冲突检测：自动检测并提示快捷键冲突
-- 生图模型扩展：新增 Google Gemini 和 Stability AI
-- 未保存更改提醒：编辑时关闭会提示保存/放弃/取消
+### 最新版本 v0.3.1 (2025-12-19)
 
 **优化**
-- 完善多语言翻译（中/英/日/德/法/西/繁体中文）
-- 图片下载失败使用自定义 Toast 提示
+- 🔍 搜索体验优化：引入权重评分机制，优先匹配标题
+- 🤖 预制供应商优化：校准所有预制 AI 供应商 API 地址
+- 🎨 分类图标识别：支持识别手动添加模型的供应商图标
+- 🍌 Nano Banana 专属视觉：nanobananai 🍌 专属图标
+- 📝 API 地址提示：增加 # 禁用自动填充的引导提示
 
 > [查看完整更新日志](./CHANGELOG.md)
 

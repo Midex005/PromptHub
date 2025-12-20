@@ -37,6 +37,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   }));
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>(editorMarkdownPreview ? 'preview' : 'edit');
 
+  // Extract variables
   // 提取变量
   const extractVariables = useCallback((text: string): string[] => {
     const regex = /\{\{(\w+)\}\}/g;
@@ -58,6 +59,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
     setEditorMarkdownPreview(activeTab === 'preview');
   }, [activeTab, setEditorMarkdownPreview]);
 
+  // Generate preview
   // 生成预览
   const generatePreview = useCallback(() => {
     let preview = userPrompt;

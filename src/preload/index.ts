@@ -10,6 +10,7 @@ import type {
 } from '../shared/types';
 
 const api = {
+  // Window controls
   // 窗口控制 (Windows)
   minimize: () => ipcRenderer.send('window:minimize'),
   maximize: () => ipcRenderer.send('window:maximize'),
@@ -76,11 +77,13 @@ const api = {
       ipcRenderer.invoke(IPC_CHANNELS.IMPORT_PROMPTS, data),
   },
 
+  // Listen to main process events
   // 监听主进程事件
   on: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.on(channel, (_event, ...args) => callback(...args));
   },
 
+  // Remove listener
   // 移除监听
   off: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.removeListener(channel, callback);
@@ -89,6 +92,7 @@ const api = {
 
 contextBridge.exposeInMainWorld('api', api);
 
+// Expose window control API
 // 暴露窗口控制 API
 contextBridge.exposeInMainWorld('electron', {
   minimize: () => ipcRenderer.send('window:minimize'),
@@ -97,9 +101,16 @@ contextBridge.exposeInMainWorld('electron', {
   setAutoLaunch: (enabled: boolean) => ipcRenderer.send('app:setAutoLaunch', enabled),
   setMinimizeToTray: (enabled: boolean) => ipcRenderer.send('app:setMinimizeToTray', enabled),
   setCloseAction: (action: 'ask' | 'minimize' | 'exit') => ipcRenderer.send('app:setCloseAction', action),
-  // 关闭窗口对话框回调 / Close dialog callbacks
+  // Close dialog callbacks
+  // 关闭窗口对话框回调
   onShowCloseDialog: (callback: () => void) => {
-    ipcRenderer.on('window:showCloseDialog', () => callback());
+    const listener = () => callback();
+    ipcRenderer.on('window:showCloseDialog', listener);
+    // Return unsubscribe function to avoid leaking listeners on remount/unmount
+    // 返回取消订阅函数，避免组件卸载/重挂载导致监听泄漏
+    return () => {
+      ipcRenderer.removeListener('window:showCloseDialog', listener);
+    };
   },
   sendCloseDialogResult: (action: 'minimize' | 'exit', remember: boolean) => {
     ipcRenderer.send('window:closeDialogResult', { action, remember });
@@ -110,9 +121,11 @@ contextBridge.exposeInMainWorld('electron', {
   selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
   openPath: (path: string) => ipcRenderer.invoke('shell:openPath', path),
   showNotification: (title: string, body: string) => ipcRenderer.invoke('notification:show', { title, body }),
+  // Data directory
   // 数据目录
   getDataPath: () => ipcRenderer.invoke('data:getPath'),
   migrateData: (newPath: string) => ipcRenderer.invoke('data:migrate', newPath),
+  // Updater
   // 更新器
   updater: {
     check: () => ipcRenderer.invoke('updater:check'),
@@ -122,24 +135,35 @@ contextBridge.exposeInMainWorld('electron', {
     getPlatform: () => ipcRenderer.invoke('updater:platform'),
     openReleases: () => ipcRenderer.invoke('updater:openReleases'),
     onStatus: (callback: (status: any) => void) => {
-      ipcRenderer.on('updater:status', (_event, status) => callback(status));
+      const listener = (_event: Electron.IpcRendererEvent, status: any) => callback(status);
+      ipcRenderer.on('updater:status', listener);
+      // Return unsubscribe function to allow precise cleanup (do NOT removeAllListeners)
+      // 返回取消订阅函数，允许精确清理（不要 removeAllListeners）
+      return () => {
+        ipcRenderer.removeListener('updater:status', listener);
+      };
     },
     offStatus: () => {
+      // Backward compatible: remove all listeners
+      // 兼容旧用法：移除所有监听
       ipcRenderer.removeAllListeners('updater:status');
     },
   },
+  // Images
   // 图片
   selectImage: () => ipcRenderer.invoke('dialog:selectImage'),
   saveImage: (paths: string[]) => ipcRenderer.invoke('image:save', paths),
   saveImageBuffer: (buffer: ArrayBuffer) => ipcRenderer.invoke('image:save-buffer', Buffer.from(buffer)),
   downloadImage: (url: string) => ipcRenderer.invoke('image:download', url),
   openImage: (fileName: string) => ipcRenderer.invoke('image:open', fileName),
+  // Image sync
   // 图片同步相关
   listImages: () => ipcRenderer.invoke('image:list'),
   readImageBase64: (fileName: string) => ipcRenderer.invoke('image:readBase64', fileName),
   saveImageBase64: (fileName: string, base64: string) => ipcRenderer.invoke('image:saveBase64', fileName, base64),
   imageExists: (fileName: string) => ipcRenderer.invoke('image:exists', fileName),
   clearImages: () => ipcRenderer.invoke('image:clear'),
+  // WebDAV (bypass CORS via main process)
   // WebDAV（通过主进程绕过 CORS）
   webdav: {
     testConnection: (config: { url: string; username: string; password: string }) =>
@@ -151,15 +175,24 @@ contextBridge.exposeInMainWorld('electron', {
     download: (fileUrl: string, config: { url: string; username: string; password: string }) =>
       ipcRenderer.invoke('webdav:download', fileUrl, config),
   },
+  // Shortcuts
   // 快捷键
   getShortcuts: () => ipcRenderer.invoke('shortcuts:get'),
   setShortcuts: (shortcuts: Record<string, string>) => ipcRenderer.invoke('shortcuts:set', shortcuts),
+  // Shortcut trigger events
   // 快捷键触发事件
   onShortcutTriggered: (callback: (action: string) => void) => {
-    ipcRenderer.on('shortcut:triggered', (_event, action) => callback(action));
+    const listener = (_event: Electron.IpcRendererEvent, action: string) => callback(action);
+    ipcRenderer.on('shortcut:triggered', listener);
+    // Return unsubscribe function to avoid leaking listeners on remount/unmount
+    // 返回取消订阅函数，避免组件卸载/重挂载导致监听泄漏
+    return () => {
+      ipcRenderer.removeListener('shortcut:triggered', listener);
+    };
   },
 });
 
+// Type declarations
 // 类型声明
 export type API = typeof api;
 
@@ -173,12 +206,13 @@ declare global {
       setAutoLaunch?: (enabled: boolean) => void;
       setMinimizeToTray?: (enabled: boolean) => void;
       setCloseAction?: (action: 'ask' | 'minimize' | 'exit') => void;
-      onShowCloseDialog?: (callback: () => void) => void;
+      onShowCloseDialog?: (callback: () => void) => void | (() => void);
       sendCloseDialogResult?: (action: 'minimize' | 'exit', remember: boolean) => void;
       sendCloseDialogCancel?: () => void;
       selectFolder?: () => Promise<string | null>;
       openPath?: (path: string) => Promise<{ success: boolean; error?: string }>;
       showNotification?: (title: string, body: string) => Promise<boolean>;
+      // Data directory
       // 数据目录
       getDataPath?: () => Promise<string>;
       migrateData?: (newPath: string) => Promise<{ success: boolean; message?: string; newPath?: string; needsRestart?: boolean; error?: string }>;
@@ -189,7 +223,7 @@ declare global {
         getVersion: () => Promise<string>;
         getPlatform: () => Promise<string>;
         openReleases: () => Promise<void>;
-        onStatus: (callback: (status: any) => void) => void;
+        onStatus: (callback: (status: any) => void) => void | (() => void);
         offStatus: () => void;
       };
       selectImage?: () => Promise<string[]>;
@@ -197,12 +231,14 @@ declare global {
       saveImageBuffer?: (buffer: ArrayBuffer) => Promise<string | null>;
       downloadImage?: (url: string) => Promise<string | null>;
       openImage?: (fileName: string) => Promise<boolean>;
+      // Image sync
       // 图片同步相关
       listImages?: () => Promise<string[]>;
       readImageBase64?: (fileName: string) => Promise<string | null>;
       saveImageBase64?: (fileName: string, base64: string) => Promise<boolean>;
       imageExists?: (fileName: string) => Promise<boolean>;
       clearImages?: () => Promise<boolean>;
+      // WebDAV (bypass CORS via main process)
       // WebDAV（通过主进程绕过 CORS）
       webdav?: {
         testConnection: (config: { url: string; username: string; password: string }) =>
@@ -214,10 +250,11 @@ declare global {
         download: (fileUrl: string, config: { url: string; username: string; password: string }) =>
           Promise<{ success: boolean; data?: string; notFound?: boolean; error?: string }>;
       };
+      // Shortcuts
       // 快捷键
       getShortcuts?: () => Promise<Record<string, string> | null>;
       setShortcuts?: (shortcuts: Record<string, string>) => Promise<boolean>;
-      onShortcutTriggered?: (callback: (action: string) => void) => void;
+      onShortcutTriggered?: (callback: (action: string) => void) => void | (() => void);
     };
   }
 }

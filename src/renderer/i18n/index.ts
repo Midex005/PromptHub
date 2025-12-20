@@ -8,7 +8,8 @@ import es from './locales/es.json';
 import de from './locales/de.json';
 import fr from './locales/fr.json';
 
-// 获取系统语言 / Get system language
+// Get system language
+// 获取系统语言
 const getSystemLanguage = (): string => {
   const lang = navigator.language.toLowerCase();
   if (lang === 'zh-tw' || lang === 'zh-hant') return 'zh-TW';
@@ -20,6 +21,7 @@ const getSystemLanguage = (): string => {
   return 'en';
 };
 
+// Get saved language settings (read from zustand persist store)
 // 获取保存的语言设置 (从 zustand persist store 读取)
 const getSavedLanguage = (): string | null => {
   try {
@@ -53,6 +55,7 @@ i18n
     },
   });
 
+// Change language
 // 切换语言
 export const changeLanguage = (lang: string) => {
   i18n.changeLanguage(lang);

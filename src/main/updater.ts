@@ -4,6 +4,7 @@ import { autoUpdater } from 'electron-updater';
 import fs from 'fs';
 import path from 'path';
 
+// Simplified update info type (for IPC transmission)
 // 简化的更新信息类型（用于 IPC 传输）
 interface SimpleUpdateInfo {
   version: string;
@@ -18,6 +19,7 @@ interface ProgressInfo {
   transferred: number;
 }
 
+// Compare version numbers, return 1 (a > b), -1 (a < b), 0 (a == b)
 // 比较版本号，返回 1 (a > b), -1 (a < b), 0 (a == b)
 function compareVersions(a: string, b: string): number {
   const partsA = a.replace(/^v/, '').split('.').map(Number);
@@ -32,6 +34,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+// Read changelog for specified version range from CHANGELOG.md
 // 从 CHANGELOG.md 读取指定版本区间的更新日志
 function getChangelogForVersionRange(newVersion: string, currentVersion: string): string {
   try {
@@ -41,12 +44,15 @@ function getChangelogForVersionRange(newVersion: string, currentVersion: string)
     if (isDev) {
       changelogPath = path.join(__dirname, '../../CHANGELOG.md');
     } else {
+      // After packaging, CHANGELOG.md is in resources directory
       // 打包后，CHANGELOG.md 在 resources 目录
       changelogPath = path.join(process.resourcesPath, 'CHANGELOG.md');
+      // If not exists, try app.asar.unpacked
       // 如果不存在，尝试 app.asar.unpacked
       if (!fs.existsSync(changelogPath)) {
         changelogPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'CHANGELOG.md');
       }
+      // Still not exists, try app directory
       // 还不存在，尝试 app 目录
       if (!fs.existsSync(changelogPath)) {
         changelogPath = path.join(app.getAppPath(), 'CHANGELOG.md');
@@ -60,6 +66,8 @@ function getChangelogForVersionRange(newVersion: string, currentVersion: string)
     
     const content = fs.readFileSync(changelogPath, 'utf-8');
     
+    // Parse CHANGELOG, extract all updates within version range
+    // Format: ## [0.2.9] - 2025-12-18
     // 解析 CHANGELOG，提取版本区间内的所有更新
     // 格式: ## [0.2.9] - 2025-12-18
     const versionRegex = /^## \[(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)\]/gm;
@@ -73,17 +81,20 @@ function getChangelogForVersionRange(newVersion: string, currentVersion: string)
       });
     }
     
+    // Find versions to include (greater than currentVersion and less than or equal to newVersion)
     // 找到需要包含的版本（大于 currentVersion 且小于等于 newVersion）
     const relevantSections: string[] = [];
     
     for (let i = 0; i < versions.length; i++) {
       const ver = versions[i].version;
+      // Version is in (currentVersion, newVersion] range
       // 版本在 (currentVersion, newVersion] 区间内
       if (compareVersions(ver, currentVersion) > 0 && compareVersions(ver, newVersion) <= 0) {
         const startIndex = versions[i].startIndex;
         const endIndex = versions[i + 1]?.startIndex || content.length;
         let section = content.slice(startIndex, endIndex).trim();
         
+        // Remove separator lines
         // 移除分隔线
         section = section.replace(/^---\s*$/gm, '').trim();
         
@@ -102,13 +113,16 @@ function getChangelogForVersionRange(newVersion: string, currentVersion: string)
   }
 }
 
+// Convert from electron-updater's UpdateInfo to simplified format
 // 从 electron-updater 的 UpdateInfo 转换为简化格式
 function toSimpleInfo(info: ElectronUpdateInfo): SimpleUpdateInfo {
   const currentVersion = app.getVersion();
   
+  // Prefer reading version range changelog from CHANGELOG.md
   // 优先从 CHANGELOG.md 读取版本区间的更新日志
   let releaseNotes = getChangelogForVersionRange(info.version, currentVersion);
   
+  // If CHANGELOG has no content, fallback to GitHub Release notes
   // 如果 CHANGELOG 没有内容，回退到 GitHub Release 的说明
   if (!releaseNotes) {
     if (typeof info.releaseNotes === 'string') {
@@ -129,7 +143,8 @@ function toSimpleInfo(info: ElectronUpdateInfo): SimpleUpdateInfo {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let lastPercent = 0; // 跟踪上次进度，防止进度回退
+let lastPercent = 0; // Track last progress to prevent regression
+// 跟踪上次进度，防止进度回退
 
 const isMac = process.platform === 'darwin';
 
@@ -143,17 +158,20 @@ export interface UpdateStatus {
 export function initUpdater(win: BrowserWindow) {
   mainWindow = win;
 
+  // Disable auto download, let user choose
   // 禁用自动下载，让用户选择
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
+  // Update check error
   // 检查更新出错
   autoUpdater.on('error', (error) => {
     console.error('Update error:', error);
     let message = (error && (error as Error).message) || String(error);
     if (message.includes('ZIP file not provided')) {
       message =
-        '自动更新需要 ZIP 安装包，但当前版本的 Release 中没有对应的 ZIP 文件。请前往 GitHub Releases 页面手动下载安装，或等待下一个版本修复自动更新。';
+        'Auto update requires ZIP installer, but current Release does not have corresponding ZIP file. Please go to GitHub Releases page to download manually, or wait for next version to fix auto update.';
+        // 自动更新需要 ZIP 安装包，但当前版本的 Release 中没有对应的 ZIP 文件。请前往 GitHub Releases 页面手动下载安装，或等待下一个版本修复自动更新。
     }
     sendStatusToWindow({
       status: 'error',
@@ -161,12 +179,14 @@ export function initUpdater(win: BrowserWindow) {
     });
   });
 
+  // Checking for update
   // 检查更新中
   autoUpdater.on('checking-for-update', () => {
     console.info('Checking for update...');
     sendStatusToWindow({ status: 'checking' });
   });
 
+  // Update available
   // 有可用更新
   autoUpdater.on('update-available', (info) => {
     console.info('Update available:', info.version);
@@ -176,6 +196,7 @@ export function initUpdater(win: BrowserWindow) {
     });
   });
 
+  // No update available
   // 没有可用更新
   autoUpdater.on('update-not-available', (info) => {
     console.info('Update not available, current version is latest');
@@ -185,10 +206,13 @@ export function initUpdater(win: BrowserWindow) {
     });
   });
 
+  // Download progress
   // 下载进度
   autoUpdater.on('download-progress', (progress: ProgressInfo) => {
+    // Prevent progress regression (electron-updater resets progress when downloading multiple files)
     // 防止进度回退（electron-updater 下载多个文件时会重置进度）
     if (progress.percent < lastPercent && lastPercent < 99) {
+      // Keep last progress when regression occurs
       // 进度回退时，保持上次进度
       console.info(`Download progress (ignored regression): ${progress.percent.toFixed(2)}% -> keeping ${lastPercent.toFixed(2)}%`);
       return;
@@ -201,6 +225,7 @@ export function initUpdater(win: BrowserWindow) {
     });
   });
 
+  // Download completed
   // 下载完成
   autoUpdater.on('update-downloaded', (info) => {
     console.info('Update downloaded:', info.version);
@@ -217,10 +242,12 @@ function sendStatusToWindow(status: UpdateStatus) {
   }
 }
 
+// Register IPC handlers
 // 注册 IPC 处理程序
 export function registerUpdaterIPC() {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+  // Get current version - always available
   // 获取当前版本 - 总是可用
   ipcMain.handle('updater:version', () => {
     return app.getVersion();
@@ -236,35 +263,43 @@ export function registerUpdaterIPC() {
       return { success: true, result };
     } catch (error) {
       const errMsg = (error as Error).message || String(error);
-      return { success: false, error: `检查更新失败: ${errMsg}\n\n请手动下载：https://github.com/legeling/PromptHub/releases` };
+      return { success: false, error: `Update check failed: ${errMsg}\n\nPlease download manually: https://github.com/legeling/PromptHub/releases` };
+      // 检查更新失败
     }
   });
 
+  // Start downloading update
   // 开始下载更新
   ipcMain.handle('updater:download', async () => {
     if (isDev) {
       return { success: false, error: 'Download disabled in development mode' };
     }
     try {
-      lastPercent = 0; // 重置进度跟踪
+      lastPercent = 0; // Reset progress tracking
+      // 重置进度跟踪
       await autoUpdater.downloadUpdate();
       return { success: true };
     } catch (error) {
       const errMsg = (error as Error).message || String(error);
-      return { success: false, error: `下载更新失败: ${errMsg}\n\n请手动下载：https://github.com/legeling/PromptHub/releases` };
+      return { success: false, error: `Download update failed: ${errMsg}\n\nPlease download manually: https://github.com/legeling/PromptHub/releases` };
+      // 下载更新失败
     }
   });
 
+  // Install update and restart
   // 安装更新并重启
   ipcMain.handle('updater:install', async () => {
     if (!isDev) {
       if (isMac) {
+        // macOS: open download directory for manual installation
+        // because auto install will fail without code signing
         // macOS: 打开下载目录让用户手动安装
         // 因为没有代码签名，自动安装会失败
         const downloadDir = app.getPath('downloads');
         shell.openPath(downloadDir);
         return { success: true, manual: true };
       } else {
+        // Windows/Linux: auto install
         // Windows/Linux: 自动安装
         autoUpdater.quitAndInstall(false, true);
         return { success: true, manual: false };
@@ -272,11 +307,13 @@ export function registerUpdaterIPC() {
     }
   });
 
+  // Get platform info
   // 获取平台信息
   ipcMain.handle('updater:platform', () => {
     return process.platform;
   });
 
+  // Open GitHub Releases page
   // 打开 GitHub Releases 页面
   ipcMain.handle('updater:openReleases', () => {
     shell.openExternal('https://github.com/legeling/PromptHub/releases');

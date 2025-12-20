@@ -1,4 +1,6 @@
 /**
+ * WebDAV main process handler module
+ * Sends requests through main process to bypass CORS restrictions
  * WebDAV 主进程处理模块
  * 通过主进程发送请求以绕过 CORS 限制
  */
@@ -22,6 +24,7 @@ interface WebDAVResponse {
 }
 
 /**
+ * Send WebDAV request (using Node.js http/https modules)
  * 发送 WebDAV 请求（使用 Node.js http/https 模块）
  */
 async function sendWebDAVRequest(
@@ -97,9 +100,11 @@ async function sendWebDAVRequest(
 }
 
 /**
+ * Register WebDAV IPC handlers
  * 注册 WebDAV IPC 处理器
  */
 export function registerWebDAVIPC() {
+  // Test connection
   // 测试连接
   ipcMain.handle('webdav:testConnection', async (_event, config: WebDAVConfig) => {
     const authHeader = 'Basic ' + Buffer.from(`${config.username}:${config.password}`).toString('base64');
@@ -112,18 +117,22 @@ export function registerWebDAVIPC() {
     );
 
     if (response.success || response.status === 207) {
-      return { success: true, message: '连接成功' };
+      return { success: true, message: 'Connection successful' };
+      // 连接成功
     } else if (response.status === 401) {
-      return { success: false, message: '认证失败，请检查用户名和密码' };
+      return { success: false, message: 'Authentication failed, please check username and password' };
+      // 认证失败，请检查用户名和密码
     } else {
-      return { success: false, message: `连接失败: ${response.status} ${response.statusText || response.error}` };
+      return { success: false, message: `Connection failed: ${response.status} ${response.statusText || response.error}` };
     }
   });
 
+  // Ensure directory exists
   // 确保目录存在
   ipcMain.handle('webdav:ensureDirectory', async (_event, url: string, config: WebDAVConfig) => {
     const authHeader = 'Basic ' + Buffer.from(`${config.username}:${config.password}`).toString('base64');
     
+    // Check whether directory exists
     // 检查目录是否存在
     const checkRes = await sendWebDAVRequest(
       'PROPFIND',
@@ -133,9 +142,11 @@ export function registerWebDAVIPC() {
     );
 
     if (checkRes.success || checkRes.status === 207) {
-      return { success: true }; // 目录已存在
+      return { success: true }; // Directory already exists
+      // 目录已存在
     }
 
+    // Create if missing
     // 不存在则创建
     const mkcolRes = await sendWebDAVRequest(
       'MKCOL',
@@ -146,6 +157,7 @@ export function registerWebDAVIPC() {
     return { success: mkcolRes.success || mkcolRes.status === 201 };
   });
 
+  // Upload file
   // 上传文件
   ipcMain.handle('webdav:upload', async (_event, fileUrl: string, config: WebDAVConfig, data: string) => {
     const authHeader = 'Basic ' + Buffer.from(`${config.username}:${config.password}`).toString('base64');
@@ -168,6 +180,7 @@ export function registerWebDAVIPC() {
     }
   });
 
+  // Download file
   // 下载文件
   ipcMain.handle('webdav:download', async (_event, fileUrl: string, config: WebDAVConfig) => {
     const authHeader = 'Basic ' + Buffer.from(`${config.username}:${config.password}`).toString('base64');

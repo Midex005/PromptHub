@@ -12,6 +12,7 @@ export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewMod
     const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
+        // Reset error state when image source changes
         // 重置错误状态当图片源改变时
         setImageError(false);
     }, [imageSrc]);
@@ -50,7 +51,7 @@ export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewMod
                 {imageError ? (
                     <div className="flex flex-col items-center justify-center p-12 bg-muted/20 rounded-lg text-muted-foreground">
                         <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
-                        <p className="text-sm">图片加载失败</p>
+                        <p className="text-sm">Image load failed / 图片加载失败</p>
                     </div>
                 ) : (
                     <img

@@ -39,7 +39,9 @@ export function PromptDetailModal({
     return !(lang.startsWith('zh'));
   }, [i18n.language]);
 
+  // Automatically select Prompt language based on UI language (if English version exists)
   // 根据界面语言自动选择 Prompt 语言（如果有英文版本）
+  // Note: Prompt currently only provides EN field, so non-Chinese interface defaults to showing English
   // 注意：Prompt 目前只提供 EN 字段，因此非中文界面默认优先显示英文
   useEffect(() => {
     if (!prompt) return;

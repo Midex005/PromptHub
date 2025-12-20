@@ -20,7 +20,7 @@ export function Select({
   value,
   onChange,
   options,
-  placeholder = '请选择',
+  placeholder = 'Select / 请选择',
   className = '',
   disabled = false,
 }: SelectProps) {
@@ -28,6 +28,7 @@ export function Select({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Close when clicking outside
   // 点击外部关闭
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,6 +40,7 @@ export function Select({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close on ESC
   // 按 ESC 键关闭
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -52,10 +54,12 @@ export function Select({
     }
   }, [isOpen]);
 
+  // Get current selected label
   // 获取当前选中项的标签
   const selectedOption = options.find((opt) => opt.value === value);
   const displayLabel = selectedOption?.label || placeholder;
 
+  // Group options
   // 按分组整理选项
   const groups = options.reduce((acc, opt) => {
     const group = opt.group || '';
@@ -68,6 +72,7 @@ export function Select({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
+      {/* Trigger button */}
       {/* 触发按钮 */}
       <button
         type="button"
@@ -92,6 +97,7 @@ export function Select({
         />
       </button>
 
+      {/* Dropdown menu */}
       {/* 下拉菜单 */}
       {isOpen && (
         <div
@@ -104,6 +110,7 @@ export function Select({
           style={{ maxHeight: '280px', overflowY: 'auto', zIndex: 9999 }}
         >
           {groupNames.length === 1 && groupNames[0] === '' ? (
+            // No grouping
             // 无分组
             <div className="py-1">
               {options.map((opt) => (
@@ -119,6 +126,7 @@ export function Select({
               ))}
             </div>
           ) : (
+            // With grouping
             // 有分组
             groupNames.map((groupName, idx) => (
               <div key={groupName || 'default'}>
@@ -150,6 +158,7 @@ export function Select({
   );
 }
 
+// Option item component
 // 选项组件
 function OptionItem({
   option,

@@ -56,6 +56,7 @@ interface SettingsPageProps {
   onBack: () => void;
 }
 
+// Settings menu items - use i18n keys instead of hardcoded text
 // 设置菜单项 - 使用 key 而非硬编码文本
 const SETTINGS_MENU = [
   { id: 'general', labelKey: 'settings.general', icon: SettingsIcon },
@@ -69,41 +70,56 @@ const SETTINGS_MENU = [
   { id: 'about', labelKey: 'settings.about', icon: InfoIcon },
 ];
 
+// AI model providers - support dynamic model input
 // AI 模型提供商 - 支持动态模型输入
 const AI_PROVIDERS = [
-  // === 顶级生图模型供应商 (2025) ===
-  { id: 'openai', name: 'OpenAI (GPT-Image / DALL-E)', defaultUrl: 'https://api.openai.com/v1', defaultModels: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1-preview', 'o1-mini'], imageModels: ['gpt-image-1', 'dall-e-3', 'dall-e-2'] },
-  { id: 'google', name: 'Nano Banana (Gemini)', defaultUrl: 'https://generativelanguage.googleapis.com/v1beta', defaultModels: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-1.5-pro'], imageModels: ['gemini-2.0-flash-exp-image', 'imagen-3.0-generate-002'] },
-  { id: 'flux', name: 'FLUX (Black Forest Labs)', defaultUrl: 'https://api.bfl.ai/v1', defaultModels: [], imageModels: ['flux-pro-1.1', 'flux-pro', 'flux-dev', 'flux-schnell', 'flux-kontext'] },
-  { id: 'ideogram', name: 'Ideogram', defaultUrl: 'https://api.ideogram.ai', defaultModels: [], imageModels: ['ideogram-v3', 'ideogram-v2-turbo', 'ideogram-v2'] },
-  { id: 'recraft', name: 'Recraft V3', defaultUrl: 'https://external.api.recraft.ai/v1', defaultModels: [], imageModels: ['recraft-v3', 'recraft-v3-svg'] },
-  { id: 'stability', name: 'Stability AI (SD3.5)', defaultUrl: 'https://api.stability.ai/v2beta', defaultModels: [], imageModels: ['sd3.5-large', 'sd3.5-large-turbo', 'sd3.5-medium', 'stable-image-ultra', 'stable-image-core'] },
-  { id: 'replicate', name: 'Replicate', defaultUrl: 'https://api.replicate.com/v1', defaultModels: [], imageModels: ['black-forest-labs/flux-1.1-pro', 'black-forest-labs/flux-schnell', 'stability-ai/sdxl'] },
-  // === 对话模型供应商 ===
-  { id: 'anthropic', name: 'Anthropic (Claude)', defaultUrl: 'https://api.anthropic.com/v1', defaultModels: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'] },
-  { id: 'xai', name: 'xAI (Grok)', defaultUrl: 'https://api.x.ai/v1', defaultModels: ['grok-beta', 'grok-2-1212'], imageModels: ['grok-2-image'] },
-  { id: 'mistral', name: 'Mistral AI', defaultUrl: 'https://api.mistral.ai/v1', defaultModels: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'] },
-  // 国内
-  { id: 'deepseek', name: 'DeepSeek (深度求索)', defaultUrl: 'https://api.deepseek.com/v1', defaultModels: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'] },
-  { id: 'moonshot', name: 'Moonshot (Kimi)', defaultUrl: 'https://api.moonshot.cn/v1', defaultModels: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'] },
-  { id: 'zhipu', name: '智谱 AI (GLM)', defaultUrl: 'https://open.bigmodel.cn/api/paas/v4', defaultModels: ['glm-4-plus', 'glm-4', 'glm-4-flash', 'glm-4v'] },
-  { id: 'qwen', name: '通义千问 (阿里)', defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModels: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-long'] },
-  { id: 'ernie', name: '文心一言 (百度)', defaultUrl: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop', defaultModels: ['ernie-4.0-8k', 'ernie-3.5-8k', 'ernie-speed-8k'] },
-  { id: 'spark', name: '讯飞星火', defaultUrl: 'https://spark-api-open.xf-yun.com/v1', defaultModels: ['generalv3.5', 'generalv3', 'generalv2'] },
-  { id: 'doubao', name: '豆包 (字节)', defaultUrl: 'https://ark.cn-beijing.volces.com/api/v3', defaultModels: ['doubao-pro-32k', 'doubao-lite-32k'] },
-  { id: 'baichuan', name: '百川智能', defaultUrl: 'https://api.baichuan-ai.com/v1', defaultModels: ['Baichuan4', 'Baichuan3-Turbo', 'Baichuan2-Turbo'] },
-  { id: 'minimax', name: 'MiniMax', defaultUrl: 'https://api.minimax.chat/v1', defaultModels: ['abab6.5s-chat', 'abab6-chat', 'abab5.5-chat'] },
-  { id: 'stepfun', name: '阶跃星辰', defaultUrl: 'https://api.stepfun.com/v1', defaultModels: ['step-1-200k', 'step-1-32k', 'step-1v-32k'] },
-  { id: 'yi', name: '零一万物 (Yi)', defaultUrl: 'https://api.lingyiwanwu.com/v1', defaultModels: ['yi-large', 'yi-medium', 'yi-spark'] },
-  { id: 'azure', name: 'Azure OpenAI', defaultUrl: '', defaultModels: ['gpt-4o', 'gpt-4', 'gpt-35-turbo'] },
-  { id: 'ollama', name: 'Ollama (本地)', defaultUrl: 'http://localhost:11434/v1', defaultModels: ['llama3', 'mistral', 'codellama', 'qwen2'] },
-  { id: 'custom', name: '自定义 (OpenAI 兼容)', defaultUrl: '', defaultModels: [] },
+  // International / 国际
+  { id: 'openai', name: 'OpenAI', defaultUrl: 'https://api.openai.com', group: 'International / 国际' },
+  { id: 'google', name: 'Google (Gemini)', defaultUrl: 'https://generativelanguage.googleapis.com', group: 'International / 国际' },
+  { id: 'anthropic', name: 'Anthropic (Claude)', defaultUrl: 'https://api.anthropic.com', group: 'International / 国际' },
+  { id: 'xai', name: 'xAI (Grok)', defaultUrl: 'https://api.x.ai', group: 'International / 国际' },
+  { id: 'mistral', name: 'Mistral AI', defaultUrl: 'https://api.mistral.ai', group: 'International / 国际' },
+  
+  // Domestic / 国内
+  { id: 'deepseek', name: 'DeepSeek (深度求索)', defaultUrl: 'https://api.deepseek.com', group: 'Domestic / 国内' },
+  { id: 'moonshot', name: 'Moonshot (Kimi)', defaultUrl: 'https://api.moonshot.cn', group: 'Domestic / 国内' },
+  { id: 'zhipu', name: '智谱 AI (GLM)', defaultUrl: 'https://open.bigmodel.cn/api/paas', group: 'Domestic / 国内' },
+  { id: 'qwen', name: '通义千问 (阿里)', defaultUrl: 'https://dashscope.aliyuncs.com/compatible-mode', group: 'Domestic / 国内' },
+  { id: 'ernie', name: '文心一言 (百度)', defaultUrl: 'https://qianfan.baidubce.com/v2', group: 'Domestic / 国内' },
+  { id: 'spark', name: '讯飞星火', defaultUrl: 'https://spark-api-open.xf-yun.com', group: 'Domestic / 国内' },
+  { id: 'doubao', name: '豆包 (字节)', defaultUrl: 'https://ark.cn-beijing.volces.com/api', group: 'Domestic / 国内' },
+  { id: 'baichuan', name: '百川智能', defaultUrl: 'https://api.baichuan-ai.com', group: 'Domestic / 国内' },
+  { id: 'minimax', name: 'MiniMax', defaultUrl: 'https://api.minimax.chat', group: 'Domestic / 国内' },
+  { id: 'stepfun', name: '阶跃星辰', defaultUrl: 'https://api.stepfun.com', group: 'Domestic / 国内' },
+  { id: 'yi', name: '零一万物 (Yi)', defaultUrl: 'https://api.lingyiwanwu.com', group: 'Domestic / 国内' },
+  
+  // Other / 其他
+  { id: 'azure', name: 'Azure OpenAI', defaultUrl: '', group: 'Other / 其他' },
+  { id: 'ollama', name: 'Ollama (本地)', defaultUrl: 'http://localhost:11434', group: 'Other / 其他' },
+  { id: 'custom', name: '自定义 (OpenAI 兼容)', defaultUrl: '', group: 'Other / 其他' },
+];
+
+const AI_IMAGE_PROVIDERS = [
+  // International / 国际
+  { id: 'openai', name: 'OpenAI (GPT-Image / DALL-E)', defaultUrl: 'https://api.openai.com', group: 'International / 国际' },
+  { id: 'google', name: 'Google (nanobananai 🍌 / Imagen)', defaultUrl: 'https://generativelanguage.googleapis.com', group: 'International / 国际' },
+  { id: 'flux', name: 'FLUX (Black Forest Labs)', defaultUrl: 'https://api.bfl.ai', group: 'International / 国际' },
+  { id: 'ideogram', name: 'Ideogram', defaultUrl: 'https://api.ideogram.ai', group: 'International / 国际' },
+  { id: 'recraft', name: 'Recraft V3', defaultUrl: 'https://external.api.recraft.ai', group: 'International / 国际' },
+  { id: 'stability', name: 'Stability AI (SD3.5)', defaultUrl: 'https://api.stability.ai', group: 'International / 国际' },
+  { id: 'replicate', name: 'Replicate', defaultUrl: 'https://api.replicate.com', group: 'International / 国际' },
+  { id: 'xai', name: 'xAI (Grok)', defaultUrl: 'https://api.x.ai', group: 'International / 国际' },
+  
+  // Other / 其他
+  { id: 'azure', name: 'Azure OpenAI', defaultUrl: '', group: 'Other / 其他' },
+  { id: 'custom', name: '自定义 (OpenAI 兼容)', defaultUrl: '', group: 'Other / 其他' },
 ];
 
 type ImageSize = '256x256' | '512x512' | '1024x1024' | '1024x1792' | '1792x1024';
 type ImageQuality = 'standard' | 'hd';
 type ImageStyle = 'vivid' | 'natural';
 
+// Shortcut input component
 // 快捷键输入组件
 function ShortcutItem({
   label,
@@ -153,6 +169,7 @@ function ShortcutItem({
 
     setTempKeys(keys);
 
+    // Finish recording when there are modifiers and a regular key
     // 如果有修饰键和普通键，完成录制
     if (keys.length >= 2 && !['CONTROL', 'ALT', 'SHIFT', 'META'].includes(key)) {
       const shortcutStr = keys.join('+');
@@ -208,6 +225,7 @@ function ShortcutItem({
   );
 }
 
+// Reusable password input component
 // 可复用的密码输入组件
 function PasswordInput({ 
   value, 
@@ -246,9 +264,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   
+  // Use settings store
   // 使用 settings store
   const settings = useSettingsStore();
   
+  // AI test state
   // AI 测试状态
   const [aiTesting, setAiTesting] = useState(false);
   const [aiTestResult, setAiTestResult] = useState<AITestResult | null>(null);
@@ -257,6 +277,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [compareTesting, setCompareTesting] = useState(false);
   const [compareResult, setCompareResult] = useState<AITestResult | null>(null);
 
+  // Image test state
   // 图像测试状态
   const [imageTesting, setImageTesting] = useState(false);
   const [imageTestResult, setImageTestResult] = useState<ImageTestResult | null>(null);
@@ -265,11 +286,13 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [imageQuality, setImageQuality] = useState<ImageQuality>('standard');
   const [imageStyle, setImageStyle] = useState<ImageStyle>('vivid');
 
+  // Multi-model configuration state
   // 多模型配置状态
   const [showAddChatModel, setShowAddChatModel] = useState(false);
   const [showAddImageModel, setShowAddImageModel] = useState(false);
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
   
+  // Update dialog state
   // 更新对话框状态
   const [appVersion, setAppVersion] = useState<string>('');
   const [editingModelType, setEditingModelType] = useState<'chat' | 'image'>('chat');
@@ -280,7 +303,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     apiUrl: '',
     model: '',
   });
-  // 对话模型参数配置状态 / Chat model parameters state
+  // Chat model parameters state
+  // 对话模型参数配置状态
   const [chatParams, setChatParams] = useState({
     temperature: 0.7,
     maxTokens: 2048,
@@ -291,17 +315,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     stream: false,
     enableThinking: false,
   });
-  // 图像模型参数配置状态 / Image model parameters state
+  // Image model parameters state
+  // 图像模型参数配置状态
   const [imageParams, setImageParams] = useState({
     size: '1024x1024',
     quality: 'standard' as 'standard' | 'hd',
     style: 'vivid' as 'vivid' | 'natural',
     n: 1,
   });
-  // 是否显示高级参数 / Show advanced parameters
+  // Show advanced parameters
+  // 是否显示高级参数
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [testingModelId, setTestingModelId] = useState<string | null>(null);
 
+  // Model list fetching state (chat models)
   // 获取模型列表状态（对话模型）
   const [fetchingModels, setFetchingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
@@ -309,6 +336,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   
+  // Model list fetching state (image models)
   // 获取模型列表状态（生图模型）
   const [fetchingImageModels, setFetchingImageModels] = useState(false);
   const [availableImageModels, setAvailableImageModels] = useState<ModelInfo[]>([]);
@@ -316,23 +344,28 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [imageModelSearchQuery, setImageModelSearchQuery] = useState('');
   const [collapsedImageCategories, setCollapsedImageCategories] = useState<Set<string>>(new Set());
   
+  // Image test result modal
   // 生图测试结果弹窗
   const [imageTestModalResult, setImageTestModalResult] = useState<ImageTestResult | null>(null);
 
+  // WebDAV operation state
   // WebDAV 操作状态
   const [webdavTesting, setWebdavTesting] = useState(false);
   const [webdavUploading, setWebdavUploading] = useState(false);
   const [webdavDownloading, setWebdavDownloading] = useState(false);
 
+  // Separate chat models and image models
   // 分离对话模型和生图模型
   const chatModels = settings.aiModels.filter(m => m.type === 'chat' || !m.type);
   const imageModels = settings.aiModels.filter(m => m.type === 'image');
 
+  // Get application version
   // 获取应用版本号
   useEffect(() => {
     window.electron?.updater?.getVersion().then((v) => setAppVersion(v || ''));
   }, []);
 
+  // Security / master password
   // 安全 / 主密码
   const [securityStatus, setSecurityStatus] = useState<{ configured: boolean; unlocked: boolean }>({ configured: false, unlocked: false });
   const [newMasterPwd, setNewMasterPwd] = useState('');
@@ -344,17 +377,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [newPwd, setNewPwd] = useState('');
   const [newPwdConfirm, setNewPwdConfirm] = useState('');
   
+  // Clear data confirm modal
   // 清除数据确认弹窗
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearPwd, setClearPwd] = useState('');
   const [clearLoading, setClearLoading] = useState(false);
 
-  // 流式输出状态 / Streaming output state
+  // Streaming output state
+  // 流式输出状态
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingThinking, setStreamingThinking] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // 快捷键状态 / Shortcut state
+  // Shortcut state
+  // 快捷键状态
   const [shortcuts, setShortcuts] = useState<Record<string, string>>({
     showApp: 'CommandOrControl+Shift+P',
     newPrompt: 'CommandOrControl+N',
@@ -364,6 +400,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [shortcutConflicts, setShortcutConflicts] = useState<Record<string, string | undefined>>({});
   const [recordingShortcut, setRecordingShortcut] = useState<string | null>(null);
 
+  // Load shortcut settings
   // 加载快捷键设置
   useEffect(() => {
     window.electron?.getShortcuts?.().then((savedShortcuts) => {
@@ -373,6 +410,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     });
   }, []);
 
+  // Check shortcut conflicts
   // 检查快捷键冲突
   const checkShortcutConflict = (key: string, shortcut: string): string | undefined => {
     for (const [k, v] of Object.entries(shortcuts)) {
@@ -383,6 +421,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     return undefined;
   };
 
+  // Handle shortcut change
   // 处理快捷键更改
   const handleShortcutChange = async (key: string, shortcut: string) => {
     const conflict = checkShortcutConflict(key, shortcut);
@@ -398,6 +437,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     showToast(t('settings.shortcutUpdated'), 'success');
   };
 
+  // Clear shortcut
   // 清除快捷键
   const handleShortcutClear = async (key: string) => {
     const newShortcuts = { ...shortcuts, [key]: '' };
@@ -407,8 +447,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     showToast(t('settings.shortcutCleared'), 'success');
   };
 
-  // 测试单个对话模型（支持流式输出和参数配置）
   // Test single chat model (supports streaming and parameter config)
+  // 测试单个对话模型（支持流式输出和参数配置）
   const handleTestModel = async (model: typeof settings.aiModels[0]) => {
     setTestingModelId(model.id);
     setAiTestResult(null);
@@ -530,6 +570,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
     setSecLoading(true);
     try {
+      // Verify old password first
       // 先验证旧密码
       const unlockResult = await window.api.security.unlock(oldPwd);
       if (!unlockResult.success) {
@@ -537,6 +578,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         setSecLoading(false);
         return;
       }
+      // Reset master password
       // 重设主密码
       await window.api.security.setMasterPassword(newPwd);
       await refreshSecurityStatus();
@@ -552,6 +594,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
 
+  // Test a single image model
   // 测试单个生图模型
   const handleTestImageModel = async (model: typeof settings.aiModels[0]) => {
     setTestingModelId(model.id);
@@ -565,10 +608,12 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     
     setTestingModelId(null);
     
+    // Show result modal
     // 显示结果弹窗
     setImageTestModalResult(result);
   };
 
+  // Fetch available model list (chat models)
   // 获取可用模型列表（对话模型）
   const handleFetchModels = async () => {
     if (!newModel.apiKey || !newModel.apiUrl) {
@@ -593,6 +638,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
   
+  // Fetch available model list (image models)
   // 获取可用模型列表（生图模型）
   const handleFetchImageModels = async () => {
     if (!newModel.apiKey || !newModel.apiUrl) {
@@ -616,6 +662,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
 
+  // Add selected model (chat models)
   // 添加选中的模型（对话模型）
   const handleAddModel = (modelId: string) => {
     if (!newModel.apiKey || !newModel.apiUrl) {
@@ -623,6 +670,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       return;
     }
     
+    // Add model to list
     // 添加模型到列表
     settings.addAiModel({
       name: modelId,
@@ -635,6 +683,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     showToast(t('settings.modelAdded'), 'success');
   };
   
+  // Add selected model (image models)
   // 添加选中的模型（生图模型）
   const handleAddImageModel = (modelId: string) => {
     if (!newModel.apiKey || !newModel.apiUrl) {
@@ -642,6 +691,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       return;
     }
     
+    // Add model to list
     // 添加模型到列表
     settings.addAiModel({
       name: modelId,
@@ -654,18 +704,21 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     showToast(t('settings.modelAdded'), 'success');
   };
 
+  // Filter model list (chat models)
   // 过滤模型列表（对话模型）
   const filteredModels = availableModels.filter((m) => 
     m.id.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
     m.owned_by?.toLowerCase().includes(modelSearchQuery.toLowerCase())
   );
   
+  // Filter model list (image models)
   // 过滤模型列表（生图模型）
   const filteredImageModels = availableImageModels.filter((m) => 
     m.id.toLowerCase().includes(imageModelSearchQuery.toLowerCase()) ||
     m.owned_by?.toLowerCase().includes(imageModelSearchQuery.toLowerCase())
   );
 
+  // Model categorization config: prefer matching specific providers by owned_by/id keywords
   // 模型分类配置：优先按 owned_by / id 关键字匹配到具体供应商
   const MODEL_CATEGORY_CONFIG: { category: string; idKeywords?: string[]; ownerKeywords?: string[] }[] = [
     { category: 'GPT', idKeywords: ['gpt', 'o1-', 'o3-'], ownerKeywords: ['openai'] },
@@ -674,21 +727,28 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     { category: 'DeepSeek', idKeywords: ['deepseek'], ownerKeywords: ['deepseek'] },
     { category: 'Qwen', idKeywords: ['qwen', 'qwq'], ownerKeywords: ['qwen', 'aliyun', 'dashscope'] },
     { category: 'Doubao', idKeywords: ['doubao'], ownerKeywords: ['doubao', 'volcengine'] },
-    { category: 'GLM', idKeywords: ['glm'], ownerKeywords: ['zhipu'] },
+    { category: 'GLM', idKeywords: ['glm', 'zhipu'], ownerKeywords: ['zhipu'] },
     { category: 'Moonshot', idKeywords: ['moonshot', 'kimi'], ownerKeywords: ['moonshot'] },
     { category: 'Llama', idKeywords: ['llama'], ownerKeywords: ['meta', 'llama'] },
     { category: 'Mistral', idKeywords: ['mistral', 'mixtral'], ownerKeywords: ['mistral'] },
     { category: 'Yi', idKeywords: ['yi-'], ownerKeywords: ['01-ai', 'zeroone', 'zero-one'] },
-    { category: 'ERNIE', idKeywords: ['ernie'], ownerKeywords: ['baidu', 'wenxin'] },
-    { category: 'Spark', idKeywords: ['spark'], ownerKeywords: ['xunfei', 'iflytek'] },
+    { category: 'ERNIE', idKeywords: ['ernie', 'wenxin'], ownerKeywords: ['baidu', 'wenxin'] },
+    { category: 'Spark', idKeywords: ['spark', 'xunfei'], ownerKeywords: ['xunfei', 'iflytek'] },
     { category: 'Baichuan', idKeywords: ['baichuan'], ownerKeywords: ['baichuan'] },
+    { category: 'Hunyuan', idKeywords: ['hunyuan'], ownerKeywords: ['tencent'] },
+    { category: 'Minimax', idKeywords: ['minimax', 'abab'], ownerKeywords: ['minimax'] },
+    { category: 'Stepfun', idKeywords: ['step-', 'stepfun'], ownerKeywords: ['stepfun'] },
   ];
 
+  // Model categorization: prefer config; fallback to general heuristics
   // 模型分类函数：配置优先，失败再按通用规则降级
-  const getModelCategory = (model: ModelInfo): string => {
-    const id = model.id.toLowerCase();
+  const getModelCategory = (model: any): string => {
+    // If it's an AIConfig (configured model), use model.model as the ID
+    // If it's a ModelInfo (available model), use model.id as the ID
+    const id = (model.model || model.id || '').toLowerCase();
     const owner = model.owned_by?.toLowerCase() || '';
 
+    // 1) Match provider by owned_by
     // 1. 先按 owned_by 匹配供应商
     for (const item of MODEL_CATEGORY_CONFIG) {
       if (item.ownerKeywords && item.ownerKeywords.some((k) => owner.includes(k))) {
@@ -696,6 +756,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       }
     }
 
+    // 2) Match provider by id keywords
     // 2. 再按 id 关键字匹配供应商
     for (const item of MODEL_CATEGORY_CONFIG) {
       if (item.idKeywords && item.idKeywords.some((k) => id.includes(k))) {
@@ -703,6 +764,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       }
     }
 
+    // 3) Fallback by model type
     // 3. 按模型类型降级分类
     if (id.includes('embedding') || id.includes('text-embedding')) return 'Embedding';
     if (id.includes('whisper') || id.includes('tts')) return 'Audio';
@@ -711,6 +773,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     return 'Other';
   };
 
+  // Group models by category
   // 按分类组织模型
   const categorizedModels = filteredModels.reduce((acc, model) => {
     const category = getModelCategory(model);
@@ -719,6 +782,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     return acc;
   }, {} as Record<string, ModelInfo[]>);
 
+  // Category ordering (common first)
   // 分类排序（常用的在前）
   const categoryOrder = ['GPT', 'Claude', 'Gemini', 'DeepSeek', 'Qwen', 'Doubao', 'GLM', 'Moonshot', 'Llama', 'Mistral', 'Yi', 'ERNIE', 'Spark', 'Baichuan', 'Embedding', 'Audio', 'Image', 'Other'];
   const sortedCategories = Object.keys(categorizedModels).sort((a, b) => {
@@ -727,6 +791,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
   });
 
+  // Toggle category collapse state (chat models)
   // 切换分类折叠状态（对话模型）
   const toggleCategory = (category: string) => {
     setCollapsedCategories(prev => {
@@ -740,6 +805,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     });
   };
   
+  // Toggle category collapse state (image models)
   // 切换分类折叠状态（生图模型）
   const toggleImageCategory = (category: string) => {
     setCollapsedImageCategories(prev => {
@@ -753,52 +819,68 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     });
   };
   
+  // Group image models by category
   // 按分类组织生图模型
   const categorizedImageModels = filteredImageModels.reduce((acc, model) => {
-    const category = getModelCategory(model);
+    let category = getModelCategory(model);
+    // Rename Gemini to nanobananai 🍌 for image models to avoid confusion with text models
+    // 在生图模型中，将 Gemini 改名为 nanobananai 🍌，避免与文本模型混淆
+    if (category === 'Gemini') {
+      category = 'nanobananai 🍌';
+    }
     if (!acc[category]) acc[category] = [];
     acc[category].push(model);
     return acc;
   }, {} as Record<string, ModelInfo[]>);
   
+  // Image model category ordering
   // 生图模型分类排序
+  const imageCategoryOrder = categoryOrder.map(c => c === 'Gemini' ? 'nanobananai 🍌' : c);
   const sortedImageCategories = Object.keys(categorizedImageModels).sort((a, b) => {
-    const indexA = categoryOrder.indexOf(a);
-    const indexB = categoryOrder.indexOf(b);
+    const indexA = imageCategoryOrder.indexOf(a);
+    const indexB = imageCategoryOrder.indexOf(b);
     return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
   });
 
+  // Compute preview URLs
   // 计算预览 URL
   const previewBaseUrl = getBaseUrl(newModel.apiUrl);
   const previewEndpoint = getApiEndpointPreview(newModel.apiUrl);
   const previewImageEndpoint = getImageApiEndpointPreview(newModel.apiUrl);
 
+  // Group added models by provider (API URL)
   // 按供应商（API URL）分组已添加的模型
   const groupedChatModels = chatModels.reduce((acc, model) => {
     const key = model.apiUrl || 'unknown';
     if (!acc[key]) {
+      const providerInfo = AI_PROVIDERS.find(p => p.id === model.provider);
       acc[key] = {
-        provider: AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider,
+        provider: providerInfo?.name || model.provider,
+        providerId: model.provider,
         models: []
       };
     }
     acc[key].models.push(model);
     return acc;
-  }, {} as Record<string, { provider: string; models: typeof chatModels }>);
+  }, {} as Record<string, { provider: string; providerId: string; models: typeof chatModels }>);
 
+  // Group image models by provider
   // 按供应商分组生图模型
   const groupedImageModels = imageModels.reduce((acc, model) => {
     const key = model.apiUrl || 'unknown';
     if (!acc[key]) {
+      const providerInfo = AI_IMAGE_PROVIDERS.find(p => p.id === model.provider);
       acc[key] = {
-        provider: AI_PROVIDERS.find(p => p.id === model.provider)?.name || model.provider,
+        provider: providerInfo?.name || model.provider,
+        providerId: model.provider,
         models: []
       };
     }
     acc[key].models.push(model);
     return acc;
-  }, {} as Record<string, { provider: string; models: typeof imageModels }>);
+  }, {} as Record<string, { provider: string; providerId: string; models: typeof imageModels }>);
 
+  // Provider collapse state
   // 供应商折叠状态
   const [collapsedProviders, setCollapsedProviders] = useState<Set<string>>(new Set());
   
@@ -814,6 +896,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     });
   };
 
+  // AI test helper
   // AI 测试函数
   const handleTestAI = async () => {
     if (!settings.aiApiKey || !settings.aiApiUrl || !settings.aiModel) {
@@ -841,6 +924,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
 
+  // Compare test helper
   // 对比测试函数
   const handleCompareTest = async () => {
     if (!settings.aiApiKey || !compareConfig.apiKey) {
@@ -853,6 +937,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     setAiTestResult(null);
     setCompareResult(null);
     
+    // Test both models in parallel
     // 并行测试两个模型
     const [result1, result2] = await Promise.all([
       testAIConnection({
@@ -904,11 +989,13 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     }
   };
 
+  // Initialize security status
   // 初始化安全状态
   useEffect(() => {
     refreshSecurityStatus();
   }, []);
 
+  // Export/backup options
   // 数据导出/备份选项
   const [exportScope, setExportScope] = useState({
     prompts: true,
@@ -964,11 +1051,13 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   };
 
   const handleClearData = async () => {
+    // If master password is configured, require verification first
     // 如果已设置主密码，需要先验证
     if (securityStatus.configured) {
       setShowClearConfirm(true);
       return;
     }
+    // If master password is not configured, prompt to set it first
     // 未设置主密码时，提示需要先设置
     showToast(t('settings.clearNeedPassword') || '清除数据属于高危操作，请先在安全设置中设置主密码', 'error');
   };
@@ -981,6 +1070,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     
     setClearLoading(true);
     try {
+      // Verify password
       // 验证密码
       const result = await window.api.security.unlock(clearPwd);
       if (!result.success) {
@@ -989,6 +1079,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         return;
       }
       
+      // Password verified; proceed to clear
       // 密码正确，执行清除
       await clearDatabase();
       showToast(t('toast.clearSuccess'), 'success');
@@ -1030,6 +1121,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   onChange={settings.setMinimizeOnLaunch}
                 />
               </SettingItem>
+              {/* Windows close behavior settings */}
               {/* Windows 关闭行为设置 */}
               {navigator.platform.toLowerCase().includes('win') && (
                 <SettingItem
@@ -1357,17 +1449,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     onClick={async () => {
                       const newPath = await window.electron?.selectFolder?.();
                       if (newPath) {
+                        // Confirm migration
                         // 确认迁移
                         const confirmed = window.confirm(
                           t('settings.confirmDataMigration', '确定要将数据迁移到新目录吗？\n\n迁移完成后需要重启应用。')
                         );
                         if (!confirmed) return;
                         
+                        // Execute migration
                         // 执行迁移
                         const result = await window.electron?.migrateData?.(newPath);
                         if (result?.success) {
                           settings.setDataPath(newPath);
                           showToast(t('toast.dataPathChanged') + ' ' + t('settings.restartRequired', '请重启应用'), 'success');
+                          // Prompt for restart
                           // 提示重启
                           setTimeout(() => {
                             if (window.confirm(t('settings.restartNow', '数据迁移完成，是否立即重启应用？'))) {
@@ -1651,7 +1746,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
 
             <SettingSection title={t('settings.backup')}>
               {/* 选择性导出（只导出） */}
-              <div className="p-4 space-y-3 border border-border/60 rounded-xl bg-muted/20">
+              <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{t('settings.selectiveExport', '选择性导出')}</div>
@@ -1699,7 +1794,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               </div>
 
               {/* 全量备份/恢复 */}
-              <div className="p-4 space-y-3 border border-border/60 rounded-xl bg-muted/20">
+              <div className="p-4 space-y-3 border-t border-border">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{t('settings.fullBackup', '全量备份 / 恢复')}</div>
@@ -1774,6 +1869,27 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                               ) : (
                                 <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
                               )}
+                              <span className="flex-shrink-0">
+                                {getCategoryIcon(
+                                  group.providerId === 'custom' || group.providerId === 'azure' || group.providerId === 'ollama'
+                                    ? group.models.length > 0 ? getModelCategory(group.models[0]) : 'Other'
+                                    : group.providerId === 'openai' ? 'GPT' :
+                                      group.providerId === 'google' ? 'Gemini' :
+                                      group.providerId === 'anthropic' ? 'Claude' :
+                                      group.providerId === 'deepseek' ? 'DeepSeek' :
+                                      group.providerId === 'moonshot' ? 'Moonshot' :
+                                      group.providerId === 'zhipu' ? 'GLM' :
+                                      group.providerId === 'qwen' ? 'Qwen' :
+                                      group.providerId === 'doubao' ? 'Doubao' :
+                                      group.providerId === 'mistral' ? 'Mistral' :
+                                      group.providerId === 'baichuan' ? 'Baichuan' :
+                                      group.providerId === 'yi' ? 'Yi' :
+                                      group.providerId === 'ernie' ? 'ERNIE' :
+                                      group.providerId === 'spark' ? 'Spark' :
+                                      group.provider, 
+                                  18
+                                )}
+                              </span>
                               <span className="font-medium text-sm">{group.provider}</span>
                               <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
                                 {group.models.length}
@@ -1797,15 +1913,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                     model.isDefault ? 'bg-primary/5' : ''
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    {model.isDefault && (
-                                      <StarIcon className="w-3.5 h-3.5 text-primary fill-primary" />
-                                    )}
-                                    <div>
-                                      <div className="font-medium text-sm">{model.name || model.model}</div>
-                                      {model.name && (
-                                        <div className="text-xs text-muted-foreground">{model.model}</div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                      {getCategoryIcon(getModelCategory(model), 20)}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {model.isDefault && (
+                                        <StarIcon className="w-3.5 h-3.5 text-primary fill-primary" />
                                       )}
+                                      <div>
+                                        <div className="font-medium text-sm">{model.name || model.model}</div>
+                                        {model.name && (
+                                          <div className="text-xs text-muted-foreground">{model.model}</div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -1841,7 +1962,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                           apiUrl: model.apiUrl,
                                           model: model.model,
                                         });
-                                        // 加载已保存的参数 / Load saved parameters
+                                        // Load saved parameters
+                                        // 加载已保存的参数
                                         if (model.chatParams) {
                                           setChatParams({
                                             temperature: model.chatParams.temperature ?? 0.7,
@@ -1923,10 +2045,9 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                             ...newModel,
                             provider: value,
                             apiUrl: provider?.defaultUrl || '',
-                            model: provider?.defaultModels[0] || '',
                           });
                         }}
-                        options={AI_PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
+                        options={AI_PROVIDERS.map((p) => ({ value: p.id, label: p.name, group: p.group }))}
                       />
                     </div>
                     <div>
@@ -1939,18 +2060,30 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiUrl')}</label>
+                      <label className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
+                        <span>{t('settings.apiUrl')}</span>
+                        <span className="text-[10px] opacity-60 font-normal">
+                          {t('settings.apiUrlHint')}
+                        </span>
+                      </label>
                       <input
                         type="text"
                         placeholder={t('settings.apiUrlPlaceholder')}
                         value={newModel.apiUrl}
                         onChange={(e) => setNewModel({ ...newModel, apiUrl: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm focus:ring-1 focus:ring-primary/30 transition-shadow"
                       />
                       {newModel.apiUrl && (
-                        <p className="text-xs text-muted-foreground mt-1.5">
-                          <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
-                          <span className="font-mono text-primary">{previewEndpoint}</span>
+                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
+                          <span className="flex-1 min-w-0">
+                            <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
+                            <span className="font-mono text-primary break-all">{previewEndpoint}</span>
+                          </span>
+                          {newModel.apiUrl.endsWith('#') && (
+                            <span className="ml-2 flex-shrink-0 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded border border-amber-500/20 animate-in fade-in zoom-in-95">
+                              {t('settings.autoFillDisabled')}
+                            </span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -2126,7 +2259,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                           showToast(t('settings.fillComplete'), 'error');
                           return;
                         }
-                        // 构建包含参数的模型配置 / Build model config with parameters
+                        // Build model config with parameters
+                        // 构建包含参数的模型配置
                         const modelConfig = {
                           ...newModel,
                           type: 'chat' as const,
@@ -2197,6 +2331,27 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                               ) : (
                                 <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
                               )}
+                              <span className="flex-shrink-0">
+                                {getCategoryIcon(
+                                  group.providerId === 'custom' || group.providerId === 'azure' || group.providerId === 'ollama'
+                                    ? group.models.length > 0 ? getModelCategory(group.models[0]) : 'Other'
+                                    : group.providerId === 'openai' ? 'GPT' :
+                                      group.providerId === 'google' ? 'nanobananai 🍌' :
+                                      group.providerId === 'anthropic' ? 'Claude' :
+                                      group.providerId === 'deepseek' ? 'DeepSeek' :
+                                      group.providerId === 'moonshot' ? 'Moonshot' :
+                                      group.providerId === 'zhipu' ? 'GLM' :
+                                      group.providerId === 'qwen' ? 'Qwen' :
+                                      group.providerId === 'doubao' ? 'Doubao' :
+                                      group.providerId === 'mistral' ? 'Mistral' :
+                                      group.providerId === 'baichuan' ? 'Baichuan' :
+                                      group.providerId === 'yi' ? 'Yi' :
+                                      group.providerId === 'ernie' ? 'ERNIE' :
+                                      group.providerId === 'spark' ? 'Spark' :
+                                      group.provider, 
+                                  18
+                                )}
+                              </span>
                               <span className="font-medium text-sm">{group.provider}</span>
                               <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
                                 {group.models.length}
@@ -2215,15 +2370,20 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                   key={model.id}
                                   className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    {model.isDefault && (
-                                      <StarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                    )}
-                                    <div>
-                                      <div className="font-medium text-sm">{model.name || model.model}</div>
-                                      {model.name && (
-                                        <div className="text-xs text-muted-foreground">{model.model}</div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0">
+                                      {getCategoryIcon(model.type === 'image' && getModelCategory(model) === 'Gemini' ? 'nanobananai 🍌' : getModelCategory(model), 20)}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {model.isDefault && (
+                                        <StarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                       )}
+                                      <div>
+                                        <div className="font-medium text-sm">{model.name || model.model}</div>
+                                        {model.name && (
+                                          <div className="text-xs text-muted-foreground">{model.model}</div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -2321,20 +2481,14 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                       <Select
                         value={newModel.provider}
                         onChange={(value) => {
-                          const provider = AI_PROVIDERS.find(p => p.id === value) as any;
-                          let defaultModel = '';
-                          if (value === 'openai') defaultModel = 'dall-e-3';
-                          else if (value === 'google') defaultModel = 'gemini-2.5-flash-preview-05-20';
-                          else if (value === 'stability') defaultModel = 'stable-image-core';
-                          else if (provider?.imageModels?.[0]) defaultModel = provider.imageModels[0];
+                          const provider = AI_IMAGE_PROVIDERS.find(p => p.id === value);
                           setNewModel({
                             ...newModel,
                             provider: value,
                             apiUrl: provider?.defaultUrl || '',
-                            model: defaultModel,
                           });
                         }}
-                        options={AI_PROVIDERS.filter(p => ['openai', 'google', 'stability', 'azure', 'custom'].includes(p.id)).map((p) => ({ value: p.id, label: p.name }))}
+                        options={AI_IMAGE_PROVIDERS.map((p) => ({ value: p.id, label: p.name, group: p.group }))}
                       />
                     </div>
                     <div>
@@ -2347,18 +2501,30 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">{t('settings.apiUrl')}</label>
+                      <label className="text-xs text-muted-foreground mb-1 flex items-center justify-between">
+                        <span>{t('settings.apiUrl')}</span>
+                        <span className="text-[10px] opacity-60 font-normal">
+                          {t('settings.apiUrlHint')}
+                        </span>
+                      </label>
                       <input
                         type="text"
                         placeholder={t('settings.apiUrlPlaceholder')}
                         value={newModel.apiUrl}
                         onChange={(e) => setNewModel({ ...newModel, apiUrl: e.target.value })}
-                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm"
+                        className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm focus:ring-1 focus:ring-primary/30 transition-shadow"
                       />
                       {newModel.apiUrl && (
-                        <p className="text-xs text-muted-foreground mt-1.5">
-                          <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
-                          <span className="font-mono text-primary">{previewImageEndpoint}</span>
+                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center justify-between">
+                          <span className="flex-1 min-w-0">
+                            <span className="text-muted-foreground/70">{t('settings.endpointPreview')}：</span>
+                            <span className="font-mono text-primary break-all">{previewImageEndpoint}</span>
+                          </span>
+                          {newModel.apiUrl.endsWith('#') && (
+                            <span className="ml-2 flex-shrink-0 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded border border-amber-500/20 animate-in fade-in zoom-in-95">
+                              {t('settings.autoFillDisabled')}
+                            </span>
+                          )}
                         </p>
                       )}
                     </div>
@@ -2852,11 +3018,16 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                     isAdded ? 'bg-primary/5' : ''
                                   }`}
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm truncate">{model.id}</div>
-                                    {model.owned_by && (
-                                      <div className="text-xs text-muted-foreground">{model.owned_by}</div>
-                                    )}
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="flex-shrink-0">
+                                      {getCategoryIcon(category, 18)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm truncate">{model.id}</div>
+                                      {model.owned_by && (
+                                        <div className="text-xs text-muted-foreground">{model.owned_by}</div>
+                                      )}
+                                    </div>
                                   </div>
                                   <button
                                     onClick={() => handleAddModel(model.id)}
@@ -3001,11 +3172,16 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                                     isAdded ? 'bg-primary/5' : ''
                                   }`}
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-sm truncate">{model.id}</div>
-                                    {model.owned_by && (
-                                      <div className="text-xs text-muted-foreground">{model.owned_by}</div>
-                                    )}
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="flex-shrink-0">
+                                      {getCategoryIcon(category, 18)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm truncate">{model.id}</div>
+                                      {model.owned_by && (
+                                        <div className="text-xs text-muted-foreground">{model.owned_by}</div>
+                                      )}
+                                    </div>
                                   </div>
                                   <button
                                     onClick={() => handleAddImageModel(model.id)}
@@ -3126,6 +3302,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               )}
             </div>
             
+            {/* Bottom actions */}
             {/* 底部按钮 */}
             <div className="p-4 border-t border-border">
               <button
@@ -3142,6 +3319,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   );
 }
 
+// Settings section component - flattened design
 // 设置区块组件 - 扁平化设计
 function SettingSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -3154,6 +3332,7 @@ function SettingSection({ title, children }: { title: string; children: ReactNod
   );
 }
 
+// Settings item component
 // 设置项组件
 function SettingItem({
   label,
@@ -3177,6 +3356,7 @@ function SettingItem({
   );
 }
 
+// Toggle switch component
 // 开关组件
 interface ToggleSwitchProps {
   checked?: boolean;

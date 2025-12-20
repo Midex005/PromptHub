@@ -9,6 +9,7 @@ interface FolderState {
   unlockedFolderIds: Set<string>;
 
   // Actions
+  // 操作
   fetchFolders: () => Promise<void>;
   createFolder: (data: CreateFolderDTO) => Promise<Folder>;
   updateFolder: (id: string, data: UpdateFolderDTO) => Promise<void>;
@@ -28,6 +29,7 @@ export const useFolderStore = create<FolderState>((set, get) => ({
 
   fetchFolders: async () => {
     try {
+      // seedDatabase will be called in prompt.store, fetch directly here
       // seedDatabase 会在 prompt.store 中调用，这里直接获取
       const folders = await db.getAllFolders();
       set({ folders });
@@ -67,16 +69,24 @@ export const useFolderStore = create<FolderState>((set, get) => ({
 
   selectFolder: (id) =>
     set((state) => {
+      // If switching folders and the previous folder is private, clear unlock state
+      // Simple approach: clear all unlock states when switching folders
+      // User requirement: auto-lock when selecting other folders or all prompts
+      // Safest approach: reset unlock states whenever switching folders
+      // But if user is operating within the same private folder (selectFolder won't change), no need to lock
       // 如果切换了文件夹，且之前的文件夹是私密的，则清除解锁状态
       // 这里简单处理：切换文件夹时，清除所有解锁状态（或者只清除当前选中的）
       // 用户需求：如果选择了其他文件夹或者选择了全部Prompts后自动锁住
       // 所以最安全的做法是：只要切换文件夹，就重置解锁状态
       // 但如果用户只是在同一个私密文件夹内操作（虽然selectFolder不会变），不需要锁住
+      // If id !== state.selectedFolderId,说明切换了
+      // If id !== state.selectedFolderId, indicates switched
       // 如果 id !== state.selectedFolderId，说明切换了
       if (id !== state.selectedFolderId) {
         return {
           selectedFolderId: id,
-          unlockedFolderIds: new Set(), // 清空所有解锁状态，确保安全
+          unlockedFolderIds: new Set(), // Clear all unlock states for security
+          // 清空所有解锁状态，确保安全
         };
       }
       return { selectedFolderId: id };

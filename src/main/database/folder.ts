@@ -6,12 +6,14 @@ export class FolderDB {
   constructor(private db: Database.Database) {}
 
   /**
+   * Create folder
    * 创建文件夹
    */
   create(data: CreateFolderDTO): Folder {
     const id = uuidv4();
     const now = Date.now();
 
+    // Get maximum sort order
     // 获取最大排序值
     const maxOrder = this.db
       .prepare('SELECT MAX(sort_order) as max FROM folders WHERE parent_id IS ?')
@@ -39,6 +41,7 @@ export class FolderDB {
   }
 
   /**
+   * Get folder by ID
    * 根据 ID 获取文件夹
    */
   getById(id: string): Folder | null {
@@ -48,6 +51,7 @@ export class FolderDB {
   }
 
   /**
+   * Get all folders
    * 获取所有文件夹
    */
   getAll(): Folder[] {
@@ -57,6 +61,7 @@ export class FolderDB {
   }
 
   /**
+   * Update folder
    * 更新文件夹
    */
   update(id: string, data: UpdateFolderDTO): Folder | null {
@@ -102,6 +107,7 @@ export class FolderDB {
   }
 
   /**
+   * Delete folder
    * 删除文件夹
    */
   delete(id: string): boolean {
@@ -111,6 +117,7 @@ export class FolderDB {
   }
 
   /**
+   * Reorder folders
    * 重新排序文件夹
    */
   reorder(ids: string[]): void {
@@ -124,6 +131,7 @@ export class FolderDB {
   }
 
   /**
+   * Convert database row to Folder object
    * 数据库行转 Folder 对象
    */
   private rowToFolder(row: any): Folder {

@@ -1,9 +1,38 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StarIcon, CopyIcon, PlayIcon, EditIcon, TrashIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, HistoryIcon, FolderIcon, Trash2Icon } from 'lucide-react';
 import type { Prompt } from '../../../shared/types';
 import { useFolderStore } from '../../stores/folder.store';
 
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function renderHighlightedText(text: string, terms: string[], highlightClassName: string): ReactNode {
+  if (!text || terms.length === 0) return text;
+
+  const pattern = terms.map(escapeRegExp).join('|');
+  if (!pattern) return text;
+
+  const regex = new RegExp(`(${pattern})`, 'gi');
+  const parts = text.split(regex);
+
+  if (parts.length <= 1) return text;
+
+  return parts.map((part, idx) => {
+    if (!part) return null;
+    if (idx % 2 === 1) {
+      return (
+        <span key={idx} className={highlightClassName}>
+          {part}
+        </span>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
+
+// Custom Checkbox component
 // 自定义 Checkbox 组件
 function Checkbox({ checked, onChange, className = '' }: { checked: boolean; onChange: () => void; className?: string }) {
   return (
@@ -26,6 +55,7 @@ function Checkbox({ checked, onChange, className = '' }: { checked: boolean; onC
 
 interface PromptTableViewProps {
   prompts: Prompt[];
+  highlightTerms?: string[];
   onSelect: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onCopy: (prompt: Prompt) => void;
@@ -34,6 +64,8 @@ interface PromptTableViewProps {
   onAiTest: (prompt: Prompt) => void;
   onVersionHistory: (prompt: Prompt) => void;
   onViewDetail: (prompt: Prompt) => void;
+  // aiResults: promptId -> AI response
+  // aiResults：promptId -> AI 响应结果
   aiResults?: Record<string, string>; // promptId -> AI 响应结果
   onBatchFavorite?: (ids: string[], favorite: boolean) => void;
   onBatchMove?: (ids: string[], folderId: string | undefined) => void;
@@ -45,6 +77,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function PromptTableView({
   prompts,
+  highlightTerms = [],
   onSelect,
   onToggleFavorite,
   onCopy,
@@ -60,6 +93,7 @@ export function PromptTableView({
   onContextMenu,
 }: PromptTableViewProps) {
   const { t, i18n } = useTranslation();
+  const highlightClassName = 'bg-primary/15 text-primary rounded px-0.5';
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -76,21 +110,24 @@ export function PromptTableView({
     if (!content) {
       return <span className="text-muted-foreground/40 text-xs">-</span>;
     }
+    // Show plain text only; truncate to a single line
     // 只显示纯文本，截断为单行
     const plainText = content.replace(/\n/g, ' ').trim();
     return (
       <span className="text-xs text-muted-foreground truncate block max-w-[220px]" title={content}>
-        {plainText}
+        {renderHighlightedText(plainText, highlightTerms, highlightClassName)}
       </span>
     );
   };
 
+  // Pagination
   // 分页
   const totalPages = Math.ceil(prompts.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const currentPrompts = prompts.slice(startIndex, endIndex);
 
+  // Extract variable count
   // 提取变量数量
   const getVariableCount = (prompt: Prompt) => {
     const regex = /\{\{([^}]+)\}\}/g;
@@ -107,6 +144,7 @@ export function PromptTableView({
     return matches.size;
   };
 
+  // Format date
   // 格式化日期
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -119,6 +157,7 @@ export function PromptTableView({
     });
   };
 
+  // Handle copy
   // 处理复制
   const handleCopy = async (prompt: Prompt) => {
     await onCopy(prompt);
@@ -126,6 +165,7 @@ export function PromptTableView({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Change page
   // 切换页面
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -133,6 +173,7 @@ export function PromptTableView({
     }
   };
 
+  // Multi-select
   // 多选功能
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -154,6 +195,7 @@ export function PromptTableView({
 
   const clearSelection = () => setSelectedIds(new Set());
 
+  // Batch actions
   // 批量操作
   const handleBatchFavorite = (favorite: boolean) => {
     if (onBatchFavorite && selectedIds.size > 0) {
@@ -177,11 +219,13 @@ export function PromptTableView({
     }
   };
 
+  // Whether there are selected items
   // 是否有选中项
   const hasSelection = selectedIds.size > 0;
 
   return (
     <div className="flex flex-col h-full">
+      {/* Batch actions bar */}
       {/* 批量操作栏 */}
       {hasSelection && (
         <div className="flex items-center gap-3 px-4 py-2">
@@ -244,12 +288,14 @@ export function PromptTableView({
         </div>
       )}
 
+      {/* Table - supports horizontal scrolling */}
       {/* 表格 - 支持横向滚动 */}
       <div className="flex-1 overflow-auto px-4 py-2">
         <div className="rounded-xl border border-border overflow-x-auto bg-card">
           <table className="w-full text-sm min-w-[1000px]">
             <thead className="sticky top-0 z-20">
               <tr className="bg-muted/30 dark:bg-muted/20 border-b border-border">
+                {/* Select checkbox */}
                 {/* 多选框 */}
                 <th className="w-[50px] px-4 py-3">
                   <Checkbox
@@ -287,10 +333,12 @@ export function PromptTableView({
                     onContextMenu={(e) => onContextMenu(e, prompt)}
                     className={`border-b border-border/50 last:border-b-0 hover:bg-accent/50 dark:hover:bg-accent/20 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
                   >
+                    {/* Select checkbox */}
                     {/* 多选框 */}
                     <td className="w-[50px] px-4 py-3">
                       <Checkbox checked={isSelected} onChange={() => toggleSelect(prompt.id)} />
                     </td>
+                    {/* Title - click to view details */}
                     {/* 标题 - 可点击查看详情 */}
                     <td className="px-4 py-3 min-w-[140px]">
                       <button
@@ -298,20 +346,23 @@ export function PromptTableView({
                         className="font-medium text-primary hover:text-primary/80 hover:underline truncate max-w-[140px] text-left"
                         title={prompt.title}
                       >
-                        {prompt.title}
+                        {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
                       </button>
                     </td>
 
+                    {/* Prompt content preview */}
                     {/* Prompt 内容预览 */}
                     <td className="px-4 py-3 min-w-[180px]">
                       {renderTextPreview(preferEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt)}
                     </td>
 
+                    {/* AI response preview */}
                     {/* AI 响应预览 */}
                     <td className="px-4 py-3 min-w-[180px]">
                       {renderTextPreview(aiContent)}
                     </td>
 
+                    {/* Variable count */}
                     {/* 变量数 */}
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs ${getVariableCount(prompt) > 0 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
@@ -319,17 +370,20 @@ export function PromptTableView({
                       </span>
                     </td>
 
+                    {/* Usage count */}
                     {/* 使用次数 */}
                     <td className="px-4 py-3 text-center text-muted-foreground text-xs">
                       {prompt.usageCount || 0}
                     </td>
 
+                    {/* Actions - sticky on the right */}
                     {/* 操作 - 固定在右侧 */}
                     <td className={`px-2 py-3 sticky right-0 z-10 shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)] ${isSelected ? 'bg-primary/5' : 'bg-card'} dark:bg-card`}>
                       <div
                         className="flex items-center justify-center gap-0.5 bg-card dark:bg-card rounded-lg px-1"
                         onClick={(e) => e.stopPropagation()}
                       >
+                        {/* Copy */}
                         {/* 复制 */}
                         <button
                           onClick={() => handleCopy(prompt)}
@@ -343,6 +397,7 @@ export function PromptTableView({
                           )}
                         </button>
 
+                        {/* AI test */}
                         {/* AI 测试 */}
                         <button
                           onClick={() => onAiTest(prompt)}
@@ -352,6 +407,7 @@ export function PromptTableView({
                           <PlayIcon className="w-4 h-4" />
                         </button>
 
+                        {/* Version history */}
                         {/* 版本历史 */}
                         <button
                           onClick={() => onVersionHistory(prompt)}
@@ -361,6 +417,7 @@ export function PromptTableView({
                           <HistoryIcon className="w-4 h-4" />
                         </button>
 
+                        {/* Favorite */}
                         {/* 收藏 */}
                         <button
                           onClick={() => onToggleFavorite(prompt.id)}
@@ -373,6 +430,7 @@ export function PromptTableView({
                           <StarIcon className={`w-4 h-4 ${prompt.isFavorite ? 'fill-current' : ''}`} />
                         </button>
 
+                        {/* Edit */}
                         {/* 编辑 */}
                         <button
                           onClick={() => onEdit(prompt)}
@@ -382,6 +440,7 @@ export function PromptTableView({
                           <EditIcon className="w-4 h-4" />
                         </button>
 
+                        {/* Delete */}
                         {/* 删除 */}
                         <button
                           onClick={() => onDelete(prompt)}
@@ -406,6 +465,7 @@ export function PromptTableView({
         )}
       </div>
 
+      {/* Pagination */}
       {/* 分页 */}
       {prompts.length > 0 && (
         <div className="flex items-center justify-between px-4 py-3">
@@ -414,6 +474,7 @@ export function PromptTableView({
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Page size */}
             {/* 每页条数 */}
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('prompt.pageSize') || '每页'}</span>
@@ -431,6 +492,7 @@ export function PromptTableView({
               </select>
             </div>
 
+            {/* Page navigation */}
             {/* 页码 */}
             <div className="flex items-center gap-1">
               <button

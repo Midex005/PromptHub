@@ -11,6 +11,7 @@ export default defineConfig({
       {
         entry: 'src/main/index.ts',
         onstart(args) {
+          // Start Electron, vite-plugin-electron will auto-set VITE_DEV_SERVER_URL
           // 启动 Electron，vite-plugin-electron 会自动设置 VITE_DEV_SERVER_URL
           args.startup();
         },
@@ -20,10 +21,7 @@ export default defineConfig({
             rollupOptions: {
               external: ['better-sqlite3', 'electron', 'electron-updater'],
             },
-
-
           },
-
         },
       },
       {

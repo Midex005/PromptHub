@@ -405,6 +405,8 @@
     "confirmDelete": "Are you sure you want to delete this model?",
     "modelAdded": "Model added",
     "modelUpdated": "Model updated",
+    "autoFillDisabled": "Auto-fill disabled (#)",
+    "apiUrlHint": "End with # to disable auto-fill",
     "fillComplete": "Please fill in all required fields",
     "noModelsHint": "Add models to use multi-model comparison on Prompt detail page",
     "testConnectionBtn": "Test Connection",

@@ -1,4 +1,5 @@
 /**
+ * Settings type definitions
  * 设置类型定义
  */
 
@@ -7,6 +8,7 @@ export interface Settings {
   language: Language;
   autoSave: boolean;
   defaultFolderId?: string;
+  // Security
   // 安全相关
   security?: {
     masterPasswordConfigured: boolean;

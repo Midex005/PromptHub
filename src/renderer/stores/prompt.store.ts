@@ -3,9 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { Prompt, CreatePromptDTO, UpdatePromptDTO } from '../../shared/types';
 import * as db from '../services/database';
 
+// Sort method
 // 排序方式
 export type SortBy = 'updatedAt' | 'createdAt' | 'title' | 'usageCount';
 export type SortOrder = 'desc' | 'asc';
+// View mode
 // 视图模式
 export type ViewMode = 'card' | 'list' | 'gallery';
 export type GalleryImageSize = 'small' | 'medium' | 'large';
@@ -16,14 +18,17 @@ interface PromptState {
   isLoading: boolean;
   searchQuery: string;
   filterTags: string[];
-  // 排序
+  // Sort and order
+  // 排序和顺序
   sortBy: SortBy;
   sortOrder: SortOrder;
+  // View mode
   // 视图模式
   viewMode: ViewMode;
   galleryImageSize: GalleryImageSize;
 
   // Actions
+  // 操作
   fetchPrompts: () => Promise<void>;
   createPrompt: (data: CreatePromptDTO) => Promise<Prompt>;
   updatePrompt: (id: string, data: UpdatePromptDTO) => Promise<void>;
@@ -34,6 +39,7 @@ interface PromptState {
   clearFilterTags: () => void;
   toggleFavorite: (id: string) => Promise<void>;
   togglePinned: (id: string) => Promise<void>;
+  // Sort and view
   // 排序和视图
   setSortBy: (sortBy: SortBy) => void;
   setSortOrder: (sortOrder: SortOrder) => void;
@@ -59,8 +65,10 @@ export const usePromptStore = create<PromptState>()(
         set({ isLoading: true });
         try {
           console.log('Fetching prompts...');
+          // Ensure database is initialized and seed data is populated
           // 确保数据库已初始化并填充种子数据
           await db.seedDatabase();
+          // Get data from IndexedDB
           // 从 IndexedDB 获取数据
           const prompts = await db.getAllPrompts();
           console.log('Fetched prompts:', prompts.length, prompts);
@@ -89,6 +97,7 @@ export const usePromptStore = create<PromptState>()(
       updatePrompt: async (id, data) => {
         const currentPrompt = get().prompts.find((p) => p.id === id);
 
+        // If content has changed, save current version first
         // 如果内容有变化，先保存当前版本
         if (currentPrompt && (data.systemPrompt !== undefined || data.userPrompt !== undefined)) {
           const hasContentChange =
@@ -150,6 +159,7 @@ export const usePromptStore = create<PromptState>()(
         }
       },
 
+      // Sort and view
       // 排序和视图
       setSortBy: (sortBy) => set({ sortBy }),
       setSortOrder: (sortOrder) => set({ sortOrder }),

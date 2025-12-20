@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.1] - 2025-12-20
+
+### 优化 / Changed
+- 🔍 **搜索体验优化**：引入权重评分机制，优先匹配标题，大幅提升搜索准确度 (Closes #18)
+  - **Search Logic Improvement**: Introduced weighted scoring system prioritizing title matches for better accuracy (Closes #18)
+- 🤖 **预制供应商优化**：核对并修正所有预制 AI 供应商地址，确保默认连接通用 (Closes #19)
+  - **Preset Providers Fix**: Verified and corrected all preset AI API endpoints for better connectivity (Closes #19)
+- 🎨 **分类图标识别**：优化模型列表的供应商图标识别逻辑，支持识别手动添加的模型
+  - **Icon Recognition**: Improved icon detection logic for manually added models in the settings list
+- 📝 **API 地址提示**：在输入框增加 # 禁用自动填充的引导提示，操作更透明
+  - **API URL Hint**: Added guidance for using '#' to disable auto-fill in API endpoint settings
+
+---
+
 ## [0.3.0] - 2025-12-18
 
 ### 优化 / Changed

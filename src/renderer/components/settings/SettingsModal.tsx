@@ -16,9 +16,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [autoSave, setAutoSave] = useState(true);
 
   const themeOptions = [
-    { value: 'light', label: '浅色', icon: SunIcon },
-    { value: 'dark', label: '深色', icon: MoonIcon },
-    { value: 'system', label: '跟随系统', icon: MonitorIcon },
+    { value: 'light', label: 'Light', icon: SunIcon },
+    { value: 'dark', label: 'Dark', icon: MoonIcon },
+    { value: 'system', label: 'Follow System', icon: MonitorIcon },
   ];
 
   const languageOptions = [
@@ -27,13 +27,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="设置" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Settings / 设置" size="md">
       <div className="space-y-6">
+        {/* Appearance */}
         {/* 外观 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <SunIcon className="w-4 h-4 text-primary" />
-            外观
+            Appearance / 外观
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {themeOptions.map((option) => (
@@ -57,11 +58,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </div>
 
+        {/* Language */}
         {/* 语言 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <GlobeIcon className="w-4 h-4 text-primary" />
-            语言
+            Language / 语言
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {languageOptions.map((option) => (
@@ -84,15 +86,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </div>
 
+        {/* Data */}
         {/* 数据 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <DatabaseIcon className="w-4 h-4 text-primary" />
-            数据
+            Data / 数据
           </h3>
           <div className="space-y-2">
             <label className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-              <span className="text-sm">自动保存</span>
+              <span className="text-sm">Auto Save / 自动保存</span>
               <button
                 onClick={() => setAutoSave(!autoSave)}
                 className={`
@@ -109,21 +112,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </button>
             </label>
             <button className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-              <span className="text-sm">导出数据</span>
-              <span className="text-xs text-muted-foreground">JSON 格式</span>
+              <span className="text-sm">Export Data / 导出数据</span>
+              <span className="text-xs text-muted-foreground">JSON Format / JSON 格式</span>
             </button>
             <button className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-              <span className="text-sm">导入数据</span>
-              <span className="text-xs text-muted-foreground">从文件导入</span>
+              <span className="text-sm">Import Data / 导入数据</span>
+              <span className="text-xs text-muted-foreground">Import from file / 从文件导入</span>
             </button>
           </div>
         </div>
 
+        {/* About */}
         {/* 关于 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <InfoIcon className="w-4 h-4 text-primary" />
-            关于
+            About / 关于
           </h3>
           <div className="p-4 rounded-xl bg-muted/50 text-center">
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
@@ -132,15 +136,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <h4 className="font-semibold text-foreground">PromptHub</h4>
             <p className="text-xs text-muted-foreground mt-1">版本 1.0.0</p>
             <p className="text-xs text-muted-foreground mt-2">
-              本地版的 Prompt 管理器，带版本控制
+              Local Prompt manager with version control / 本地版的 Prompt 管理器，带版本控制
             </p>
           </div>
         </div>
 
+        {/* Action buttons */}
         {/* 操作按钮 */}
         <div className="flex justify-end pt-2">
           <Button variant="primary" onClick={onClose}>
-            完成
+            Done / 完成
           </Button>
         </div>
       </div>

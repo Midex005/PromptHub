@@ -13,6 +13,7 @@ const SETTINGS_KEY = 'master_password';
 const ALGO = 'aes-256-gcm';
 
 function deriveKey(password: string, salt: Buffer): Buffer {
+  // Use scrypt to derive 32-byte key
   // 使用 scrypt 派生 32 字节密钥
   return crypto.scryptSync(password, salt, 32);
 }

@@ -405,6 +405,8 @@
     "confirmDelete": "确定要删除这个模型配置吗？",
     "modelAdded": "模型已添加",
     "modelUpdated": "模型已更新",
+    "autoFillDisabled": "已禁用自动填充 (#)",
+    "apiUrlHint": "末尾输入 # 禁用自动填充",
     "fillComplete": "请填写完整的模型配置",
     "noModelsHint": "添加模型后，可以在 Prompt 详情页进行多模型对比测试",
     "testConnectionBtn": "测试连接",

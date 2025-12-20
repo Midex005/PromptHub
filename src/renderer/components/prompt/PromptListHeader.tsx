@@ -27,6 +27,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
   const galleryImageSize = usePromptStore((state) => state.galleryImageSize);
   const setGalleryImageSize = usePromptStore((state) => state.setGalleryImageSize);
 
+  // Sort options
   // 排序选项
   const sortOptions: SortOption[] = [
     { label: t('prompt.sortNewest'), sortBy: 'updatedAt', sortOrder: 'desc' },
@@ -37,11 +38,14 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
     { label: t('prompt.sortLeastUsed'), sortBy: 'usageCount', sortOrder: 'asc' },
   ];
 
+  // Get currently selected sort option
+  // Get currently selected sort option
   // 获取当前选中的排序选项
   const currentOption = sortOptions.find(
     (opt) => opt.sortBy === sortBy && opt.sortOrder === sortOrder
   ) || sortOptions[0];
 
+  // Click outside to close dropdown
   // 点击外部关闭下拉菜单
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -65,13 +69,16 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
 
   return (
     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-20">
+      {/* Left side: Prompt count */}
       {/* 左侧：Prompt 数量 */}
       <span className="text-xs text-muted-foreground whitespace-nowrap">
         {t('prompt.promptCount', { count })}
       </span>
 
+      {/* Right side: Sort + View toggle */}
       {/* 右侧：排序 + 视图切换 */}
       <div className="flex items-center gap-1">
+        {/* Sort dropdown */}
         {/* 排序下拉 */}
         <div ref={dropdownRef} className="relative">
           <button
@@ -100,6 +107,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           )}
         </div>
 
+        {/* Image size control - Only shown in Gallery mode */}
         {/* 图片大小控制 - 仅在 Gallery 模式显示 */}
         {viewMode === 'gallery' && (
           <div className="flex items-center border border-border rounded-md overflow-hidden mr-2">
@@ -127,8 +135,10 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           </div>
         )}
 
+        {/* View toggle buttons - with sliding indicator */}
         {/* 视图切换按钮 - 带滑动指示器 */}
         <div className="relative flex items-center rounded-md border border-border overflow-hidden bg-muted/30">
+          {/* Sliding indicator */}
           {/* 滑动指示器 */}
           <div
             className="absolute h-full bg-primary rounded-[3px] transition-all duration-200 ease-out"

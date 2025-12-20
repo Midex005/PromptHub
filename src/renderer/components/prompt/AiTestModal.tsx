@@ -15,7 +15,8 @@ interface AiTestModalProps {
   filledUserPrompt?: string;
   onUsageIncrement?: (promptId: string) => void;
   onSaveResponse?: (promptId: string, response: string) => void;
-  onAddImage?: (imageUrl: string) => void; // 新增：将生成的图片添加到 Prompt
+  onAddImage?: (imageUrl: string) => void; // Add: Add generated image to Prompt
+  // 新增：将生成的图片添加到 Prompt
 }
 
 export function AiTestModal({
@@ -31,6 +32,7 @@ export function AiTestModal({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [mode, setMode] = useState<'single' | 'compare' | 'image'>('single');
+  // Separate loading states for single model and multi-model
   // 分离单模型和多模型的 loading 状态
   const [isSingleLoading, setIsSingleLoading] = useState(false);
   const [isCompareLoading, setIsCompareLoading] = useState(false);
@@ -41,9 +43,11 @@ export function AiTestModal({
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  // Variable fill state
   // 变量填充状态
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
 
+  // AI settings
   // AI 设置
   const aiProvider = useSettingsStore((state) => state.aiProvider);
   const aiApiKey = useSettingsStore((state) => state.aiApiKey);
@@ -53,6 +57,7 @@ export function AiTestModal({
 
   const preferEnglish = useMemo(() => {
     const lang = (i18n.language || '').toLowerCase();
+    // Currently Prompt only provides EN version fields: non-Chinese interface defaults to using English version (use if available, fallback to Chinese if not)
     // 目前 Prompt 只提供 EN 版本字段：非中文界面默认优先使用英文版（有则用，无则回退中文）
     return !(lang.startsWith('zh'));
   }, [i18n.language]);
@@ -62,17 +67,20 @@ export function AiTestModal({
     return chatModels.find((m) => m.isDefault) ?? chatModels[0] ?? null;
   }, [aiModels]);
 
+  // Get default image generation model
   // 获取默认生图模型
   const defaultImageModel = useMemo(() => {
     const imageModels = aiModels.filter((m) => m.type === 'image');
     return imageModels.find((m) => m.isDefault) ?? imageModels[0] ?? null;
   }, [aiModels]);
 
+  // Get all image generation models
   // 获取所有生图模型
   const imageModels = useMemo(() => {
     return aiModels.filter((m) => m.type === 'image');
   }, [aiModels]);
 
+  // Extract variables
   // 提取变量
   const extractVariables = (text: string): string[] => {
     const regex = /\{\{([^}]+)\}\}/g;
@@ -86,6 +94,7 @@ export function AiTestModal({
     return matches;
   };
 
+  // Get all variables
   // 获取所有变量
   const allVariables = useMemo(() => {
     if (!prompt) return [];
@@ -96,6 +105,7 @@ export function AiTestModal({
     return [...new Set([...sysVars, ...userVars])];
   }, [prompt, preferEnglish]);
 
+  // Build single model configuration - must be called before all conditional returns
   // 构建单模型配置 - 必须在所有条件返回之前调用
   const buildSingleConfig = useCallback(() => {
     if (defaultChatModel) {
@@ -243,6 +253,7 @@ export function AiTestModal({
       // 支持流式：提前渲染占位结果，让用户能看到“正在流式输出”的差异
       setCompareResults(
         selectedConfigs.map((c) => ({
+          id: c.id,
           success: true,
           response: '',
           thinkingContent: '',
@@ -260,7 +271,7 @@ export function AiTestModal({
               setCompareResults((prev) => {
                 if (!prev) return prev;
                 return prev.map((r) =>
-                  r.model === cfg.model && r.provider === cfg.provider
+                  (r as any).id === cfg.id
                     ? { ...r, response: (r.response || '') + chunk }
                     : r
                 );
@@ -270,7 +281,7 @@ export function AiTestModal({
               setCompareResults((prev) => {
                 if (!prev) return prev;
                 return prev.map((r) =>
-                  r.model === cfg.model && r.provider === cfg.provider
+                  (r as any).id === cfg.id
                     ? { ...r, thinkingContent: (r.thinkingContent || '') + chunk }
                     : r
                 );

@@ -8,6 +8,7 @@ import { FolderDB } from '../database/folder';
 import { registerSecurityIPC } from './security.ipc';
 
 /**
+ * Register all IPC handlers
  * 注册所有 IPC 处理器
  */
 export function registerAllIPC(db: Database.Database): void {

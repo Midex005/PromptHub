@@ -6,8 +6,37 @@ import { ImageIcon, FolderIcon, HashIcon, MoreHorizontalIcon, StarIcon, EditIcon
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 
+function escapeRegExp(str: string) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function renderHighlightedText(text: string, terms: string[], highlightClassName: string) {
+    if (!text || terms.length === 0) return text;
+
+    const pattern = terms.map(escapeRegExp).join('|');
+    if (!pattern) return text;
+
+    const regex = new RegExp(`(${pattern})`, 'gi');
+    const parts = text.split(regex);
+
+    if (parts.length <= 1) return text;
+
+    return parts.map((part, idx) => {
+        if (!part) return null;
+        if (idx % 2 === 1) {
+            return (
+                <span key={idx} className={highlightClassName}>
+                    {part}
+                </span>
+            );
+        }
+        return <span key={idx}>{part}</span>;
+    });
+}
+
 interface PromptGalleryViewProps {
     prompts: Prompt[];
+    highlightTerms?: string[];
     onSelect: (id: string) => void;
     onToggleFavorite: (id: string) => void;
     onCopy: (prompt: Prompt) => void;
@@ -22,14 +51,17 @@ const GalleryCard = memo(({
     prompt,
     onSelect,
     onToggleFavorite,
-    folderName
+    folderName,
+    highlightTerms
 }: {
     prompt: Prompt;
     onSelect: () => void;
     onToggleFavorite: (e: React.MouseEvent) => void;
     folderName?: string;
+    highlightTerms: string[];
 }) => {
     const [imageError, setImageError] = useState(false);
+    const highlightClassName = 'bg-primary/15 text-primary rounded px-0.5';
     const imageSrc = prompt.images && prompt.images.length > 0 && !imageError
         ? `local-image://${prompt.images[0]}`
         : null;
@@ -40,6 +72,7 @@ const GalleryCard = memo(({
             onClick={onSelect}
         >
             {/* Image / Placeholder Area */}
+            {/* 图片 / 占位区域 */}
             <div className="aspect-[4/3] w-full bg-muted/30 relative overflow-hidden">
                 {imageSrc ? (
                     <img
@@ -56,6 +89,7 @@ const GalleryCard = memo(({
                 )}
 
                 {/* Helper Actions Overlay */}
+                {/* 快捷操作浮层 */}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                         onClick={onToggleFavorite}
@@ -68,12 +102,14 @@ const GalleryCard = memo(({
             </div>
 
             {/* Content Area */}
+            {/* 内容区域 */}
             <div className="flex-1 p-3 flex flex-col gap-2">
                 <h3 className="font-semibold text-sm truncate leading-tight" title={prompt.title}>
-                    {prompt.title}
+                    {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
                 </h3>
 
                 {/* Tags */}
+                {/* 标签 */}
                 <div className="flex flex-wrap gap-1 h-5 overflow-hidden">
                     {prompt.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground truncate">
@@ -86,6 +122,7 @@ const GalleryCard = memo(({
                 </div>
 
                 {/* Footer: Folder & Date */}
+                {/* 底部：文件夹与日期 */}
                 <div className="mt-auto flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t border-border/50">
                     <div className="flex items-center gap-1 truncate max-w-[70%]">
                         <FolderIcon className="w-3 h-3 flex-shrink-0" />
@@ -100,6 +137,7 @@ const GalleryCard = memo(({
 
 export function PromptGalleryView({
     prompts,
+    highlightTerms = [],
     onSelect,
     onToggleFavorite,
     onCopy,
@@ -151,6 +189,7 @@ export function PromptGalleryView({
                                 onToggleFavorite(prompt.id);
                             }}
                             folderName={getFolderName(prompt.folderId)}
+                            highlightTerms={highlightTerms}
                         />
                     </div>
                 ))}

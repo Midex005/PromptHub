@@ -1,4 +1,5 @@
 /**
+ * Core Prompt type definitions
  * Prompt 核心类型定义
  */
 
@@ -7,21 +8,21 @@ export interface Prompt {
   title: string;
   description?: string;
   systemPrompt?: string;
-  systemPromptEn?: string;  // 英文版 System Prompt
+  systemPromptEn?: string;  // English System Prompt / 英文版 System Prompt
   userPrompt: string;
-  userPromptEn?: string;    // 英文版 User Prompt
+  userPromptEn?: string;    // English User Prompt / 英文版 User Prompt
   variables: Variable[];
   tags: string[];
   folderId?: string;
   images?: string[];
   isFavorite: boolean;
-  isPinned: boolean;        // 置顶
+  isPinned: boolean;        // Pinned / 置顶
   version: number;
   currentVersion: number;
   usageCount: number;
-  lastAiResponse?: string;  // 最后一次 AI 测试的响应
-  createdAt: string;  // ISO 8601 格式
-  updatedAt: string;  // ISO 8601 格式
+  lastAiResponse?: string;  // Last AI test response / 最后一次 AI 测试的响应
+  createdAt: string;  // ISO 8601 format / ISO 8601 格式
+  updatedAt: string;  // ISO 8601 format / ISO 8601 格式
 }
 
 export interface Variable {
@@ -43,8 +44,8 @@ export interface PromptVersion {
   userPrompt: string;
   variables: Variable[];
   note?: string;
-  aiResponse?: string;  // 该版本的 AI 测试响应
-  createdAt: string;  // ISO 8601 格式
+  aiResponse?: string;  // AI test response for this version / 该版本的 AI 测试响应
+  createdAt: string;  // ISO 8601 format / ISO 8601 格式
 }
 
 // DTO Types

@@ -1,4 +1,5 @@
 /**
+ * IPC channel definitions
  * IPC 通信通道定义
  */
 

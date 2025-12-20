@@ -1,12 +1,14 @@
 import { Menu, app, shell, BrowserWindow } from 'electron';
 
 /**
+ * Create application menu
  * 创建应用菜单
  */
 export function createMenu(): void {
   const isMac = process.platform === 'darwin';
   const isWin = process.platform === 'win32';
 
+  // Do not show application menu on Windows
   // Windows 下不显示菜单栏
   if (isWin) {
     Menu.setApplicationMenu(null);
@@ -14,6 +16,7 @@ export function createMenu(): void {
   }
 
   const template: Electron.MenuItemConstructorOptions[] = [
+    // Application menu (macOS)
     // 应用菜单（macOS）
     ...(isMac
       ? [
@@ -34,6 +37,7 @@ export function createMenu(): void {
         ]
       : []),
 
+    // File menu
     // 文件菜单
     {
       label: '文件',
@@ -65,6 +69,7 @@ export function createMenu(): void {
       ],
     },
 
+    // Edit menu
     // 编辑菜单
     {
       label: '编辑',
@@ -79,6 +84,7 @@ export function createMenu(): void {
       ],
     },
 
+    // View menu
     // 视图菜单
     {
       label: '视图',
@@ -95,6 +101,7 @@ export function createMenu(): void {
       ],
     },
 
+    // Help menu
     // 帮助菜单
     {
       label: '帮助',

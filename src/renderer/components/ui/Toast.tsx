@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import { CheckCircleIcon, XCircleIcon, InfoIcon, AlertTriangleIcon, XIcon } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
 
+// Toast type
 // Toast 类型
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -26,12 +27,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
     
+    // Send system notification (if enabled and requested)
     // 发送系统通知（如果启用且请求）
     if (sendSystemNotification && enableNotifications && window.electron?.showNotification) {
-      const title = type === 'success' ? '成功' : type === 'error' ? '错误' : type === 'warning' ? '警告' : '提示';
+      const title = type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info';
       window.electron.showNotification(`PromptHub - ${title}`, message);
     }
     
+    // Auto disappear after 3 seconds
     // 3秒后自动消失
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -74,6 +77,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       
+      {/* Toast container - z-index needs to be higher than Modal (z-[9999]) */}
       {/* Toast 容器 - z-index 需要高于 Modal (z-[9999]) */}
       <div className="fixed bottom-4 right-4 z-[10000] flex flex-col gap-2">
         {toasts.map((toast) => (
@@ -100,6 +104,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Hook
 // Hook
 export function useToast() {
   const context = useContext(ToastContext);

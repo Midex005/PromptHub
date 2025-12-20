@@ -4,6 +4,7 @@ import { useFolderStore } from '../../stores/folder.store';
 import type { Folder } from '../../../shared/types';
 import { useToast } from '../ui/Toast';
 
+// Optional folder icons - categorized
 // 可选的文件夹图标 - 分类整理
 const FOLDER_ICON_CATEGORIES = [
   {
@@ -77,6 +78,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
     e.preventDefault();
     if (!name.trim()) return;
 
+    // If private is enabled and currently not unlocked, require unlock first
     // 如果开启私密且当前未解锁，要求先解锁
     if (isPrivate && securityStatus.configured && !securityStatus.unlocked) {
       setShowUnlockModal(true);

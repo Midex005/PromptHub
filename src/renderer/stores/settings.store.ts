@@ -19,6 +19,7 @@ const normalizeLanguage = (lang: string): SupportedLanguage => {
   return 'en';
 };
 
+// Get default data directory path (based on platform)
 // 获取默认数据目录路径（根据平台）
 const getDefaultDataPath = (): string => {
   const platform = navigator.userAgent.toLowerCase();
@@ -31,20 +32,21 @@ const getDefaultDataPath = (): string => {
   }
 };
 
+// Theme colors - Morandi color palette + classic royal blue
 // 主题色 - 莫兰迪色系 + 经典宝蓝
 export const MORANDI_THEMES = [
-  { id: 'royal-blue', hue: 220, saturation: 70, name: '宝蓝' },
-  { id: 'blue', hue: 210, saturation: 35, name: '雾蓝' },
-  { id: 'purple', hue: 260, saturation: 30, name: '烟紫' },
-  { id: 'green', hue: 150, saturation: 30, name: '豆绿' },
-  { id: 'orange', hue: 25, saturation: 40, name: '杏橘' },
-  { id: 'teal', hue: 175, saturation: 30, name: '青黛' },
+  { id: 'royal-blue', hue: 220, saturation: 70, name: 'Royal Blue' },
+  { id: 'blue', hue: 210, saturation: 35, name: 'Misty Blue' },
+  { id: 'purple', hue: 260, saturation: 30, name: 'Smoky Purple' },
+  { id: 'green', hue: 150, saturation: 30, name: 'Bean Green' },
+  { id: 'orange', hue: 25, saturation: 40, name: 'Apricot Orange' },
+  { id: 'teal', hue: 175, saturation: 30, name: 'Teal Blue' },
 ];
 
 export const FONT_SIZES = [
-  { id: 'small', value: 14, name: '小' },
-  { id: 'medium', value: 16, name: '中' },
-  { id: 'large', value: 18, name: '大' },
+  { id: 'small', value: 14, name: 'Small' },
+  { id: 'medium', value: 16, name: 'Medium' },
+  { id: 'large', value: 18, name: 'Large' },
 ];
 
 type Hs = { hue: number; saturation: number };
@@ -52,7 +54,9 @@ type Hs = { hue: number; saturation: number };
 const clamp = (n: number, min: number, max: number): number => Math.max(min, Math.min(max, n));
 
 /**
+ * Convert HEX color to HSL hue/saturation (lightness is defined by CSS variables)
  * 将 HEX 颜色转换为 HSL 的 hue/saturation（lightness 由 CSS 变量定义）
+ * - Only used for theme colors:最终写入 --theme-hue / --theme-saturation
  * - 仅用于主题色：最终写入 --theme-hue / --theme-saturation
  */
 const hexToHs = (hex: string): Hs => {
@@ -83,9 +87,11 @@ const hexToHs = (hex: string): Hs => {
   return { hue: clamp(h, 0, 360), saturation: clamp(Math.round(s * 100), 0, 100) };
 };
 
+// Theme mode
 // 主题模式
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+// AI model type
 // AI 模型类型
 export type AIModelType = 'chat' | 'image';
 
@@ -111,34 +117,45 @@ export interface ImageModelParams {
   n?: number;                 // 生成数量 / Number of images to generate
 }
 
+// AI model configuration type
 // AI 模型配置类型
 export interface AIModelConfig {
   id: string;
-  type: AIModelType;  // 模型类型：对话模型或生图模型
-  name?: string;      // 自定义名称（可选），用于显示
+  type: AIModelType;  // Model type: chat model or image generation model
+  // 模型类型：对话模型或生图模型
+  name?: string;      // Custom name (optional), used for display
+  // 自定义名称（可选），用于显示
   provider: string;   // 供应商 ID
   apiKey: string;
   apiUrl: string;
-  model: string;      // 模型名称，如 gpt-4o, dall-e-3
+  model: string;      // Model name, such as gpt-4o, dall-e-3
+  // 模型名称，如 gpt-4o, dall-e-3
   isDefault?: boolean;
-  // 自定义参数 / Custom parameters
+  // Custom parameters
+  // 自定义参数
   chatParams?: ChatModelParams;
   imageParams?: ImageModelParams;
 }
 
 interface SettingsState {
+  // Display settings
   // 显示设置
   themeMode: ThemeMode;
   isDarkMode: boolean;
   themeColor: string;
   themeHue: number;
   themeSaturation: number;
-  customThemeHex: string; // 自定义主题色（HEX）
-  settingsUpdatedAt: string; // 设置最后更新时间（用于 WebDAV/备份一致性判断）
+  customThemeHex: string; // Custom theme color (HEX)
+  // 自定义主题色（HEX）
+  settingsUpdatedAt: string; // Settings last update time (used for WebDAV/backup consistency check)
+  // 设置最后更新时间（用于 WebDAV/备份一致性判断）
   fontSize: string;
-  renderMarkdown: boolean; // 详情页默认使用 Markdown 渲染
-  editorMarkdownPreview: boolean; // 编辑器默认开启预览
+  renderMarkdown: boolean; // Default use Markdown rendering in detail page
+  // 详情页默认使用 Markdown 渲染
+  editorMarkdownPreview: boolean; // Editor default enable preview
+  // 编辑器默认开启预览
   
+  // General settings
   // 常规设置
   autoSave: boolean;
   showLineNumbers: boolean;
@@ -146,8 +163,10 @@ interface SettingsState {
   minimizeOnLaunch: boolean;
   
   // 关闭行为设置 (Windows) / Close behavior settings (Windows)
-  closeAction: 'ask' | 'minimize' | 'exit';  // ask=每次询问, minimize=最小化到托盘, exit=直接退出
+  closeAction: 'ask' | 'minimize' | 'exit';  // ask=prompt every time, minimize=minimize to tray, exit=exit directly
+  // ask=每次询问, minimize=最小化到托盘, exit=直接退出
   
+  // Notification settings
   // 通知设置
   enableNotifications: boolean;
   showCopyNotification: boolean;
@@ -156,37 +175,52 @@ interface SettingsState {
   // 语言设置 / Language settings
   language: SupportedLanguage;  // zh, zh-TW, en, ja, es, de, fr
   
+  // Data path
   // 数据路径
   dataPath: string;
   
+  // WebDAV sync settings
   // WebDAV 同步设置
   webdavEnabled: boolean;
   webdavUrl: string;
   webdavUsername: string;
   webdavPassword: string;
-  webdavAutoSync: boolean;  // 旧版兼容，等同于 webdavSyncOnStartup
-  webdavSyncOnStartup: boolean;  // 启动后自动同步一次
-  webdavSyncOnStartupDelay: number;  // 启动后延迟秒数（0-60）
-  webdavAutoSyncInterval: number;  // 自动同步间隔（分钟，0=关闭）
-  webdavSyncOnSave: boolean;  // 保存时同步（实验性）
-  webdavIncludeImages: boolean;  // 是否包含图片
-  webdavIncrementalSync: boolean;  // 是否使用增量同步
-  webdavEncryptionEnabled: boolean;  // 是否启用加密（实验性）
-  webdavEncryptionPassword: string;  // 加密密码
+  webdavAutoSync: boolean;  // Legacy compatibility, equivalent to webdavSyncOnStartup
+  // 旧版兼容，等同于 webdavSyncOnStartup
+  webdavSyncOnStartup: boolean;  // Auto sync once after startup
+  // 启动后自动同步一次
+  webdavSyncOnStartupDelay: number;  // Delay seconds after startup (0-60)
+  // 启动后延迟秒数（0-60）
+  webdavAutoSyncInterval: number;  // Auto sync interval (minutes, 0=disabled)
+  // 自动同步间隔（分钟，0=关闭）
+  webdavSyncOnSave: boolean;  // Sync on save (experimental)
+  // 保存时同步（实验性）
+  webdavIncludeImages: boolean;  // Whether to include images
+  // 是否包含图片
+  webdavIncrementalSync: boolean;  // Whether to use incremental sync
+  // 是否使用增量同步
+  webdavEncryptionEnabled: boolean;  // Whether to enable encryption (experimental)
+  // 是否启用加密（实验性）
+  webdavEncryptionPassword: string;  // Encryption password
+  // 加密密码
   
+  // Update settings
   // 更新设置
   autoCheckUpdate: boolean;
   
+  // AI model configuration (legacy single model compatibility)
   // AI 模型配置（兼容旧版单模型配置）
   aiProvider: string;
   aiApiKey: string;
   aiApiUrl: string;
   aiModel: string;
   
+  // Multi-model configuration (new version)
   // 多模型配置（新版）
   aiModels: AIModelConfig[];
   
   // Actions
+  // 操作
   setThemeMode: (mode: ThemeMode) => void;
   setDarkMode: (isDark: boolean) => void;
   setThemeColor: (colorId: string) => void;
@@ -238,6 +272,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ ...partial, settingsUpdatedAt: touch() } as SettingsState);
 
       return {
+      // Default values
       // 默认值
       themeMode: 'system' as ThemeMode,
       isDarkMode: true,
@@ -253,7 +288,7 @@ export const useSettingsStore = create<SettingsState>()(
       showLineNumbers: false,
       launchAtStartup: false,
       minimizeOnLaunch: true,
-      closeAction: 'ask' as const,  // 默认每次询问 / Default to ask every time
+      closeAction: 'ask' as const,  // Default to ask every time / 默认每次询问
       enableNotifications: true,
       showCopyNotification: true,
       showSaveNotification: true,
@@ -348,12 +383,13 @@ export const useSettingsStore = create<SettingsState>()(
       setLaunchAtStartup: (enabled) => setTouched({ launchAtStartup: enabled }),
       setMinimizeOnLaunch: (enabled) => {
         setTouched({ minimizeOnLaunch: enabled });
+        // Notify main process to update tray status
         // 通知主进程更新托盘状态
         window.electron?.setMinimizeToTray?.(enabled);
       },
       setCloseAction: (action) => {
         setTouched({ closeAction: action });
-        // 通知主进程更新关闭行为 / Notify main process of close action change
+        // Notify main process of close action change / 通知主进程更新关闭行为
         window.electron?.setCloseAction?.(action);
       },
       setEnableNotifications: (enabled) => setTouched({ enableNotifications: enabled }),
@@ -384,6 +420,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAiApiUrl: (url) => setTouched({ aiApiUrl: url }),
       setAiModel: (model) => setTouched({ aiModel: model }),
       
+      // Multi-model management methods
       // 多模型管理方法
       addAiModel: (config) => {
         const id = `model_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -392,6 +429,7 @@ export const useSettingsStore = create<SettingsState>()(
         setTouched({
           aiModels: [...models, { ...config, id, isDefault: isFirst }],
         });
+        // If it's the first model, sync to legacy configuration
         // 如果是第一个模型，同步到旧版配置
         if (isFirst) {
           setTouched({
@@ -408,6 +446,7 @@ export const useSettingsStore = create<SettingsState>()(
           m.id === id ? { ...m, ...config } : m
         );
         setTouched({ aiModels: models });
+        // If updating the default model, sync to legacy configuration
         // 如果更新的是默认模型，同步到旧版配置
         const updated = models.find((m) => m.id === id);
         if (updated?.isDefault) {
@@ -424,6 +463,7 @@ export const useSettingsStore = create<SettingsState>()(
         const models = get().aiModels;
         const toDelete = models.find((m) => m.id === id);
         const remaining = models.filter((m) => m.id !== id);
+        // If deleting the default model, set the first one as default
         // 如果删除的是默认模型，设置第一个为默认
         if (toDelete?.isDefault && remaining.length > 0) {
           remaining[0].isDefault = true;
@@ -443,6 +483,7 @@ export const useSettingsStore = create<SettingsState>()(
         
         const targetType = targetModel.type || 'chat';
         
+        // Only update isDefault status for models of the same type
         // 只更新同类型模型的 isDefault 状态
         const models = get().aiModels.map((m) => {
           const modelType = m.type || 'chat';
@@ -453,6 +494,7 @@ export const useSettingsStore = create<SettingsState>()(
         });
         setTouched({ aiModels: models });
         
+        // Only chat models sync to legacy configuration
         // 只有对话模型才同步到旧版配置
         if (targetType === 'chat') {
           setTouched({
@@ -466,6 +508,7 @@ export const useSettingsStore = create<SettingsState>()(
       
       applyTheme: () => {
         const state = get();
+        // Handle theme mode
         // 处理主题模式
         let isDark = state.isDarkMode;
         if (state.themeMode === 'system') {
@@ -480,6 +523,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (fontConfig) {
           document.documentElement.style.setProperty('--base-font-size', `${fontConfig.value}px`);
         }
+        // Initialize tray status
         // 初始化托盘状态
         if (state.minimizeOnLaunch) {
           window.electron?.setMinimizeToTray?.(true);

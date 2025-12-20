@@ -1,4 +1,6 @@
 /**
+ * AI Service - Call various AI model APIs
+ * Most domestic and international service providers are compatible with OpenAI format
  * AI 服务 - 调用各种 AI 模型 API
  * 大部分国内外服务商都兼容 OpenAI 格式
  */
@@ -41,8 +43,8 @@ export interface ChatCompletionResponse {
   };
 }
 
-// 对话模型参数
 // Chat model parameters
+// 对话模型参数
 export interface ChatParams {
   temperature?: number;       // 温度 (0-2) / Temperature
   maxTokens?: number;         // 最大 token 数 / Max tokens
@@ -54,8 +56,8 @@ export interface ChatParams {
   enableThinking?: boolean;   // 思考模式 / Thinking mode
 }
 
-// 图像模型参数
 // Image model parameters
+// 图像模型参数
 export interface ImageParams {
   size?: string;
   quality?: 'standard' | 'hd';
@@ -65,17 +67,19 @@ export interface ImageParams {
 
 export interface AIConfig {
   // 可选：用于区分同名模型（多模型对比的流式回调映射）
+  // Optional: Used to distinguish models with the same name (for multi-model comparison streaming callback mapping)
   id?: string;
   provider: string;
   apiKey: string;
   apiUrl: string;
   model: string;
-  type?: 'chat' | 'image'; // 模型类型
+  type?: 'chat' | 'image'; // 模型类型 / Model type
   chatParams?: ChatParams;
   imageParams?: ImageParams;
 }
 
 // ============ 图像生成相关接口 ============
+// ============ Image Generation Related Interfaces ============
 
 export interface ImageGenerationRequest {
   prompt: string;
@@ -107,16 +111,16 @@ export interface ImageTestResult {
   provider: string;
 }
 
-// 流式输出回调接口
 // Streaming output callback interface
+// 流式输出回调接口
 export interface StreamCallbacks {
   onContent?: (chunk: string) => void;           // 内容块回调 / Content chunk callback
   onThinking?: (chunk: string) => void;          // 思考内容回调 / Thinking content callback
   onComplete?: (fullContent: string, thinkingContent?: string) => void;  // 完成回调 / Completion callback
 }
 
-// 对话完成结果
 // Chat completion result
+// 对话完成结果
 export interface ChatCompletionResult {
   content: string;
   thinkingContent?: string;
@@ -155,6 +159,7 @@ export async function chatCompletion(
   
   if (!model) {
     throw new Error('请先选择模型');
+    // Please select a model first
   }
 
   // 构建请求 URL / Build request URL
@@ -241,6 +246,7 @@ export async function chatCompletion(
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `API 请求失败 (${response.status})`;
+      // API request failed
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.error?.message || errorJson.message || errorMessage;
@@ -262,6 +268,7 @@ export async function chatCompletion(
     
     if (!data.choices || data.choices.length === 0) {
       throw new Error('AI 返回结果为空');
+      // AI returned empty result
     }
 
     const message = data.choices[0].message;
@@ -274,6 +281,7 @@ export async function chatCompletion(
       throw error;
     }
     throw new Error('网络请求失败，请检查网络连接');
+    // Network request failed, please check network connection
   }
 }
 
@@ -289,6 +297,7 @@ async function handleStreamResponse(
   const reader = response.body?.getReader();
   if (!reader) {
     throw new Error('无法读取响应流');
+    // Cannot read response stream
   }
 
   const decoder = new TextDecoder();
@@ -346,6 +355,9 @@ async function handleStreamResponse(
 }
 
 export interface AITestResult {
+  // Optional: link the result back to the configured model instance
+  // 可选：用于将结果关联回具体的模型配置实例（避免同 provider/model 串台）
+  id?: string;
   success: boolean;
   response?: string;
   thinkingContent?: string;  // 思考内容 / Thinking content
@@ -380,6 +392,7 @@ export async function testAIConnection(
     });
     
     return {
+      id: config.id,
       success: true,
       response: result.content,
       thinkingContent: result.thinkingContent,
@@ -389,6 +402,7 @@ export async function testAIConnection(
     };
   } catch (error) {
     return {
+      id: config.id,
       success: false,
       error: error instanceof Error ? error.message : '未知错误',
       latency: Date.now() - startTime,
@@ -400,6 +414,7 @@ export async function testAIConnection(
 
 /**
  * 并行测试多个 AI 配置（用于对比）
+ * Test multiple AI configurations in parallel (for comparison)
  */
 export async function compareAIModels(
   configs: AIConfig[],
@@ -410,16 +425,19 @@ export async function compareAIModels(
 }
 
 // ============ 图像生成功能 ============
+// ============ Image Generation Functionality ============
 
 /**
  * 调用图像生成模型
  * 支持多种供应商：OpenAI, FLUX, Ideogram, Recraft, Stability AI, Replicate 等
+ * Call image generation model
+ * Supports multiple providers: OpenAI, FLUX, Ideogram, Recraft, Stability AI, Replicate, etc.
  */
 export async function generateImage(
   config: AIConfig,
   prompt: string,
   options?: {
-    size?: string;  // 不同 API 支持不同的尺寸格式
+    size?: string;  // 不同 API 支持不同的尺寸格式 / Different APIs support different size formats
     quality?: 'standard' | 'hd';
     style?: 'vivid' | 'natural';
     n?: number;
@@ -438,6 +456,7 @@ export async function generateImage(
   }
 
   // 根据供应商选择不同的 API 调用方式
+  // Choose different API calling methods based on provider
   const providerLower = (provider || '').toLowerCase();
   
   // FLUX (Black Forest Labs)
@@ -486,7 +505,7 @@ async function generateImageOpenAI(
   let endpoint = apiUrl.replace(/\/$/, '');
   
   if (endpoint.includes('/images/generations')) {
-    // 保持原样
+    // 保持原样 / Keep as is
   } else if (endpoint.endsWith('/chat/completions')) {
     endpoint = endpoint.replace(/\/chat\/completions$/, '/images/generations');
   } else if (endpoint.match(/\/v\d+$/)) {
@@ -520,6 +539,7 @@ async function generateImageOpenAI(
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = `图像生成失败 (${response.status})`;
+    // Image generation failed
     try {
       const errorJson = JSON.parse(errorText);
       errorMessage = errorJson.error?.message || errorJson.message || errorMessage;
@@ -550,6 +570,7 @@ async function generateImageFlux(
   };
   
   // FLUX 使用 aspect_ratio
+  // FLUX uses aspect_ratio
   if (options?.aspect_ratio) {
     const [w, h] = options.aspect_ratio.split(':').map(Number);
     if (w && h) {
@@ -570,6 +591,7 @@ async function generateImageFlux(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`FLUX 图像生成失败: ${errorText.slice(0, 200)}`);
+    // FLUX image generation failed
   }
 
   const result = await response.json();
@@ -609,6 +631,7 @@ async function generateImageIdeogram(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Ideogram 图像生成失败: ${errorText.slice(0, 200)}`);
+    // Ideogram image generation failed
   }
 
   const result = await response.json();
@@ -649,6 +672,7 @@ async function generateImageRecraft(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Recraft 图像生成失败: ${errorText.slice(0, 200)}`);
+    // Recraft image generation failed
   }
 
   const result = await response.json();
@@ -666,10 +690,11 @@ async function generateImageReplicate(
   options?: { aspect_ratio?: string; n?: number }
 ): Promise<ImageGenerationResponse> {
   // Replicate 使用 predictions API
+  // Replicate uses predictions API
   const endpoint = 'https://api.replicate.com/v1/predictions';
   
   const body: Record<string, any> = {
-    version: model, // Replicate 使用 model version
+    version: model, // Replicate 使用 model version / Replicate uses model version
     input: {
       prompt,
       num_outputs: options?.n ?? 1,
@@ -692,11 +717,13 @@ async function generateImageReplicate(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Replicate 图像生成失败: ${errorText.slice(0, 200)}`);
+    // Replicate image generation failed
   }
 
   const prediction = await response.json();
   
   // Replicate 是异步的，需要轮询结果
+  // Replicate is asynchronous, need to poll for results
   let result = prediction;
   while (result.status === 'starting' || result.status === 'processing') {
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -708,6 +735,7 @@ async function generateImageReplicate(
   
   if (result.status === 'failed') {
     throw new Error(`Replicate 图像生成失败: ${result.error}`);
+    // Replicate image generation failed
   }
 
   const outputs = Array.isArray(result.output) ? result.output : [result.output];
@@ -754,6 +782,7 @@ async function generateImageStability(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Stability AI 图像生成失败: ${errorText.slice(0, 200)}`);
+    // Stability AI image generation failed
   }
 
   const result = await response.json();
@@ -768,6 +797,8 @@ async function generateImageStability(
 /**
  * 测试图像生成模型
  * 注意：不同 API 对参数的支持不同，测试时只传递最基本的参数
+ * Test image generation model
+ * Note: Different APIs support different parameters, only pass basic parameters during testing
  */
 export async function testImageGeneration(
   config: AIConfig,
@@ -778,6 +809,7 @@ export async function testImageGeneration(
   
   try {
     // 测试时不传递 size 等参数，让 API 使用默认值
+    // Don't pass size and other parameters during testing, let API use default values
     const result = await generateImage(config, prompt, { n: 1 });
     
     const imageData = result.data[0];
@@ -803,6 +835,7 @@ export async function testImageGeneration(
 }
 
 // ============ 多模型对比分析 ============
+// ============ Multi-Model Comparison Analysis ============
 
 export interface MultiModelCompareResult {
   messages: ChatMessage[];
@@ -811,8 +844,8 @@ export interface MultiModelCompareResult {
 }
 
 /**
- * 多模型提示词对比分析（并行执行，支持流式输出）
  * Multi-model prompt comparison (parallel execution, supports streaming)
+ * 多模型提示词对比分析（并行执行，支持流式输出）
  */
 export async function multiModelCompare(
   configs: AIConfig[],
@@ -820,7 +853,8 @@ export async function multiModelCompare(
   options?: {
     temperature?: number;
     maxTokens?: number;
-    streamCallbacksMap?: Map<string, StreamCallbacks>;  // 每个模型的流式回调
+    streamCallbacksMap?: Map<string, StreamCallbacks>;  // Streaming callback for each model
+    // 每个模型的流式回调
   }
 ): Promise<MultiModelCompareResult> {
   const startTime = Date.now();
@@ -837,6 +871,7 @@ export async function multiModelCompare(
       });
       
       return {
+        id: config.id,
         success: true,
         response: result.content,
         thinkingContent: result.thinkingContent,
@@ -846,8 +881,9 @@ export async function multiModelCompare(
       } as AITestResult;
     } catch (error) {
       return {
+        id: config.id,
         success: false,
-        error: error instanceof Error ? error.message : '未知错误',
+        error: error instanceof Error ? error.message : 'Unknown error',
         latency: Date.now() - resultStartTime,
         model: config.model,
         provider: config.provider,
@@ -865,6 +901,7 @@ export async function multiModelCompare(
 }
 
 /**
+ * Generate messages using prompt template
  * 使用 Prompt 模板生成消息
  */
 export function buildMessagesFromPrompt(
@@ -874,6 +911,7 @@ export function buildMessagesFromPrompt(
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
   
+  // Replace variables
   // 替换变量
   let processedUserPrompt = userPrompt;
   if (variables) {
@@ -904,6 +942,7 @@ export function buildMessagesFromPrompt(
 }
 
 // ============ 获取模型列表 ============
+// ============ Get Model List ============
 
 export interface ModelInfo {
   id: string;
@@ -919,17 +958,30 @@ export interface FetchModelsResult {
 }
 
 /**
- * 计算 Base URL（用于显示预览）
+ * Calculate Base URL (for display preview)
  * 处理各种用户输入情况，返回标准化的 base URL
+ * 如果用户在 URL 末尾输入 #，则视为显式指定，不进行后续补全，预览显示 # 之前的部分
+ * Calculate base URL (for display preview)
+ * Handle various user input scenarios, return standardized base URL
+ * If the user enters # at the end of the URL, it is treated as explicitly specified, 
+ * no subsequent completion is performed, and the preview displays the part before #
  */
 export function getBaseUrl(apiUrl: string): string {
   if (!apiUrl) return '';
   
   let url = apiUrl.trim();
+
+  // Handle # suffix: if ends with #, treat as explicit and remove # for display
+  // 处理 # 后缀：如果以 # 结尾，视为显式指定，显示时移除 #
+  if (url.endsWith('#')) {
+    return url.slice(0, -1);
+  }
+
   if (url.endsWith('/')) {
     url = url.slice(0, -1);
   }
   
+  // Remove common endpoint suffixes
   // 移除常见的端点后缀
   const suffixes = ['/chat/completions', '/completions', '/models', '/embeddings', '/images/generations'];
   for (const suffix of suffixes) {
@@ -943,62 +995,122 @@ export function getBaseUrl(apiUrl: string): string {
 }
 
 /**
- * 获取完整的 API 端点预览（用于显示）
+ * Get complete API endpoint preview (for display)
+ * 如果用户输入以 # 结尾，则不自动填充后续路径
  * 如果用户没有输入 /v1，会自动补全
+ * 对于 Gemini API，使用 /models 端点
+ * Get complete API endpoint preview (for display)
+ * If the input ends with #, do not auto-fill the subsequent path
+ * Auto-complete /v1 if user didn't input it
+ * Use /models endpoint for Gemini API
  */
 export function getApiEndpointPreview(apiUrl: string): string {
   if (!apiUrl) return '';
   
+  // If ends with #, just return the part before # without any auto-fill
+  // 如果以 # 结尾，直接返回 # 之前的部分，不进行任何自动填充
+  if (apiUrl.trim().endsWith('#')) {
+    return apiUrl.trim().slice(0, -1);
+  }
+
   const baseUrl = getBaseUrl(apiUrl);
   
+  // Gemini API uses different endpoint format
+  // Gemini（Google Generative Language API）并非 OpenAI 的 images/generations 规范
+  if (baseUrl.includes('generativelanguage.googleapis.com')) {
+    // Gemini API: https://generativelanguage.googleapis.com/v1beta/models
+    if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
+      return baseUrl + '/models';
+    }
+    return baseUrl + '/v1beta/models';
+  }
+  
+  // Check if version path is already included
   // 检查是否已经包含版本路径
   if (baseUrl.endsWith('/v1') || baseUrl.match(/\/v\d+$/)) {
     return baseUrl + '/chat/completions';
   }
   
+  // Auto-complete /v1
   // 自动补全 /v1
   return baseUrl + '/v1/chat/completions';
 }
 
 /**
+ * Get image generation API endpoint preview (for display)
+ * 如果用户输入以 # 结尾，则不自动填充后续路径
  * 获取生图 API 端点预览（用于显示）
  */
 export function getImageApiEndpointPreview(apiUrl: string): string {
   if (!apiUrl) return '';
+
+  // If ends with #, just return the part before # without any auto-fill
+  // 如果以 # 结尾，直接返回 # 之前的部分，不进行任何自动填充
+  if (apiUrl.trim().endsWith('#')) {
+    return apiUrl.trim().slice(0, -1);
+  }
+
+  const baseUrl = getBaseUrl(apiUrl);
+
+  // Gemini is not OpenAI's images/generations specification
+  // Gemini（Google Generative Language API）并非 OpenAI 的 images/generations 规范
+  if (baseUrl.includes('generativelanguage.googleapis.com')) {
+    if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
+      return baseUrl + '/models';
+    }
+    return baseUrl + '/v1beta/models';
+  }
   
   let endpoint = apiUrl.replace(/\/$/, '');
   
+  // If already contains images/generations, use directly
   // 如果已经包含 images/generations，直接使用
   if (endpoint.includes('/images/generations')) {
     return endpoint;
   } else if (endpoint.endsWith('/chat/completions')) {
+    // Replace chat/completions with images/generations
     // 替换 chat/completions 为 images/generations
     return endpoint.replace(/\/chat\/completions$/, '/images/generations');
   } else if (endpoint.match(/\/v\d+$/)) {
+    // If ends with /v1, /v2, /v3, etc., append /images/generations
     // 如果以 /v1, /v2, /v3 等结尾，追加 /images/generations
     return endpoint + '/images/generations';
   } else {
+    // Default append /v1/images/generations
     // 默认追加 /v1/images/generations
     return endpoint + '/v1/images/generations';
   }
 }
 
 /**
+ * Fetch available model list from API
  * 从 API 获取可用模型列表
- * 大部分 OpenAI 兼容的 API 都支持 /models 端点
  */
 export async function fetchAvailableModels(
   apiUrl: string,
   apiKey: string
 ): Promise<FetchModelsResult> {
   if (!apiKey || !apiUrl) {
-    return { success: false, models: [], error: '请先填写 API Key 和 API 地址' };
+    return { success: false, models: [], error: 'Please fill in API Key and API URL first' };
+    // 请先填写 API Key 和 API 地址
   }
 
   try {
+    // Calculate base URL and add /models
     // 计算 base URL 并添加 /models
     const baseUrl = getBaseUrl(apiUrl);
-    const endpoint = baseUrl + '/models';
+    let endpoint = baseUrl + '/models';
+
+    // Gemini: https://generativelanguage.googleapis.com/v1beta/models
+    // Users might only fill host (without /v1beta), need to complete according to Gemini specification
+    // 用户可能只填 host（不含 /v1beta），这里需要按 Gemini 规范补齐
+    if (baseUrl.includes('generativelanguage.googleapis.com')) {
+      if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
+        endpoint = baseUrl + '/models';
+      } else {
+        endpoint = baseUrl + '/v1beta/models';
+      }
+    }
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -1013,16 +1125,18 @@ export async function fetchAvailableModels(
       return { 
         success: false, 
         models: [], 
-        error: `获取模型列表失败: ${response.status} - ${errorText.substring(0, 100)}` 
+        error: `获取模型列表失败: ${response.status} - ${errorText.substring(0, 100)}`
+        // Failed to get model list 
       };
     }
 
     const data = await response.json();
     
     // OpenAI 格式的响应
+    // OpenAI format response
     if (data.data && Array.isArray(data.data)) {
       const models = data.data
-        .filter((m: { id?: string }) => m.id) // 过滤掉没有 id 的
+        .filter((m: { id?: string }) => m.id) // 过滤掉没有 id 的 / Filter out those without id
         .map((m: { id: string; owned_by?: string; created?: number }) => ({
           id: m.id,
           name: m.id,
@@ -1035,6 +1149,7 @@ export async function fetchAvailableModels(
     }
 
     // 某些 API 直接返回数组
+    // Some APIs return array directly
     if (Array.isArray(data)) {
       const models = data
         .filter((m: { id?: string; model?: string }) => m.id || m.model)
@@ -1046,11 +1161,13 @@ export async function fetchAvailableModels(
     }
 
     return { success: false, models: [], error: '无法解析模型列表响应' };
+    // Cannot parse model list response
   } catch (error) {
     return { 
       success: false, 
       models: [], 
-      error: error instanceof Error ? error.message : '获取模型列表失败' 
+      error: error instanceof Error ? error.message : '获取模型列表失败'
+      // Failed to get model list 
     };
   }
 }

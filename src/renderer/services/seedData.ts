@@ -1,16 +1,19 @@
 /**
- * 多语言种子数据
+ * Multilingual Seed Data
  * 根据用户语言设置初始化不同语言的示例数据
+ * Initialize different language example data based on user language settings
  */
 
 import type { Prompt, Folder } from '../../shared/types';
 
+// Seed data type
 // 种子数据类型
 interface SeedData {
   prompts: Omit<Prompt, 'createdAt' | 'updatedAt'>[];
   folders: Omit<Folder, 'createdAt' | 'updatedAt'>[];
 }
 
+// Chinese seed data
 // 中文种子数据
 const SEED_DATA_ZH: SeedData = {
   folders: [
@@ -158,6 +161,7 @@ const SEED_DATA_ZH: SeedData = {
 };
 
 // 英文种子数据
+// English seed data
 const SEED_DATA_EN: SeedData = {
   folders: [
     { id: 'folder-coding', name: 'AI Coding', icon: '💻', order: 0 },
@@ -303,6 +307,7 @@ const SEED_DATA_EN: SeedData = {
   ],
 };
 
+// Japanese seed data
 // 日语种子数据
 const SEED_DATA_JA: SeedData = {
   folders: [
@@ -344,39 +349,49 @@ const SEED_DATA_JA: SeedData = {
   ],
 };
 
+// Language to seed data mapping
 // 语言到种子数据的映射
 const SEED_DATA_MAP: Record<string, SeedData> = {
   'zh': SEED_DATA_ZH,
   'zh-CN': SEED_DATA_ZH,
   'zh-TW': SEED_DATA_ZH, // 繁体中文使用简体中文数据
+  // Traditional Chinese uses simplified Chinese data
   'en': SEED_DATA_EN,
   'ja': SEED_DATA_JA,
   'es': SEED_DATA_EN, // 西班牙语暂用英文
+  // Spanish temporarily uses English
   'de': SEED_DATA_EN, // 德语暂用英文
+  // German temporarily uses English
   'fr': SEED_DATA_EN, // 法语暂用英文
+  // French temporarily uses English
 };
 
 /**
  * 根据语言获取种子数据
+ * Get seed data based on language
  */
 export function getSeedData(language: string): SeedData {
   // 尝试精确匹配
+  // Try exact match
   if (SEED_DATA_MAP[language]) {
     return SEED_DATA_MAP[language];
   }
   
   // 尝试匹配语言前缀（如 zh-CN -> zh）
+  // Try matching language prefix (e.g., zh-CN -> zh)
   const langPrefix = language.split('-')[0];
   if (SEED_DATA_MAP[langPrefix]) {
     return SEED_DATA_MAP[langPrefix];
   }
   
   // 默认返回英文
+  // Default return English
   return SEED_DATA_EN;
 }
 
 /**
  * 获取带时间戳的 Prompt 数据
+ * Get Prompt data with timestamps
  */
 export function getSeedPrompts(language: string): Prompt[] {
   const seedData = getSeedData(language);
@@ -391,6 +406,7 @@ export function getSeedPrompts(language: string): Prompt[] {
 
 /**
  * 获取带时间戳的 Folder 数据
+ * Get Folder data with timestamps
  */
 export function getSeedFolders(language: string): Folder[] {
   const seedData = getSeedData(language);

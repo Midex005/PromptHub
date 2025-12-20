@@ -65,6 +65,7 @@ function NavItem({ icon, label, count, active, onClick }: NavItemProps) {
   );
 }
 
+// Sortable folder item
 // 可排序的文件夹项
 interface SortableFolderItemProps {
   folder: Folder;
@@ -85,6 +86,7 @@ function SortableFolderItem({ folder, isActive, onSelect, onEdit, isOver, isLock
     isDragging,
   } = useSortable({ id: folder.id });
 
+  // As Prompt's drop target
   // 作为 Prompt 的放置目标
   const { setNodeRef: setDroppableRef, isOver: isDropOver } = useDroppable({
     id: `folder-drop-${folder.id}`,
@@ -106,6 +108,7 @@ function SortableFolderItem({ folder, isActive, onSelect, onEdit, isOver, isLock
       style={style}
       className={`group relative flex items-center ${isDropOver ? 'bg-primary/20 rounded-lg ring-2 ring-primary' : ''}`}
     >
+      {/* Drag handle */}
       {/* 拖拽手柄 */}
       <button
         {...attributes}
@@ -165,6 +168,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const filterTags = usePromptStore((state) => state.filterTags);
   const toggleFilterTag = usePromptStore((state) => state.toggleFilterTag);
 
+  // Drag sensors
   // 拖拽传感器
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -178,6 +182,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   );
 
   useEffect(() => {
+    // Detect if it's macOS platform
     // 检测是否为 macOS 平台
     const platform = navigator.userAgent.toLowerCase();
     setIsMac(platform.includes('mac'));
@@ -187,6 +192,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const allTags = prompts.flatMap((p) => p.tags);
   const uniqueTags = [...new Set(allTags)];
 
+  // Handle folder drag end
   // 处理文件夹拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -204,11 +210,14 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
   return (
     <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col">
+      {/* Top spacing area - only macOS needs space for window control buttons */}
       {/* 顶部留白区域 - 仅 macOS 需要给窗口控制按钮留空间 */}
       {isMac && <div className="h-10 titlebar-drag shrink-0" />}
 
+      {/* Navigation area */}
       {/* 导航区域 */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        {/* Main navigation */}
         {/* 主导航 */}
         <div className="space-y-1">
           <NavItem
@@ -233,6 +242,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           />
         </div>
 
+        {/* Folder area */}
         {/* 文件夹区域 */}
         <div className="pt-4">
           <div className="flex items-center justify-between px-3 mb-2">
@@ -291,6 +301,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           </DndContext>
         </div>
 
+        {/* Tags area */}
         {/* 标签区域 */}
         {uniqueTags.length > 0 && (
           <div className="pt-4">
@@ -329,6 +340,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         )}
       </nav>
 
+      {/* Bottom actions */}
       {/* 底部操作 */}
       <div className="p-2 border-t border-sidebar-border space-y-1">
         <button
@@ -350,12 +362,14 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         </button>
       </div>
 
+      {/* Recommended resources modal */}
       {/* 推荐资源弹窗 */}
       <ResourcesModal
         isOpen={isResourcesOpen}
         onClose={() => setIsResourcesOpen(false)}
       />
 
+      {/* Folder modal */}
       {/* 文件夹弹窗 */}
       <FolderModal
         isOpen={isFolderModalOpen}
@@ -366,6 +380,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         folder={editingFolder}
       />
 
+      {/* Private folder unlock modal */}
       {/* 私密文件夹解锁弹窗 */}
       {isPasswordModalOpen && passwordFolder && (
         <PrivateFolderUnlockModal

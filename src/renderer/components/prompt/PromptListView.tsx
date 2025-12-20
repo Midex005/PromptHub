@@ -21,6 +21,7 @@ export function PromptListView({
 }: PromptListViewProps) {
   const { t } = useTranslation();
 
+  // Format date
   // 格式化日期
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -55,6 +56,7 @@ export function PromptListView({
             }
           `}
         >
+          {/* Title and description */}
           {/* 标题和描述 */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -79,6 +81,7 @@ export function PromptListView({
             )}
           </div>
 
+          {/* Usage count */}
           {/* 使用次数 */}
           <div className="flex-shrink-0 w-12 text-center">
             <span className="text-xs text-muted-foreground">
@@ -86,6 +89,7 @@ export function PromptListView({
             </span>
           </div>
 
+          {/* Update time */}
           {/* 更新时间 */}
           <div className="flex-shrink-0 w-16 text-right">
             <span className="text-xs text-muted-foreground">
@@ -93,6 +97,7 @@ export function PromptListView({
             </span>
           </div>
 
+          {/* Action buttons */}
           {/* 操作按钮 */}
           <div className="flex items-center gap-1 flex-shrink-0">
             <button

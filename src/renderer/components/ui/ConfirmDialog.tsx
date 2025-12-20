@@ -19,8 +19,8 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = '确定',
-  cancelText = '取消',
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
   variant = 'default',
 }: ConfirmDialogProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -28,6 +28,7 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (isOpen) {
+      // Focus on cancel button to prevent accidental operations
       // 聚焦到取消按钮，防止误操作
       setTimeout(() => {
         cancelButtonRef.current?.focus();
@@ -55,14 +56,17 @@ export function ConfirmDialog({
 
   const content = (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      {/* Background mask */}
       {/* 背景遮罩 */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
+      {/* Dialog */}
       {/* 对话框 */}
       <div className="relative bg-card rounded-xl shadow-2xl border border-border w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
+        {/* Icon */}
         {/* 图标 */}
         {variant === 'destructive' && (
           <div className="flex justify-center mb-4">
@@ -72,16 +76,19 @@ export function ConfirmDialog({
           </div>
         )}
 
+        {/* Title */}
         {/* 标题 */}
         {title && (
           <h3 className="text-lg font-semibold text-center mb-2">{title}</h3>
         )}
 
+        {/* Message */}
         {/* 消息 */}
         <div className="text-sm text-muted-foreground text-center mb-6">
           {message}
         </div>
 
+        {/* Buttons */}
         {/* 按钮 */}
         <div className="flex gap-3">
           <button

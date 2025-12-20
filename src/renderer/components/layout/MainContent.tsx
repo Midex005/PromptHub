@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Children, isValidElement, cloneElement } from 'react';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -18,18 +18,87 @@ import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import { defaultSchema } from 'hast-util-sanitize';
 
+ function escapeRegExp(str: string) {
+   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+ }
+
+ function getHighlightTerms(searchQuery: string): string[] {
+  const queryLower = (searchQuery || '').trim().toLowerCase().slice(0, 128);
+  if (!queryLower) return [];
+
+  const keywords = queryLower
+    .split(/\s+/)
+    .filter((k) => k.length > 0 && k.length <= 64);
+  const compact = queryLower.replace(/\s+/g, '');
+
+  const terms = [...keywords];
+  if (compact && compact.length <= 64 && !terms.includes(compact)) terms.push(compact);
+
+  return Array.from(new Set(terms))
+    .filter(Boolean)
+    .slice(0, 20)
+    .sort((a, b) => b.length - a.length);
+ }
+
+ function renderHighlightedText(text: string, terms: string[], highlightClassName: string) {
+  if (!text || terms.length === 0) return text;
+
+   const pattern = terms.map(escapeRegExp).join('|');
+   if (!pattern) return text;
+
+   const regex = new RegExp(`(${pattern})`, 'gi');
+   const parts = text.split(regex);
+
+   if (parts.length <= 1) return text;
+
+   return parts.map((part, idx) => {
+     if (!part) return null;
+     if (idx % 2 === 1) {
+       return (
+         <span key={idx} className={highlightClassName}>
+           {part}
+         </span>
+       );
+     }
+     return <span key={idx}>{part}</span>;
+   });
+ }
+
+ function renderHighlightedChildren(children: any, terms: string[], highlightClassName: string, skipTypes: any[]) {
+  return Children.map(children, (child) => {
+    if (typeof child === 'string') {
+      return renderHighlightedText(child, terms, highlightClassName);
+    }
+
+    if (!isValidElement(child)) return child;
+
+    if (skipTypes.includes(child.type)) return child;
+
+    const props = (child.props ?? {}) as any;
+    const nextChildren = renderHighlightedChildren(props.children, terms, highlightClassName, skipTypes);
+    return cloneElement(child as any, { ...props, children: nextChildren });
+  });
+}
+
+// Prompt card component (compact version)
 // Prompt 卡片组件（紧凑版本）
 function PromptCard({
   prompt,
   isSelected,
   onSelect,
-  onContextMenu
+  onContextMenu,
+  highlightTerms
 }: {
   prompt: Prompt;
   isSelected: boolean;
   onSelect: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  highlightTerms: string[];
 }) {
+  const highlightClassName = isSelected
+    ? 'bg-white/20 text-white rounded px-0.5'
+    : 'bg-primary/15 text-primary rounded px-0.5';
+
   return (
     <div
       onClick={onSelect}
@@ -48,7 +117,9 @@ function PromptCard({
           {prompt.isPinned && (
             <PinIcon className={`w-3 h-3 flex-shrink-0 ${isSelected ? 'text-white' : 'text-primary'}`} />
           )}
-          <h3 className="font-medium truncate text-sm">{prompt.title}</h3>
+          <h3 className="font-medium truncate text-sm">
+            {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
+          </h3>
         </div>
         {prompt.isFavorite && (
           <StarIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'fill-white text-white' : 'fill-yellow-400 text-yellow-400'
@@ -58,7 +129,7 @@ function PromptCard({
       {prompt.description && (
         <p className={`text-xs truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-muted-foreground'
           }`}>
-          {prompt.description}
+          {renderHighlightedText(prompt.description, highlightTerms, highlightClassName)}
         </p>
       )}
     </div>
@@ -102,6 +173,18 @@ export function MainContent() {
     return !(lang.startsWith('zh'));
   }, [i18n.language]);
 
+  const uiLangTag = useMemo(() => {
+    const lang = (i18n.language || '').toLowerCase();
+    if (!lang) return 'LANG';
+    if (lang.startsWith('zh')) return 'ZH';
+    if (lang.startsWith('ja')) return 'JA';
+    if (lang.startsWith('en')) return 'EN';
+    return lang.split('-')[0].toUpperCase();
+  }, [i18n.language]);
+
+  const highlightTerms = useMemo(() => getHighlightTerms(searchQuery), [searchQuery]);
+
+  // Store test states/results by prompt ID (persisted in component state)
   // 按 prompt ID 保存测试状态和结果（持久化）
   const [promptTestStates, setPromptTestStates] = useState<Record<string, {
     isTestingAI: boolean;
@@ -112,6 +195,7 @@ export function MainContent() {
     compareError: string | null;
   }>>({});
 
+  // Get current prompt test state and results
   // 获取当前 prompt 的测试状态和结果
   const currentState = selectedId ? promptTestStates[selectedId] : null;
   const isTestingAI = currentState?.isTestingAI || false;
@@ -121,6 +205,7 @@ export function MainContent() {
   const compareResults = currentState?.compareResults || null;
   const compareError = currentState?.compareError || null;
 
+  // Update current prompt test state
   // 更新当前 prompt 的测试状态
   const updatePromptState = (promptId: string, updates: Partial<typeof currentState>) => {
     setPromptTestStates(prev => ({
@@ -182,16 +267,19 @@ export function MainContent() {
     if (selectedId) updatePromptState(selectedId, { compareError: error });
   };
 
+  // Reset selected prompt when switching folders (privacy)
   // 切换 Folder 时重置选中的 Prompt (隐私保护)
   useEffect(() => {
     selectPrompt(null);
   }, [selectedFolderId, selectPrompt]);
 
+  // Reset selected models when switching prompts
   // 切换 Prompt 时重置选中的模型
   useEffect(() => {
     setSelectedModelIds([]);
   }, [selectedId]);
 
+  // AI configuration
   // AI 配置
   const aiProvider = useSettingsStore((state) => state.aiProvider);
   const aiApiKey = useSettingsStore((state) => state.aiApiKey);
@@ -241,32 +329,46 @@ export function MainContent() {
     [sanitizeSchema],
   );
 
-  const markdownComponents = useMemo(() => ({
-    h1: (props: any) => <h1 className="text-2xl font-bold mb-4 text-foreground" {...props} />,
-    h2: (props: any) => <h2 className="text-xl font-semibold mb-3 mt-5 text-foreground" {...props} />,
-    h3: (props: any) => <h3 className="text-lg font-semibold mb-3 mt-4 text-foreground" {...props} />,
-    h4: (props: any) => <h4 className="text-base font-semibold mb-2 mt-3 text-foreground" {...props} />,
-    p: (props: any) => <p className="mb-3 leading-relaxed text-foreground/90" {...props} />,
-    ul: (props: any) => <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />,
-    ol: (props: any) => <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />,
-    li: (props: any) => <li className="leading-relaxed" {...props} />,
-    code: (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[13px]" {...props} />,
-    pre: (props: any) => (
+  const highlightClassName = useMemo(() => 'bg-primary/15 text-primary rounded px-0.5', []);
+
+  const markdownComponents = useMemo(() => {
+    const Code = (props: any) => <code className="px-1 py-0.5 rounded bg-muted font-mono text-[13px]" {...props} />;
+    const Pre = (props: any) => (
       <pre className="p-3 rounded-lg bg-muted overflow-x-auto text-[13px] leading-relaxed" {...props} />
-    ),
-    blockquote: (props: any) => (
-      <blockquote className="border-l-4 border-border pl-3 text-muted-foreground italic mb-3" {...props} />
-    ),
-    hr: () => <hr className="my-4 border-border" />,
-    table: (props: any) => <table className="table-auto border-collapse w-full text-sm mb-3" {...props} />,
-    th: (props: any) => (
-      <th className="border border-border px-2 py-1 bg-muted text-left font-medium" {...props} />
-    ),
-    td: (props: any) => <td className="border border-border px-2 py-1" {...props} />,
-    a: (props: any) => <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer" />,
-    strong: (props: any) => <strong className="font-semibold text-foreground" {...props} />,
-    em: (props: any) => <em className="italic text-foreground/90" {...props} />,
-  }), []);
+    );
+    const skipTypes = [Code, Pre];
+
+    const withHighlight = (Tag: any, className: string) => (props: any) => (
+      <Tag className={className} {...props}>
+        {renderHighlightedChildren(props.children, highlightTerms, highlightClassName, skipTypes)}
+      </Tag>
+    );
+
+    return {
+      h1: withHighlight('h1', 'text-2xl font-bold mb-4 text-foreground'),
+      h2: withHighlight('h2', 'text-xl font-semibold mb-3 mt-5 text-foreground'),
+      h3: withHighlight('h3', 'text-lg font-semibold mb-3 mt-4 text-foreground'),
+      h4: withHighlight('h4', 'text-base font-semibold mb-2 mt-3 text-foreground'),
+      p: withHighlight('p', 'mb-3 leading-relaxed text-foreground/90'),
+      ul: withHighlight('ul', 'list-disc pl-5 mb-3 space-y-1'),
+      ol: withHighlight('ol', 'list-decimal pl-5 mb-3 space-y-1'),
+      li: withHighlight('li', 'leading-relaxed'),
+      code: Code,
+      pre: Pre,
+      blockquote: withHighlight('blockquote', 'border-l-4 border-border pl-3 text-muted-foreground italic mb-3'),
+      hr: () => <hr className="my-4 border-border" />,
+      table: (props: any) => <table className="table-auto border-collapse w-full text-sm mb-3" {...props} />,
+      th: withHighlight('th', 'border border-border px-2 py-1 bg-muted text-left font-medium'),
+      td: withHighlight('td', 'border border-border px-2 py-1'),
+      a: (props: any) => (
+        <a className="text-primary hover:underline" {...props} target="_blank" rel="noreferrer">
+          {renderHighlightedChildren(props.children, highlightTerms, highlightClassName, skipTypes)}
+        </a>
+      ),
+      strong: withHighlight('strong', 'font-semibold text-foreground'),
+      em: withHighlight('em', 'italic text-foreground/90'),
+    };
+  }, [highlightTerms, highlightClassName]);
 
   const renderPromptContent = (content?: string) => {
     if (!content) {
@@ -280,7 +382,7 @@ export function MainContent() {
     if (!renderMarkdownEnabled) {
       return (
         <div className="p-4 rounded-xl bg-card border border-border font-mono text-[14px] leading-relaxed whitespace-pre-wrap break-words">
-          {content}
+          {renderHighlightedText(content, highlightTerms, highlightClassName)}
         </div>
       );
     }
@@ -314,15 +416,19 @@ export function MainContent() {
     }
   };
 
+  // AI test function (supports variable substitution)
   // AI 测试函数（支持变量替换后的 prompt）
   const runAiTest = async (systemPrompt: string | undefined, userPrompt: string, promptId?: string) => {
+    // Do not use modal in card view; render results inline
     // 卡片视图不使用弹窗，直接在页面内显示结果
+    // setShowAiPanel(true);  // Removed: do not open AiTestModal
     // setShowAiPanel(true);  // 移除：不再打开 AiTestModal
     setIsTestingAI(true);
     setAiResponse(null);
     setAiThinking(null);
     setIsAiTestVariableModalOpen(false);
 
+    // Increment usage count
     // 增加使用次数
     const targetId = promptId || selectedId;
     if (targetId) {
@@ -358,6 +464,7 @@ export function MainContent() {
     }
   };
 
+  // Multi-model comparison (supports variable substitution)
   // 多模型对比函数（支持变量替换后的 prompt）
   const runModelCompare = async (systemPrompt: string | undefined, userPrompt: string) => {
     setIsCompareVariableModalOpen(false);
@@ -378,9 +485,11 @@ export function MainContent() {
     setCompareError(null);
     
     try {
+      // Streaming support: render placeholder results early so users can see streaming progress
       // 支持流式：提前渲染占位结果，让用户能看到"正在流式输出"的差异
       setCompareResults(
         selectedConfigs.map((c) => ({
+          id: c.id,
           success: true,
           response: '',
           thinkingContent: '',
@@ -390,6 +499,7 @@ export function MainContent() {
         }))
       );
 
+      // Create stream callbacks map for streaming-enabled models
       // 为启用流式的模型创建流式回调 Map
       const streamCallbacksMap = new Map<string, StreamCallbacks>();
       for (const cfg of selectedConfigs) {
@@ -399,7 +509,7 @@ export function MainContent() {
               setCompareResults((prev) => {
                 if (!prev) return prev;
                 return prev.map((r) =>
-                  r.model === cfg.model && r.provider === cfg.provider
+                  (r as any).id === cfg.id
                     ? { ...r, response: (r.response || '') + chunk }
                     : r
                 );
@@ -409,7 +519,7 @@ export function MainContent() {
               setCompareResults((prev) => {
                 if (!prev) return prev;
                 return prev.map((r) =>
-                  r.model === cfg.model && r.provider === cfg.provider
+                  (r as any).id === cfg.id
                     ? { ...r, thinkingContent: (r.thinkingContent || '') + chunk }
                     : r
                 );
@@ -422,6 +532,7 @@ export function MainContent() {
       const result = await multiModelCompare(selectedConfigs as any, messages, {
         streamCallbacksMap,
       });
+      // In streaming mode, results are updated via callbacks; sync once more for non-streaming models
       // 流式模式下，结果已经在回调中更新，这里只做最终同步（确保非流式模型的结果也正确显示）
       setCompareResults(result.results);
     } catch (error) {
@@ -431,6 +542,7 @@ export function MainContent() {
     }
   };
 
+  // Filter prompts - use useMemo to respond correctly to searchQuery changes
   // 过滤 Prompts - 使用 useMemo 确保正确响应 searchQuery 变化
   const filteredPrompts = useMemo(() => {
     let result = prompts;
@@ -440,6 +552,7 @@ export function MainContent() {
     } else if (selectedFolderId) {
       result = result.filter((p) => p.folderId === selectedFolderId);
     } else {
+      // In the "All Prompts" view, hide contents of private folders
       // 在"全部 Prompts"视图中，隐藏私密文件夹的内容
       const privateFolderIds = folders.filter(f => f.isPrivate).map(f => f.id);
       if (privateFolderIds.length > 0) {
@@ -448,18 +561,61 @@ export function MainContent() {
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.description?.toLowerCase().includes(query) ||
-          p.userPrompt.toLowerCase().includes(query) ||
-          (p.userPromptEn ? p.userPromptEn.toLowerCase().includes(query) : false) ||
-          (p.systemPrompt ? p.systemPrompt.toLowerCase().includes(query) : false) ||
-          (p.systemPromptEn ? p.systemPromptEn.toLowerCase().includes(query) : false)
-      );
+      const queryLower = searchQuery.toLowerCase();
+      const queryCompact = queryLower.replace(/\s+/g, '');
+      const keywords = queryLower.split(/\s+/).filter((k) => k.length > 0);
+
+      const isSubsequence = (needle: string, haystack: string) => {
+        if (!needle) return true;
+        if (needle.length > haystack.length) return false;
+        let i = 0;
+        for (let j = 0; j < haystack.length && i < needle.length; j++) {
+          if (haystack[j] === needle[i]) i++;
+        }
+        return i === needle.length;
+      };
+
+      // Scoring logic: 100 for title exact, 50 for title include, 20 for desc include, 10 for prompts include
+      // 评分逻辑：标题精确匹配 100，标题包含 50，描述包含 20，Prompt 包含 10
+      result = result.map(p => {
+        let score = 0;
+        const titleLower = p.title.toLowerCase();
+        const descLower = (p.description || '').toLowerCase();
+        const userPromptLower = p.userPrompt.toLowerCase();
+        
+        // Exact title match
+        if (titleLower === queryLower) score += 100;
+        // Title includes query
+        else if (titleLower.includes(queryLower)) score += 50;
+        // Subsequence title match
+        else if (queryCompact.length >= 2 && isSubsequence(queryCompact, titleLower.replace(/\s+/g, ''))) score += 30;
+
+        // Description includes query
+        if (descLower.includes(queryLower)) score += 20;
+        
+        // All keywords match anywhere
+        const searchableText = [
+          p.title,
+          p.description || '',
+          p.userPrompt,
+          p.userPromptEn || '',
+          p.systemPrompt || '',
+          p.systemPromptEn || '',
+        ].join(' ').toLowerCase();
+        
+        if (keywords.every(k => searchableText.includes(k))) {
+          score += 10;
+        }
+
+        // Final score check
+        return { prompt: p, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.prompt);
     }
 
+    // Tag filtering (multi-select: must contain all selected tags)
     // 标签筛选（多选：必须包含所有选中的标签）
     if (filterTags.length > 0) {
       result = result.filter((p) =>
@@ -470,10 +626,12 @@ export function MainContent() {
     return result;
   }, [prompts, selectedFolderId, searchQuery, filterTags, folders]);
 
+  // Sorting (pinned prompts always first)
   // 排序（置顶的始终在最前面）
   const sortedPrompts = useMemo(() => {
     const sorted = [...filteredPrompts];
     sorted.sort((a, b) => {
+      // Pinned items first
       // 置顶的排在前面
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -502,6 +660,7 @@ export function MainContent() {
 
   const selectedPrompt = prompts.find((p) => p.id === selectedId);
 
+  // Auto-select prompt language based on UI language (if English version exists)
   // 根据界面语言自动选择 Prompt 语言（如果有英文版本）
   useEffect(() => {
     if (!selectedPrompt) {
@@ -516,15 +675,19 @@ export function MainContent() {
     setShowEnglish(preferEnglish);
   }, [selectedPrompt?.id, selectedPrompt?.systemPromptEn, selectedPrompt?.userPromptEn, preferEnglish]);
 
+  // Editing prompt for table view
   // 用于表格视图的编辑 prompt
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  // AI test modal state
   // AI 测试弹窗状态
   const [isAiTestModalOpen, setIsAiTestModalOpen] = useState(false);
   const [aiTestPrompt, setAiTestPrompt] = useState<Prompt | null>(null);
+  // AI response cache (for list view preview)
   // AI 响应缓存（用于列表视图预览）
   const [aiResponseCache, setAiResponseCache] = useState<Record<string, string>>({});
   const setViewMode = usePromptStore((state) => state.setViewMode);
 
+  // Handle copying prompt
   // 处理复制 Prompt
   const handleCopyPrompt = async (prompt: Prompt) => {
     const text = prompt.userPrompt;
@@ -533,11 +696,13 @@ export function MainContent() {
     showToast(t('toast.copied'), 'success', showCopyNotification);
   };
 
+  // Handle deleting prompt (for table view)
   // 处理删除 Prompt（表格视图用）
   const handleDeletePrompt = useCallback((prompt: Prompt) => {
     setDeleteConfirm({ isOpen: true, prompt });
   }, []);
 
+  // Confirm delete
   // 确认删除
   const confirmDelete = useCallback(async () => {
     if (deleteConfirm.prompt) {
@@ -547,6 +712,7 @@ export function MainContent() {
     setDeleteConfirm({ isOpen: false, prompt: null });
   }, [deleteConfirm.prompt, deletePrompt, showToast, t]);
 
+  // Handle AI test (table view - modal)
   // 处理 AI 测试（表格视图用 - 弹窗模式）
   const handleAiTestFromTable = (prompt: Prompt) => {
     if (!canRunSingleAiTest) {
@@ -557,25 +723,30 @@ export function MainContent() {
     setIsAiTestModalOpen(true);
   };
 
+  // Detail modal state
   // 查看详情弹窗状态
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailPrompt, setDetailPrompt] = useState<Prompt | null>(null);
+  // Version history modal state
   // 版本历史弹窗状态
   const [isVersionModalOpenTable, setIsVersionModalOpenTable] = useState(false);
   const [versionHistoryPrompt, setVersionHistoryPrompt] = useState<Prompt | null>(null);
 
+  // View details - show modal
   // 查看详情 - 弹窗显示
   const handleViewDetail = (prompt: Prompt) => {
     setDetailPrompt(prompt);
     setIsDetailModalOpen(true);
   };
 
+  // Version history
   // 版本历史
   const handleVersionHistory = (prompt: Prompt) => {
     setVersionHistoryPrompt(prompt);
     setIsVersionModalOpenTable(true);
   };
 
+  // Restore version (table view)
   // 恢复版本（表格视图用）
   const handleRestoreVersionFromTable = async (version: PromptVersion) => {
     if (versionHistoryPrompt) {
@@ -589,6 +760,7 @@ export function MainContent() {
     }
   };
 
+  // Context menu anchor (also used by table view)
   // 处理 AI 测试使用次数增加并缓存结果
   const handleContextMenu = (e: React.MouseEvent, prompt: Prompt) => {
     e.preventDefault();
@@ -643,13 +815,16 @@ export function MainContent() {
     await incrementUsageCount(id);
   };
 
+  // Save AI response into prompt
   // 保存 AI 响应到 Prompt
   const handleSaveAiResponse = async (promptId: string, response: string) => {
     await updatePrompt(promptId, { lastAiResponse: response });
+    // Update cache as well for immediate UI refresh
     // 同时更新缓存以便立即显示
     setAiResponseCache((prev) => ({ ...prev, [promptId]: response }));
   };
 
+  // Batch operations
   // 批量操作函数
   const handleBatchFavorite = async (ids: string[], favorite: boolean) => {
     for (const id of ids) {
@@ -682,6 +857,7 @@ export function MainContent() {
 
   return (
     <main className="flex-1 relative overflow-hidden bg-background">
+      {/* List view mode */}
       {/* 列表视图模式 */}
       <div 
         className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${
@@ -690,13 +866,16 @@ export function MainContent() {
             : 'opacity-0 z-0 pointer-events-none'
         }`}
       >
+        {/* Top: sort + view switch */}
         {/* 顶部：排序 + 视图切换 */}
         <PromptListHeader count={sortedPrompts.length} />
 
+        {/* Table view */}
         {/* 表格视图 */}
         <div className="flex-1 overflow-hidden">
           <PromptTableView
             prompts={sortedPrompts}
+            highlightTerms={highlightTerms}
             onSelect={(id) => selectPrompt(id)}
             onToggleFavorite={toggleFavorite}
             onCopy={handleCopyPrompt}
@@ -714,6 +893,7 @@ export function MainContent() {
         </div>
       </div>
 
+      {/* Gallery view */}
       {/* Gallery 视图 */}
       <div 
         className={`absolute inset-0 flex flex-col bg-background transition-opacity duration-200 ease-in-out ${
@@ -725,6 +905,7 @@ export function MainContent() {
         <PromptListHeader count={sortedPrompts.length} />
         <PromptGalleryView
           prompts={sortedPrompts}
+          highlightTerms={highlightTerms}
           onSelect={(id) => selectPrompt(id)}
           onToggleFavorite={toggleFavorite}
           onCopy={handleCopyPrompt}
@@ -737,6 +918,7 @@ export function MainContent() {
         />
       </div>
 
+      {/* Card view mode: two-column layout */}
       {/* 卡片视图模式：左右分栏 */}
       <div 
         className={`absolute inset-0 flex overflow-hidden bg-background transition-opacity duration-200 ease-in-out ${
@@ -745,11 +927,14 @@ export function MainContent() {
             : 'opacity-0 z-0 pointer-events-none'
         }`}
       >
+        {/* Prompt list */}
         {/* Prompt 列表 */}
         <div className="w-80 border-r border-border flex flex-col bg-card/50">
+          {/* List header: sort + view switch */}
           {/* 列表头部：排序 + 视图切换 */}
           <PromptListHeader count={sortedPrompts.length} />
 
+          {/* List content */}
           {/* 列表内容 */}
           <div className="flex-1 overflow-y-auto">
             {sortedPrompts.length === 0 ? (
@@ -769,6 +954,7 @@ export function MainContent() {
                     isSelected={selectedId === prompt.id}
                     onSelect={() => selectPrompt(prompt.id)}
                     onContextMenu={(e) => handleContextMenu(e, prompt)}
+                    highlightTerms={highlightTerms}
                   />
                 ))}
               </div>
@@ -776,12 +962,14 @@ export function MainContent() {
           </div>
         </div>
 
+        {/* Prompt details - iOS style */}
         {/* Prompt 详情 - iOS 风格 */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {selectedPrompt ? (
             <div key={selectedPrompt.id} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-3 duration-200">
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-5xl mx-auto px-6 py-4">
+              {/* Title section */}
               {/* 标题区域 */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
@@ -791,24 +979,6 @@ export function MainContent() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  {/* 语言切换按钮 */}
-                  {(selectedPrompt.systemPromptEn || selectedPrompt.userPromptEn) && (
-                    <button
-                      onClick={() => setShowEnglish(!showEnglish)}
-                      className={`
-                        flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 mr-1
-                        ${showEnglish 
-                          ? 'bg-primary text-white' 
-                          : 'bg-accent text-muted-foreground hover:text-foreground'
-                        }
-                      `}
-                      title={showEnglish ? t('prompt.showChinese') : t('prompt.showEnglish')}
-                    >
-                      <GlobeIcon className="w-3.5 h-3.5" />
-                      {showEnglish ? 'EN' : 'ZH'}
-                    </button>
-                  )}
-
                   <button
                     onClick={() => toggleFavorite(selectedPrompt.id)}
                     className={`
@@ -831,6 +1001,7 @@ export function MainContent() {
                 </div>
               </div>
 
+              {/* Metadata */}
               {/* 元信息 */}
               <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
                 <span className="flex items-center gap-1">
@@ -842,6 +1013,7 @@ export function MainContent() {
                 </span>
               </div>
 
+              {/* Images */}
               {/* 图片 */}
               {selectedPrompt.images && selectedPrompt.images.length > 0 && (
                 <div className="mb-4">
@@ -861,6 +1033,7 @@ export function MainContent() {
                 </div>
               )}
 
+              {/* Tags */}
               {/* 标签 */}
               {selectedPrompt.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-4">
@@ -873,6 +1046,27 @@ export function MainContent() {
                       {tag}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* Language toggle button */}
+              {/* 语言切换按钮 */}
+              {(selectedPrompt.systemPromptEn || selectedPrompt.userPromptEn) && (
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => setShowEnglish(!showEnglish)}
+                    className={
+                      `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ` +
+                      (showEnglish
+                        ? 'bg-primary text-white'
+                        : 'bg-accent text-muted-foreground hover:text-foreground')
+                    }
+                    title={showEnglish ? t('prompt.showLocalized', '显示当前语言') : t('prompt.showEnglish')}
+                    type="button"
+                  >
+                    <GlobeIcon className="w-3.5 h-3.5" />
+                    {showEnglish ? 'EN' : uiLangTag}
+                  </button>
                 </div>
               )}
 
@@ -907,6 +1101,7 @@ export function MainContent() {
                 {renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)}
               </div>
 
+              {/* Multi-model comparison */}
               {/* 多模型对比区域 */}
               {aiModels.length > 0 && (
                 <div className="mb-4 p-4 rounded-xl bg-card border border-border">
@@ -918,10 +1113,12 @@ export function MainContent() {
                     </div>
                   </div>
 
+                  {/* Model selection list */}
                   {/* 模型选择列表 */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     {aiModels.map((model) => {
                       const isSelected = selectedModelIds.includes(model.id);
+                      // Get provider display name
                       // 获取供应商简称
                       const providerName = model.name || model.provider;
                       const displayName = `${providerName} | ${model.model}`;
@@ -970,6 +1167,7 @@ export function MainContent() {
                         }
                         if (!selectedPrompt) return;
 
+                        // Check variables (create a new regex per string to avoid global flag state)
                         // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
                         const hasVariables = 
                           /\{\{([^}]+)\}\}/.test(selectedPrompt.userPrompt) ||
@@ -1033,6 +1231,7 @@ export function MainContent() {
                 </div>
               )}
               
+              {/* AI response panel */}
               {/* AI 测试响应区域 */}
               {(isTestingAI || aiResponse) && (
                 <div className="mb-4 p-4 rounded-xl bg-card border border-border">
@@ -1081,15 +1280,18 @@ export function MainContent() {
               )}
               </div>
             </div>
+            {/* Action buttons - sticky bottom */}
             {/* 操作按钮 - 固定底部 */}
             <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
               <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
                 <button
                   onClick={async () => {
+                    // Select content based on language mode
                     // 根据语言模式选择内容
                     const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
                     const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
                     
+                    // Check variables (create a new regex per string to avoid global flag state)
                     // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
                     const hasVariables = 
                       /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
@@ -1116,10 +1318,12 @@ export function MainContent() {
                       showToast(t('toast.configAI'), 'error');
                       return;
                     }
+                    // Select content based on language mode
                     // 根据语言模式选择内容
                     const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
                     const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
                     
+                    // Check variables (create a new regex per string to avoid global flag state)
                     // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
                     const hasVariables = 
                       /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
@@ -1165,8 +1369,10 @@ export function MainContent() {
         </div>
       </div>
 
+      {/* Shared modals */}
       {/* 共享弹窗 */}
       
+      {/* Edit modal */}
       {/* 编辑弹窗 */}
       {editingPrompt && (
         <EditPromptModal
@@ -1176,6 +1382,7 @@ export function MainContent() {
         />
       )}
 
+      {/* AI test modal (for List/Gallery view) */}
       {/* AI 测试弹窗 (用于 List/Gallery 视图) */}
       <AiTestModal
         isOpen={isAiTestModalOpen}
@@ -1187,6 +1394,7 @@ export function MainContent() {
         onUsageIncrement={handleAiUsageIncrement}
         onSaveResponse={handleSaveAiResponse}
         onAddImage={async (fileName) => {
+          // Add generated image to the currently tested prompt
           // 将生成的图片添加到当前测试的 Prompt
           if (aiTestPrompt) {
             const newImages = [...(aiTestPrompt.images || []), fileName];
@@ -1199,6 +1407,7 @@ export function MainContent() {
         }}
       />
 
+      {/* Detail modal (for List/Gallery view) */}
       {/* 查看详情弹窗 (用于 List/Gallery 视图) */}
       <PromptDetailModal
         isOpen={isDetailModalOpen}
@@ -1211,6 +1420,7 @@ export function MainContent() {
         onEdit={(prompt) => setEditingPrompt(prompt)}
       />
 
+      {/* Variable input modal (copy) - choose content by language mode */}
       {/* 变量输入弹窗（用于复制） - 根据语言模式选择内容 */}
       {selectedPrompt && (
         <VariableInputModal
@@ -1231,6 +1441,7 @@ export function MainContent() {
         />
       )}
 
+      {/* Variable input modal (AI test) - choose content by language mode */}
       {/* 变量输入弹窗（用于 AI 测试） - 根据语言模式选择内容 */}
       {selectedPrompt && (
         <VariableInputModal
@@ -1247,6 +1458,7 @@ export function MainContent() {
         />
       )}
 
+      {/* Variable input modal (multi-model compare) - choose content by language mode */}
       {/* 变量输入弹窗（用于多模型对比） - 根据语言模式选择内容 */}
       {selectedPrompt && (
         <VariableInputModal
@@ -1263,6 +1475,7 @@ export function MainContent() {
         />
       )}
 
+      {/* Version history modal (unified) */}
       {/* 版本历史弹窗 (Unified) */}
       {versionHistoryPrompt && (
         <VersionHistoryModal
@@ -1276,6 +1489,7 @@ export function MainContent() {
         />
       )}
 
+      {/* Image preview modal */}
       {/* 图片预览弹窗 */}
       <ImagePreviewModal
         isOpen={!!previewImage}
@@ -1283,6 +1497,7 @@ export function MainContent() {
         imageSrc={previewImage}
       />
 
+      {/* Delete confirm dialog */}
       {/* 删除确认对话框 */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
@@ -1295,6 +1510,7 @@ export function MainContent() {
         variant="destructive"
       />
 
+      {/* Context menu */}
       {/* 右键菜单 */}
       {contextMenu && (
         <ContextMenu

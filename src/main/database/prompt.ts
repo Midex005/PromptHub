@@ -12,6 +12,7 @@ export class PromptDB {
   constructor(private db: Database.Database) { }
 
   /**
+   * Create Prompt
    * 创建 Prompt
    */
   create(data: CreatePromptDTO): Prompt {
@@ -40,13 +41,16 @@ export class PromptDB {
       now
     );
 
+    // Create initial version
     // 创建初始版本
-    this.createVersion(id, '初始版本');
+    this.createVersion(id, 'Initial version');
+    // 初始版本
 
     return this.getById(id)!;
   }
 
   /**
+   * Get Prompt by ID
    * 根据 ID 获取 Prompt
    */
   getById(id: string): Prompt | null {
@@ -56,6 +60,7 @@ export class PromptDB {
   }
 
   /**
+   * Get all Prompts
    * 获取所有 Prompt
    */
   getAll(): Prompt[] {
@@ -65,6 +70,7 @@ export class PromptDB {
   }
 
   /**
+   * Update Prompt
    * 更新 Prompt
    */
   update(id: string, data: UpdatePromptDTO): Prompt | null {
@@ -123,6 +129,7 @@ export class PromptDB {
     );
     stmt.run(...values);
 
+    // Create a new version if content changes
     // 如果内容有变化，创建新版本
     if (data.systemPrompt !== undefined || data.userPrompt !== undefined || data.variables !== undefined) {
       this.createVersion(id);
@@ -132,6 +139,7 @@ export class PromptDB {
   }
 
   /**
+   * Delete Prompt
    * 删除 Prompt
    */
   delete(id: string): boolean {
@@ -141,6 +149,7 @@ export class PromptDB {
   }
 
   /**
+   * Search Prompts
    * 搜索 Prompt
    */
   search(query: SearchQuery): Prompt[] {
@@ -163,12 +172,14 @@ export class PromptDB {
     }
 
     if (query.tags && query.tags.length > 0) {
+      // Simple tag match
       // 简单的标签匹配
       const tagConditions = query.tags.map(() => 'tags LIKE ?').join(' OR ');
       sql += ` AND (${tagConditions})`;
       params.push(...query.tags.map((tag) => `%"${tag}"%`));
     }
 
+    // Sorting
     // 排序
     const sortBy = query.sortBy || 'updatedAt';
     const sortOrder = query.sortOrder || 'desc';
@@ -180,6 +191,7 @@ export class PromptDB {
     }[sortBy];
     sql += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`;
 
+    // Pagination
     // 分页
     if (query.limit) {
       sql += ' LIMIT ?';
@@ -196,6 +208,7 @@ export class PromptDB {
   }
 
   /**
+   * Increment usage count
    * 增加使用次数
    */
   incrementUsage(id: string): void {
@@ -206,6 +219,7 @@ export class PromptDB {
   }
 
   /**
+   * Create version
    * 创建版本
    */
   createVersion(promptId: string, note?: string): PromptVersion | null {
@@ -233,6 +247,7 @@ export class PromptDB {
       now
     );
 
+    // Update current version number
     // 更新当前版本号
     this.db.prepare('UPDATE prompts SET current_version = current_version + 1 WHERE id = ?').run(promptId);
 
@@ -249,6 +264,7 @@ export class PromptDB {
   }
 
   /**
+   * Get all versions
    * 获取所有版本
    */
   getVersions(promptId: string): PromptVersion[] {
@@ -260,6 +276,7 @@ export class PromptDB {
   }
 
   /**
+   * Rollback to specified version
    * 回滚到指定版本
    */
   rollback(promptId: string, version: number): Prompt | null {
@@ -279,6 +296,7 @@ export class PromptDB {
   }
 
   /**
+   * Convert database row to Prompt object
    * 数据库行转 Prompt 对象
    */
   private rowToPrompt(row: any): Prompt {
@@ -303,6 +321,7 @@ export class PromptDB {
   }
 
   /**
+   * Convert database row to PromptVersion object
    * 数据库行转 PromptVersion 对象
    */
   private rowToVersion(row: any): PromptVersion {
